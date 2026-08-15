@@ -1,11 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Camera, Palette, Ruler } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,14 +128,19 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-8">
-      <section className="flex flex-col gap-4">
-        <div>
-          <h2 className="font-display text-lg font-semibold">Measurements</h2>
-          <p className="text-sm text-muted-foreground">
-            Used to fit try-on results and size recommendations to you.
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Card variant="flush">
+        <CardHeader className="flex-row items-center gap-3 px-0">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent">
+            <Ruler className="size-4 text-accent-foreground" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold">Measurements</h2>
+            <p className="text-sm text-muted-foreground">
+              Used to fit try-on results and size recommendations to you.
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-4 px-0 sm:grid-cols-2 lg:grid-cols-3">
           {MEASUREMENT_FIELDS.map(({ name, label }) => (
             <div key={name} className="flex flex-col gap-1.5">
               <Label htmlFor={name}>{label}</Label>
@@ -173,92 +180,109 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
               </SelectContent>
             </Select>
           </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="flex flex-col gap-4">
-        <div>
-          <h2 className="font-display text-lg font-semibold">Style preferences</h2>
-          <p className="text-sm text-muted-foreground">
-            Saved on this device for now — see docs/frontend/SHOPPER_APP.md for why these
-            aren&apos;t sent to the server yet.
-          </p>
-        </div>
+      <Card variant="flush">
+        <CardHeader className="flex-row items-center gap-3 px-0">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent">
+            <Palette className="size-4 text-accent-foreground" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold">Style preferences</h2>
+            <p className="text-sm text-muted-foreground">
+              Saved on this device for now — see docs/frontend/SHOPPER_APP.md for why these
+              aren&apos;t sent to the server yet.
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 px-0">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="preferred_fit">Preferred fit</Label>
+            <Select
+              value={watch("preferred_fit") || undefined}
+              onValueChange={(value) =>
+                setValue("preferred_fit", value as BodyProfileFormValues["preferred_fit"])
+              }
+            >
+              <SelectTrigger id="preferred_fit" className="max-w-64">
+                <SelectValue placeholder="Select a preferred fit" />
+              </SelectTrigger>
+              <SelectContent>
+                {PREFERRED_FITS.map((fit) => (
+                  <SelectItem key={fit} value={fit}>
+                    {formatOptionLabel(fit)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="preferred_fit">Preferred fit</Label>
-          <Select
-            value={watch("preferred_fit") || undefined}
-            onValueChange={(value) =>
-              setValue("preferred_fit", value as BodyProfileFormValues["preferred_fit"])
-            }
-          >
-            <SelectTrigger id="preferred_fit" className="max-w-64">
-              <SelectValue placeholder="Select a preferred fit" />
-            </SelectTrigger>
-            <SelectContent>
-              {PREFERRED_FITS.map((fit) => (
-                <SelectItem key={fit} value={fit}>
-                  {formatOptionLabel(fit)}
-                </SelectItem>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-sm font-medium">Favorite colors</legend>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {COLOR_PALETTE.map((color) => (
+                <label key={color} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={favoriteColors.includes(color)}
+                    onCheckedChange={() =>
+                      setValue("favorite_colors", toggleInArray(favoriteColors, color))
+                    }
+                  />
+                  {formatOptionLabel(color)}
+                </label>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
+            </div>
+          </fieldset>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-medium">Favorite colors</legend>
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {COLOR_PALETTE.map((color) => (
-              <label key={color} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={favoriteColors.includes(color)}
-                  onCheckedChange={() =>
-                    setValue("favorite_colors", toggleInArray(favoriteColors, color))
-                  }
-                />
-                {formatOptionLabel(color)}
-              </label>
-            ))}
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-sm font-medium">Style</legend>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {STYLE_TAGS.map((tag) => (
+                <label key={tag} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={styleTags.includes(tag)}
+                    onCheckedChange={() =>
+                      setValue("style_preferences", toggleInArray(styleTags, tag))
+                    }
+                  />
+                  {formatOptionLabel(tag)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </CardContent>
+      </Card>
+
+      <Card variant="flush">
+        <CardHeader className="flex-row items-center gap-3 px-0">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent">
+            <Camera className="size-4 text-accent-foreground" aria-hidden="true" />
           </div>
-        </fieldset>
-
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-medium">Style</legend>
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {STYLE_TAGS.map((tag) => (
-              <label key={tag} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={styleTags.includes(tag)}
-                  onCheckedChange={() =>
-                    setValue("style_preferences", toggleInArray(styleTags, tag))
-                  }
-                />
-                {formatOptionLabel(tag)}
-              </label>
-            ))}
+          <div>
+            <h2 className="font-display text-lg font-semibold">Reference photo</h2>
+            <p className="text-sm text-muted-foreground">
+              A well-lit, front-facing photo helps try-on results line up correctly.
+            </p>
           </div>
-        </fieldset>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <div>
-          <h2 className="font-display text-lg font-semibold">Reference photo</h2>
-          <p className="text-sm text-muted-foreground">
-            A well-lit, front-facing photo helps try-on results line up correctly.
+        </CardHeader>
+        <CardContent className="px-0">
+          <ImageUploadField
+            label="Drop a reference photo here, or click to browse"
+            hint="PNG or JPG, up to 10MB"
+            status={upload.status}
+            previewUrl={upload.previewUrl}
+            progress={upload.progress}
+            error={upload.error}
+            onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
+            onClear={upload.reset}
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Not connected to try-on results yet — uploading here doesn&apos;t change anything else
+            in the app today.
           </p>
-        </div>
-        <ImageUploadField
-          label="Drop a reference photo here, or click to browse"
-          hint="PNG or JPG, up to 10MB"
-          status={upload.status}
-          previewUrl={upload.previewUrl}
-          progress={upload.progress}
-          error={upload.error}
-          onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
-          onClear={upload.reset}
-        />
-      </section>
+        </CardContent>
+      </Card>
 
       {upsertMutation.isError && (
         <p role="alert" className="text-sm text-destructive">

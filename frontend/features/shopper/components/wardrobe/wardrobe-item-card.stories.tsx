@@ -8,9 +8,11 @@ import { WardrobeItemCard } from "@/features/shopper/components/wardrobe/wardrob
  * mutation) internally, which needs a QueryClientProvider ancestor — this
  * decorator supplies one, matching the pattern used for LoginForm's
  * QueryClientProvider wrapper in tests/unit/features/login-form.test.tsx.
- * Clicking "Remove" here will attempt a real network call and fail (there's
- * no backend in Storybook), which is expected — the story exists to
- * document the card's visual states, not to exercise the mutation.
+ * The delete action is now a ProductCard `actions`-slot icon button,
+ * hover/focus-revealed rather than always-visible text — clicking it here
+ * will attempt a real network call and fail (there's no backend in
+ * Storybook), which is expected — the story exists to document the
+ * card's visual states, not to exercise the mutation.
  */
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 

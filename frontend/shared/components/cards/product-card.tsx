@@ -13,6 +13,8 @@ export interface ProductCardProps {
   price?: string;
   /** Status/moderation chip — active, out of stock, archived, etc. */
   badge?: React.ReactNode;
+  /** Revealed on hover/focus over the image — delete/edit affordances. */
+  actions?: React.ReactNode;
   onClick?: () => void;
   className?: string;
 }
@@ -25,7 +27,17 @@ export interface ProductCardProps {
  * text, never competing headline typography — see
  * docs/frontend/DESIGN_SYSTEM.md "Fashion-specific components".
  */
-function ProductCard({ imageKey, alt, name, subtitle, price, badge, onClick, className }: ProductCardProps) {
+function ProductCard({
+  imageKey,
+  alt,
+  name,
+  subtitle,
+  price,
+  badge,
+  actions,
+  onClick,
+  className,
+}: ProductCardProps) {
   const interactive = Boolean(onClick);
 
   return (
@@ -55,6 +67,11 @@ function ProductCard({ imageKey, alt, name, subtitle, price, badge, onClick, cla
           )}
         />
         {badge && <div className="absolute left-2.5 top-2.5">{badge}</div>}
+        {actions && (
+          <div className="absolute bottom-2.5 right-2.5 flex gap-1.5 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100">
+            {actions}
+          </div>
+        )}
       </div>
 
       <div className="flex items-start justify-between gap-2">
@@ -62,9 +79,7 @@ function ProductCard({ imageKey, alt, name, subtitle, price, badge, onClick, cla
           <p className="truncate text-sm font-medium">{name}</p>
           {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
         </div>
-        {price && (
-          <span className="shrink-0 font-mono text-sm text-foreground">{price}</span>
-        )}
+        {price && <span className="shrink-0 font-mono text-sm text-foreground">{price}</span>}
       </div>
     </div>
   );

@@ -4,9 +4,8 @@ import { Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useDeleteWardrobeItem } from "@/features/shopper/hooks/use-delete-wardrobe-item";
-import { ResolvedImage } from "@/shared/components/resolved-image";
+import { ProductCard } from "@/shared/components/cards/product-card";
 import type { WardrobeItem } from "@/types/domain";
 
 export interface WardrobeItemCardProps {
@@ -17,37 +16,30 @@ function WardrobeItemCard({ item }: WardrobeItemCardProps) {
   const deleteMutation = useDeleteWardrobeItem();
 
   return (
-    <Card className="overflow-hidden">
-      <ResolvedImage
-        imageKey={item.image_key}
-        alt={item.label ?? item.category}
-        className="aspect-square w-full"
-      />
-      <CardContent className="flex flex-col gap-1 p-4">
-        <span className="truncate text-sm font-medium">{item.label ?? item.category}</span>
-        <div className="flex items-center gap-1.5">
-          <Badge variant="secondary" className="capitalize">
-            {item.category}
-          </Badge>
-          <Badge variant="outline" className="capitalize">
-            {item.source}
-          </Badge>
-        </div>
-      </CardContent>
-      <CardFooter className="p-4 pt-0">
+    <ProductCard
+      imageKey={item.image_key}
+      alt={item.label ?? item.category}
+      name={item.label ?? item.category}
+      subtitle={item.source === "uploaded" ? "Uploaded" : "Catalog item"}
+      badge={
+        <Badge variant="secondary" className="capitalize">
+          {item.category}
+        </Badge>
+      }
+      actions={
         <Button
           type="button"
-          variant="ghost"
-          size="sm"
-          className="ml-auto text-destructive hover:text-destructive"
+          variant="secondary"
+          size="icon"
+          className="size-8 rounded-full text-destructive hover:text-destructive"
           onClick={() => deleteMutation.mutate(item.id)}
           isLoading={deleteMutation.isPending}
           aria-label={`Delete ${item.label ?? item.category}`}
         >
-          <Trash2 className="size-3.5" /> Remove
+          <Trash2 className="size-3.5" />
         </Button>
-      </CardFooter>
-    </Card>
+      }
+    />
   );
 }
 
