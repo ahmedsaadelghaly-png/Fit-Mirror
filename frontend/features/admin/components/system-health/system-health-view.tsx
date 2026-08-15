@@ -51,7 +51,7 @@ function SystemHealthContent() {
         <ServiceStatusBadge status={summary.overallStatus} />
       </div>
 
-      <Card>
+      <Card variant="elevated">
         <CardHeader>
           <CardTitle className="text-base">Service checks</CardTitle>
           <CardDescription>

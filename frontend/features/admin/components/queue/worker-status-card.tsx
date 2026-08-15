@@ -16,7 +16,7 @@ export interface WorkerStatusCardProps {
 
 function WorkerStatusCard({ worker }: WorkerStatusCardProps) {
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
           <Server className="size-4 text-muted-foreground" aria-hidden="true" />

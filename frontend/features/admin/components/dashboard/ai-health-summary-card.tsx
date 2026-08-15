@@ -13,7 +13,7 @@ export interface AiHealthSummaryCardProps {
 
 function AiHealthSummaryCard({ health }: AiHealthSummaryCardProps) {
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader className="flex-row items-start justify-between space-y-0">
         <div>
           <div className="flex items-center gap-2">

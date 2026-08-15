@@ -16,7 +16,7 @@ export interface AlertsPanelProps {
 
 function AlertsPanel({ alerts }: AlertsPanelProps) {
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div>
           <CardTitle className="text-base">Alerts</CardTitle>

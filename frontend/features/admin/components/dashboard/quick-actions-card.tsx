@@ -13,7 +13,7 @@ const QUICK_ACTIONS = [
 
 function QuickActionsCard() {
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader>
         <CardTitle className="text-base">Quick actions</CardTitle>
         <CardDescription>Jump into common admin tasks</CardDescription>

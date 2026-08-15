@@ -50,7 +50,7 @@ function QueueContent() {
       </div>
 
       {queueStats.map((queue) => (
-        <Card key={queue.queueName}>
+        <Card key={queue.queueName} variant="elevated">
           <CardHeader>
             <CardTitle className="text-base capitalize">{queue.queueName} queue</CardTitle>
             <CardDescription>{queue.throughputPerMinute} jobs/min throughput</CardDescription>

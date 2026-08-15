@@ -23,7 +23,7 @@ function StatSummaryCard({
   linkLabel,
 }: StatSummaryCardProps) {
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Icon className="size-4 text-muted-foreground" aria-hidden="true" />

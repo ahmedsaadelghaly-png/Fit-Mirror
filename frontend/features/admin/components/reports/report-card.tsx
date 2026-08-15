@@ -12,7 +12,7 @@ function ReportCard({ title, description, points }: ReportCardProps) {
   const latest = points.at(-1)?.value ?? 0;
 
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader className="flex-row items-start justify-between space-y-0">
         <div>
           <CardTitle className="text-base">{title}</CardTitle>
