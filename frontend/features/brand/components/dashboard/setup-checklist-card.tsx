@@ -12,7 +12,7 @@ function SetupChecklistCard({ items }: SetupChecklistCardProps) {
   const remaining = items.filter((item) => !item.isComplete).length;
 
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader>
         <CardTitle className="text-base">Setup checklist</CardTitle>
         <CardDescription>

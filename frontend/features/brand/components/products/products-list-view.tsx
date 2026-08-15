@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductFiltersBar } from "@/features/brand/components/products/product-filters-bar";
-import { ProductsTable } from "@/features/brand/components/products/products-table";
+import { ProductsGrid } from "@/features/brand/components/products/products-grid";
 import { RequireStore } from "@/features/brand/components/require-store";
 import { useProducts } from "@/features/brand/hooks/use-products";
 
@@ -37,9 +37,9 @@ function ProductsListContent() {
       </div>
 
       {isLoading && (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-14 w-full" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Skeleton key={index} className="aspect-square w-full" />
           ))}
         </div>
       )}
@@ -72,7 +72,7 @@ function ProductsListContent() {
           {filteredProducts.length === 0 ? (
             <EmptyState title="No products match your filters" />
           ) : (
-            <ProductsTable products={filteredProducts} />
+            <ProductsGrid products={filteredProducts} />
           )}
         </>
       )}

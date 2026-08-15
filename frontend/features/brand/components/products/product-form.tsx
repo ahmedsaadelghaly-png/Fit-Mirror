@@ -103,6 +103,20 @@ function ProductForm({ product }: ProductFormProps) {
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex max-w-2xl flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <Label>Primary image</Label>
+        <ImageUploadField
+          label="Drop a product photo here, or click to browse"
+          hint="PNG or JPG, up to 10MB"
+          status={upload.status}
+          previewUrl={upload.previewUrl}
+          progress={upload.progress}
+          error={upload.error}
+          onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
+          onClear={upload.reset}
+        />
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="title">Title</Label>
         <Input
@@ -174,20 +188,6 @@ function ProductForm({ product }: ProductFormProps) {
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label>Primary image</Label>
-        <ImageUploadField
-          label="Drop a product photo here, or click to browse"
-          hint="PNG or JPG, up to 10MB"
-          status={upload.status}
-          previewUrl={upload.previewUrl}
-          progress={upload.progress}
-          error={upload.error}
-          onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
-          onClear={upload.reset}
-        />
       </div>
 
       {mutation.isError && (

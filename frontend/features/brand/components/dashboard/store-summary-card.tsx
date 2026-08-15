@@ -10,7 +10,7 @@ export interface StoreSummaryCardProps {
 
 function StoreSummaryCard({ store }: StoreSummaryCardProps) {
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
         <div>
           <h1 className="font-display text-2xl font-semibold">{store.name}</h1>

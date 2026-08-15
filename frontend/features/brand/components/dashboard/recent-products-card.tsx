@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResolvedImage } from "@/shared/components/resolved-image";
+import { ProductCard } from "@/shared/components/cards/product-card";
 import type { Product } from "@/types/domain";
 
 export interface RecentProductsCardProps {
@@ -13,7 +13,7 @@ export interface RecentProductsCardProps {
 
 function RecentProductsCard({ products }: RecentProductsCardProps) {
   return (
-    <Card>
+    <Card className="sm:col-span-2">
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div>
           <CardTitle className="text-base">Recent products</CardTitle>
@@ -35,21 +35,22 @@ function RecentProductsCard({ products }: RecentProductsCardProps) {
             </Button>
           </div>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-3">
             {products.map((product) => (
-              <li key={product.id} className="flex items-center gap-3">
-                <ResolvedImage
+              <div key={product.id} className="w-32">
+                <ProductCard
                   imageKey={product.primary_image_key}
                   alt={product.title}
-                  className="size-10 shrink-0 rounded-md"
+                  name={product.title}
+                  badge={
+                    <Badge variant={product.is_active ? "success" : "secondary"}>
+                      {product.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  }
                 />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{product.title}</span>
-                <Badge variant={product.is_active ? "success" : "secondary"}>
-                  {product.is_active ? "Active" : "Inactive"}
-                </Badge>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </CardContent>
     </Card>
