@@ -10,14 +10,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AiChatPanel,
+  type ChatMessage,
+  SuggestedPrompts,
+} from "@/features/shopper/components/ai-chat-panel";
 import { useShoppingAsk } from "@/features/shopper/hooks/use-shopping-ask";
 import { type ShoppingAskFormValues, shoppingAskSchema } from "@/features/shopper/schemas";
 
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-}
+const SUGGESTED_QUESTIONS = [
+  "Do you have this in my size?",
+  "What pairs well with jeans?",
+  "Anything under $50?",
+];
 
 /**
  * PLACEHOLDER page, clearly marked as planned — `POST /shopping/ask`
@@ -34,6 +39,7 @@ function ShoppingView() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<ShoppingAskFormValues>({
     resolver: zodResolver(shoppingAskSchema),
@@ -68,52 +74,37 @@ function ShoppingView() {
           <CardTitle className="text-base">Ask a question</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div
-            role="log"
-            aria-live="polite"
-            className="flex min-h-40 flex-col gap-3 rounded-lg border bg-muted/30 p-4"
+          <AiChatPanel
+            messages={messages}
+            isPending={askMutation.isPending}
+            emptyStateText='Ask something like "Do you have this jacket in navy?"'
           >
-            {messages.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Ask something like &ldquo;Do you have this jacket in navy?&rdquo;
-              </p>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={
-                    message.role === "user"
-                      ? "ml-auto max-w-[80%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-                      : "mr-auto max-w-[80%] rounded-lg bg-surface px-3 py-2 text-sm shadow-xs"
-                  }
-                >
-                  {message.content}
-                </div>
-              ))
-            )}
-            {askMutation.isPending && (
-              <div className="mr-auto max-w-[80%] rounded-lg bg-surface px-3 py-2 text-sm text-muted-foreground shadow-xs">
-                Thinking…
-              </div>
-            )}
-          </div>
+            <SuggestedPrompts
+              prompts={SUGGESTED_QUESTIONS}
+              onSelect={(prompt) => setValue("query", prompt)}
+            />
 
-          <form
-            onSubmit={onSubmit}
-            noValidate
-            className="flex flex-col gap-2 sm:flex-row sm:items-start"
-          >
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label htmlFor="query" className="sr-only">
-                Your question
-              </Label>
-              <Input id="query" placeholder="Ask about a product…" {...register("query")} />
-              {errors.query && <p className="text-sm text-destructive">{errors.query.message}</p>}
-            </div>
-            <Button type="submit" isLoading={askMutation.isPending}>
-              <Send className="size-4" /> Ask
-            </Button>
-          </form>
+            <form
+              onSubmit={onSubmit}
+              noValidate
+              className="flex flex-col gap-2 sm:flex-row sm:items-start"
+            >
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label htmlFor="query" className="sr-only">
+                  Your question
+                </Label>
+                <Input id="query" placeholder="Ask about a product…" {...register("query")} />
+                {errors.query && <p className="text-sm text-destructive">{errors.query.message}</p>}
+              </div>
+              <Button type="submit" isLoading={askMutation.isPending}>
+                <Send className="size-4" /> Ask
+              </Button>
+            </form>
+          </AiChatPanel>
+
+          <p className="text-xs text-muted-foreground">
+            Answers are simulated while this feature is in development.
+          </p>
         </CardContent>
       </Card>
     </div>

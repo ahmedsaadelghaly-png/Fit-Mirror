@@ -10,14 +10,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AiChatPanel,
+  type ChatMessage,
+  SuggestedPrompts,
+} from "@/features/shopper/components/ai-chat-panel";
 import { useStylistSuggestion } from "@/features/shopper/hooks/use-stylist-suggestion";
 import { type StylistRequestFormValues, stylistRequestSchema } from "@/features/shopper/schemas";
 
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-}
+const SUGGESTED_SCENARIOS: { label: string; occasion: string; weather: string }[] = [
+  { label: "Wedding guest", occasion: "Wedding guest", weather: "Warm" },
+  { label: "Job interview", occasion: "Job interview", weather: "" },
+  { label: "Weekend brunch", occasion: "Weekend brunch", weather: "Mild" },
+  { label: "Date night", occasion: "Date night", weather: "" },
+];
 
 /**
  * PLACEHOLDER page, clearly marked as planned — `POST /stylist/suggestions`
@@ -32,7 +38,7 @@ function StylistView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const suggestionMutation = useStylistSuggestion();
 
-  const { register, handleSubmit, reset } = useForm<StylistRequestFormValues>({
+  const { register, handleSubmit, reset, setValue } = useForm<StylistRequestFormValues>({
     resolver: zodResolver(stylistRequestSchema),
   });
 
@@ -68,61 +74,51 @@ function StylistView() {
           <CardTitle className="text-base">Ask for an outfit</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div
-            role="log"
-            aria-live="polite"
-            className="flex min-h-40 flex-col gap-3 rounded-lg border bg-muted/30 p-4"
+          <AiChatPanel
+            messages={messages}
+            isPending={suggestionMutation.isPending}
+            emptyStateText='Ask something like "What should I wear to a summer wedding?"'
           >
-            {messages.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Ask something like &ldquo;What should I wear to a summer wedding?&rdquo;
-              </p>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={
-                    message.role === "user"
-                      ? "ml-auto max-w-[80%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-                      : "mr-auto max-w-[80%] rounded-lg bg-surface px-3 py-2 text-sm shadow-xs"
-                  }
-                >
-                  {message.content}
-                </div>
-              ))
-            )}
-            {suggestionMutation.isPending && (
-              <div className="mr-auto max-w-[80%] rounded-lg bg-surface px-3 py-2 text-sm text-muted-foreground shadow-xs">
-                Thinking…
-              </div>
-            )}
-          </div>
+            <SuggestedPrompts
+              prompts={SUGGESTED_SCENARIOS.map((scenario) => scenario.label)}
+              onSelect={(label) => {
+                const scenario = SUGGESTED_SCENARIOS.find((item) => item.label === label);
+                if (!scenario) return;
+                setValue("occasion", scenario.occasion);
+                setValue("weather", scenario.weather);
+              }}
+            />
 
-          <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3 sm:flex-row">
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label htmlFor="occasion" className="sr-only">
-                Occasion
-              </Label>
-              <Input
-                id="occasion"
-                placeholder="Occasion (e.g. wedding, work)"
-                {...register("occasion")}
-              />
-            </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label htmlFor="weather" className="sr-only">
-                Weather
-              </Label>
-              <Input
-                id="weather"
-                placeholder="Weather (e.g. warm, rainy)"
-                {...register("weather")}
-              />
-            </div>
-            <Button type="submit" isLoading={suggestionMutation.isPending}>
-              <Send className="size-4" /> Ask
-            </Button>
-          </form>
+            <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label htmlFor="occasion" className="sr-only">
+                  Occasion
+                </Label>
+                <Input
+                  id="occasion"
+                  placeholder="Occasion (e.g. wedding, work)"
+                  {...register("occasion")}
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label htmlFor="weather" className="sr-only">
+                  Weather
+                </Label>
+                <Input
+                  id="weather"
+                  placeholder="Weather (e.g. warm, rainy)"
+                  {...register("weather")}
+                />
+              </div>
+              <Button type="submit" isLoading={suggestionMutation.isPending}>
+                <Send className="size-4" /> Ask
+              </Button>
+            </form>
+          </AiChatPanel>
+
+          <p className="text-xs text-muted-foreground">
+            Suggestions are simulated while this feature is in development.
+          </p>
         </CardContent>
       </Card>
     </div>
