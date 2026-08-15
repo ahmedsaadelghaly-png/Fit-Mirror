@@ -116,6 +116,86 @@ hidden`) at the `md` breakpoint — a JS media-query hook is deliberately
 **not** used for this switch (see `hooks/use-media-query.ts`'s docstring);
 both components render, Tailwind's responsive classes decide visibility.
 
+## Phase 2.8: fashion-first visual layer
+
+Phases 2.1–2.5 established the "Graphite & Brass" token system above and
+proved it on real layouts, but composition stayed in generic-SaaS
+patterns: icon-in-pill "AI-powered" badges, centered hero + button pair,
+uniform icon-card feature grids, zero photography anywhere (`public/`
+was empty). The tokens were never the problem — the composition was.
+Phase 2.8 adds an editorial visual layer on top of the existing tokens
+rather than replacing them.
+
+### Card variants
+
+`components/ui/card.tsx` now takes a `variant` prop (`cva`-based, same
+pattern as `Button`/`Badge`):
+
+| Variant | Look | Used for |
+|---|---|---|
+| `default` | Bordered, `shadow-xs` (unchanged from Phase 2.1–2.5) | Admin/data-table contexts — a card as a plain container |
+| `flush` | No border/shadow/fill | Editorial copy blocks sitting directly on the page |
+| `media` | Hairline border, `overflow-hidden`, no baked-in padding | Image-forward cards (product/look grids) |
+| `elevated` | Border + `shadow-md` | Floating panels, featured callouts |
+
+Existing `<Card>` usages are unaffected — `variant` defaults to `default`.
+
+### Eyebrow labels
+
+`Badge` gained an `eyebrow` variant: an uppercase, letter-spaced label
+with a short leading rule, not a pill. Use this instead of an
+icon-in-pill badge (`<Sparkles /> AI-powered...`) for section kickers —
+the icon-pill pattern reads as a generic AI-product cliche at this
+point. Status/count badges keep using the existing pill variants.
+
+### Fashion imagery system
+
+Two complementary image primitives, both plain `<img>` (not
+`next/image`) so both stay Storybook-safe under the Vite-based runner
+(see `docs/frontend/STORYBOOK.md`):
+
+- **`ResolvedImage`** (`shared/components/resolved-image.tsx`, existing)
+  — dynamic, S3-storage-key-backed content: wardrobe items, try-on
+  results, product photos a brand uploaded. Resolution logic untouched
+  by Phase 2.8; only its empty-state tile was restyled to match the
+  system below.
+- **`FashionImage`** (`shared/components/fashion-image.tsx`, new) —
+  static design-time assets under `public/images/...`: marketing/
+  editorial imagery. Named aspect-preset wrappers `ProductImage`
+  (square), `ModelImage` (portrait), `EditorialImage` (cinematic wide)
+  cover the common cases without hand-writing `aspect-[..]` per usage.
+
+Both render the same placeholder treatment with no image available — a
+duotone ink/graphite gradient with a faint garment glyph, not a broken
+image icon — so every page is safe to ship ahead of real photography.
+See `docs/frontend/ASSETS.md` for the full asset architecture and shot
+list this stands in for.
+
+### Editorial layout primitives
+
+- **`FashionSection`** (`shared/components/editorial-section.tsx`) —
+  the standard page-section shell (eyebrow/heading/description/actions,
+  then body content), replacing the ad-hoc `container flex flex-col
+  items-center gap-6 py-20` pattern every section previously hand-rolled.
+- **`EditorialHero`** (`shared/components/editorial-hero.tsx`) — the
+  large asymmetric two-column composition (copy half + image half,
+  `reverse` to flip sides) for any page section that needs to make a
+  visual case for itself, not just state a fact in a sentence.
+
+Both are `next/link`-free (accept `actions`/`media` as pre-built
+`ReactNode`) so they stay composable in Storybook without a framework
+switch.
+
+### Fashion-specific cards
+
+`shared/components/cards/`: `LookCard` (image-dominant, gradient-scrim
+caption overlay — saved looks, stylist suggestions) and `ProductCard`
+(garment-on-white photo + quiet name/price metadata — catalog grids).
+Both are generic presentational primitives (no domain typing), composed
+by feature code that maps its own data into their props — kept that way
+so the same two cards serve Shopper, Brand, and Stylist contexts rather
+than one card type per feature.
+
 ## Accessibility rules
 
 - **Focus is always visible.** A global `:focus-visible` rule

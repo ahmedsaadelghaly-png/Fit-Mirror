@@ -1,4 +1,4 @@
-import { ImageOff } from "lucide-react";
+import { Shirt } from "lucide-react";
 
 import { useResolvedImageUrl } from "@/hooks/use-resolved-image-url";
 import { cn } from "@/lib/utils";
@@ -40,11 +40,14 @@ function ResolvedImage({ imageKey, alt, className }: ResolvedImageProps) {
   if (!url) {
     return (
       <div
-        className={cn("flex items-center justify-center bg-muted text-muted-foreground", className)}
+        className={cn(
+          "flex items-center justify-center overflow-hidden bg-gradient-to-br from-foreground via-foreground/90 to-muted-foreground/40",
+          className,
+        )}
         role="img"
         aria-label={alt}
       >
-        <ImageOff className="size-6" aria-hidden="true" />
+        <Shirt className="size-1/4 min-h-6 min-w-6 text-background/15" strokeWidth={1} aria-hidden="true" />
       </div>
     );
   }
@@ -52,7 +55,7 @@ function ResolvedImage({ imageKey, alt, className }: ResolvedImageProps) {
   return (
     <div className={cn("overflow-hidden bg-muted", className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt={alt} className="size-full object-cover" />
+      <img src={url} alt={alt} className="size-full animate-fade-in object-cover" />
     </div>
   );
 }

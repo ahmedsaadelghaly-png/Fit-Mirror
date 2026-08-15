@@ -1,14 +1,40 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("rounded-lg border bg-surface text-surface-foreground shadow-xs", className)}
-      {...props}
-    />
+/**
+ * `default` is the original dashboard-card treatment (bordered, subtle
+ * shadow) — kept as-is for Admin/data-table contexts where a card is a
+ * container, not the content. The other variants exist for consumer-
+ * facing fashion surfaces, where a bordered-box-with-shadow reads as
+ * generic SaaS chrome around what should be the star of the layout: the
+ * imagery. See docs/frontend/DESIGN_SYSTEM.md "Card variants".
+ */
+const cardVariants = cva("text-surface-foreground", {
+  variants: {
+    variant: {
+      /** Original treatment — bordered box, subtle shadow. Admin/data contexts. */
+      default: "rounded-lg border bg-surface shadow-xs",
+      /** No border, no shadow, no fill — content sits directly on the page. Editorial copy blocks. */
+      flush: "rounded-none bg-transparent",
+      /** Image-forward: no padding chrome baked in, crisp corners, hairline border only. */
+      media: "overflow-hidden rounded-md border border-border/60 bg-surface",
+      /** Slightly more lift than `default` — floating panels, featured callouts. */
+      elevated: "rounded-lg border border-border/50 bg-surface shadow-md",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+  },
+});
+
+export interface CardProps
+  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof cardVariants> {}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant, ...props }, ref) => (
+    <div ref={ref} className={cn(cardVariants({ variant }), className)} {...props} />
   ),
 );
 Card.displayName = "Card";
@@ -53,4 +79,4 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 );
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, cardVariants };
