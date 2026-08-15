@@ -38,14 +38,19 @@ function ResolvedImage({ imageKey, alt, className }: ResolvedImageProps) {
   const url = directUrl ?? resolvedQuery.data?.download_url;
 
   if (!url) {
+    // Same rule as shared/components/fashion-image.tsx: an empty `alt`
+    // means decorative, so use `aria-hidden` instead of `role="img"
+    // aria-label=""`, which is a WCAG violation.
+    const isDecorative = alt === "";
     return (
       <div
         className={cn(
           "flex items-center justify-center overflow-hidden bg-gradient-to-br from-foreground via-foreground/90 to-muted-foreground/40",
           className,
         )}
-        role="img"
-        aria-label={alt}
+        role={isDecorative ? undefined : "img"}
+        aria-label={isDecorative ? undefined : alt}
+        aria-hidden={isDecorative || undefined}
       >
         <Shirt className="size-1/4 min-h-6 min-w-6 text-background/15" strokeWidth={1} aria-hidden="true" />
       </div>

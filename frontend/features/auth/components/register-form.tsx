@@ -5,10 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { AuthFormError } from "@/features/auth/components/auth-form-error";
+import { AuthFormField } from "@/features/auth/components/auth-form-field";
 import { useRegister } from "@/features/auth/hooks/use-register";
 import { type RegisterFormValues, registerSchema } from "@/features/auth/schemas";
 
@@ -39,63 +38,33 @@ function RegisterForm() {
         <p className="text-sm text-muted-foreground">Start with a free FitMirror AI account.</p>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="full_name">Full name</Label>
-        <Input
-          id="full_name"
-          autoComplete="name"
-          aria-invalid={!!errors.full_name}
-          aria-describedby={errors.full_name ? "full_name-error" : undefined}
-          {...registerField("full_name")}
-        />
-        {errors.full_name && (
-          <p id="full_name-error" className="text-sm text-destructive">
-            {errors.full_name.message}
-          </p>
-        )}
-      </div>
+      <AuthFormField
+        id="full_name"
+        label="Full name"
+        autoComplete="name"
+        error={errors.full_name}
+        registration={registerField("full_name")}
+      />
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? "email-error" : undefined}
-          {...registerField("email")}
-        />
-        {errors.email && (
-          <p id="email-error" className="text-sm text-destructive">
-            {errors.email.message}
-          </p>
-        )}
-      </div>
+      <AuthFormField
+        id="email"
+        label="Email"
+        type="email"
+        autoComplete="email"
+        error={errors.email}
+        registration={registerField("email")}
+      />
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="new-password"
-          aria-invalid={!!errors.password}
-          aria-describedby={errors.password ? "password-error" : undefined}
-          {...registerField("password")}
-        />
-        {errors.password && (
-          <p id="password-error" className="text-sm text-destructive">
-            {errors.password.message}
-          </p>
-        )}
-      </div>
+      <AuthFormField
+        id="password"
+        label="Password"
+        type="password"
+        autoComplete="new-password"
+        error={errors.password}
+        registration={registerField("password")}
+      />
 
-      {registerMutation.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {registerMutation.error instanceof ApiError
-            ? registerMutation.error.message
-            : "Something went wrong. Please try again."}
-        </p>
-      )}
+      {registerMutation.isError && <AuthFormError error={registerMutation.error} />}
 
       <Button type="submit" isLoading={registerMutation.isPending} className="mt-1">
         Create account

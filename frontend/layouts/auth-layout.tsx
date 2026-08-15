@@ -1,3 +1,4 @@
+import { ModelImage } from "@/shared/components/fashion-image";
 import { Logo } from "@/shared/components/logo";
 import { ThemeToggle } from "@/shared/components/theme-toggle";
 
@@ -27,8 +28,13 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
         aria-hidden="true"
         className="sheen-surface sheen-animate relative hidden overflow-hidden bg-foreground lg:block"
       >
-        <div className="absolute inset-0 flex items-center justify-center p-16">
-          <div className="max-w-md space-y-4 text-center">
+        <ModelImage
+          alt=""
+          className="absolute inset-0 h-full [&>img]:opacity-70"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-foreground via-foreground/40 to-foreground/10" />
+        <div className="absolute inset-x-0 bottom-0 p-16">
+          <div className="max-w-md space-y-4">
             <p className="font-display text-3xl font-semibold leading-tight text-background/90">
               See it on, before it&apos;s yours.
             </p>

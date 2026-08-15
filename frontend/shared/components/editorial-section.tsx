@@ -12,6 +12,13 @@ export interface FashionSectionProps {
   className?: string;
   /** Full-bleed dark editorial panel (e.g. a section on a black ground) vs. the ordinary page background. */
   tone?: "default" | "dark";
+  /**
+   * `h2` (default) for a secondary section on a page that has its own
+   * `h1` elsewhere (e.g. a narrative section below an `EditorialHero`).
+   * Use `h1` when this is a page's primary heading — a page must have
+   * exactly one `h1`.
+   */
+  headingLevel?: "h1" | "h2";
 }
 
 /**
@@ -35,7 +42,10 @@ function FashionSection({
   children,
   className,
   tone = "default",
+  headingLevel = "h2",
 }: FashionSectionProps) {
+  const Heading = headingLevel;
+
   return (
     <section
       className={cn(
@@ -56,9 +66,9 @@ function FashionSection({
               {eyebrow}
             </Badge>
           )}
-          <h2 className="max-w-2xl font-display text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
+          <Heading className="max-w-2xl font-display text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
             {heading}
-          </h2>
+          </Heading>
           {description && (
             <p
               className={cn(

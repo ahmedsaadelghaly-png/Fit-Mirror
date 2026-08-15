@@ -5,10 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { AuthFormError } from "@/features/auth/components/auth-form-error";
+import { AuthFormField } from "@/features/auth/components/auth-form-field";
 import { fetchCurrentUser } from "@/features/auth/api";
 import { useLogin } from "@/features/auth/hooks/use-login";
 import { type LoginFormValues, loginSchema } from "@/features/auth/schemas";
@@ -52,55 +51,33 @@ function LoginForm() {
         <p className="text-sm text-muted-foreground">Log in to your FitMirror AI account.</p>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? "email-error" : undefined}
-          {...registerField("email")}
-        />
-        {errors.email && (
-          <p id="email-error" className="text-sm text-destructive">
-            {errors.email.message}
-          </p>
-        )}
-      </div>
+      <AuthFormField
+        id="email"
+        label="Email"
+        type="email"
+        autoComplete="email"
+        error={errors.email}
+        registration={registerField("email")}
+      />
 
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
+      <AuthFormField
+        id="password"
+        label="Password"
+        type="password"
+        autoComplete="current-password"
+        error={errors.password}
+        registration={registerField("password")}
+        labelExtra={
           <Link
             href="/forgot-password"
             className="text-xs font-medium text-primary-text hover:underline"
           >
             Forgot password?
           </Link>
-        </div>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          aria-invalid={!!errors.password}
-          aria-describedby={errors.password ? "password-error" : undefined}
-          {...registerField("password")}
-        />
-        {errors.password && (
-          <p id="password-error" className="text-sm text-destructive">
-            {errors.password.message}
-          </p>
-        )}
-      </div>
+        }
+      />
 
-      {loginMutation.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {loginMutation.error instanceof ApiError
-            ? loginMutation.error.message
-            : "Something went wrong. Please try again."}
-        </p>
-      )}
+      {loginMutation.isError && <AuthFormError error={loginMutation.error} />}
 
       <Button type="submit" isLoading={loginMutation.isPending} className="mt-1">
         Log in

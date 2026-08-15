@@ -19,8 +19,11 @@ test.describe("Public marketing pages", () => {
     await page.goto("/");
 
     await expect(page.getByRole("heading", { level: 1 })).toContainText("before it's yours");
-    await expect(page.getByRole("link", { name: /create your account/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /i already have one/i })).toBeVisible();
+    // The landing page repeats its primary CTA in a closing section
+    // (hero + final call-to-action) — `.first()` disambiguates rather
+    // than asserting there's only one, which is intentional.
+    await expect(page.getByRole("link", { name: /create your account/i }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /i already have one/i }).first()).toBeVisible();
   });
 
   test("features page renders", async ({ page }) => {
@@ -71,7 +74,7 @@ test.describe("Navigation", () => {
 
   test("navigates from landing to register", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /create your account/i }).click();
+    await page.getByRole("link", { name: /create your account/i }).first().click();
     await expect(page).toHaveURL(/\/register$/);
     await expect(page.getByRole("heading", { name: /create your account/i })).toBeVisible();
   });

@@ -12,6 +12,13 @@ export interface EditorialHeroProps {
   reverse?: boolean;
   tone?: "default" | "dark";
   className?: string;
+  /**
+   * `h1` (default) for the single page hero. Use `h2` when this same
+   * composition repeats as a narrative section further down a page — a
+   * page should have exactly one `h1`, so a "story panel" sequence (e.g.
+   * the landing page's per-capability sections) must not render several.
+   */
+  headingLevel?: "h1" | "h2";
 }
 
 /**
@@ -36,7 +43,10 @@ function EditorialHero({
   reverse = false,
   tone = "default",
   className,
+  headingLevel = "h1",
 }: EditorialHeroProps) {
+  const Heading = headingLevel;
+
   return (
     <section
       className={cn(
@@ -60,9 +70,14 @@ function EditorialHero({
               {eyebrow}
             </Badge>
           )}
-          <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight md:text-5xl lg:text-6xl">
+          <Heading
+            className={cn(
+              "font-display font-semibold leading-[1.05] tracking-tight",
+              headingLevel === "h1" ? "text-4xl md:text-5xl lg:text-6xl" : "text-3xl md:text-4xl",
+            )}
+          >
             {heading}
-          </h1>
+          </Heading>
           {description && (
             <p
               className={cn(

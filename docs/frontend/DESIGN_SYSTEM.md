@@ -171,6 +171,15 @@ image icon — so every page is safe to ship ahead of real photography.
 See `docs/frontend/ASSETS.md` for the full asset architecture and shot
 list this stands in for.
 
+Pass `alt=""` on either component for a purely decorative image (e.g. a
+background panel behind copy that already says the same thing) — both
+switch their placeholder tile to `aria-hidden` rather than `role="img"
+aria-label=""`, which is a real WCAG violation (an element with
+`role="img"` must have a non-empty accessible name). A real `<img alt="">`
+is already valid on its own once a `src` exists; this only matters for
+the no-image placeholder branch. Caught by `tests/e2e/accessibility.spec.ts`
+in Stage 2 — re-run it after adding a new decorative usage.
+
 ### Editorial layout primitives
 
 - **`FashionSection`** (`shared/components/editorial-section.tsx`) —
@@ -185,6 +194,19 @@ list this stands in for.
 Both are `next/link`-free (accept `actions`/`media` as pre-built
 `ReactNode`) so they stay composable in Storybook without a framework
 switch.
+
+Both also take a `headingLevel` prop (`"h1" | "h2"`, default `"h2"` on
+`FashionSection`/`"h1"` on `EditorialHero`) — a page must have exactly
+one `h1`. Set it explicitly at every call site: `"h1"` on whichever
+component renders a page's primary heading, `"h2"` on every other
+section on that same page (e.g. the landing page's narrative sections
+below its `EditorialHero`, or `FashionSection` reused as a page's sole
+heading on `/features`, `/about`, `/pricing`, `/contact`, `/privacy`,
+`/terms`). Getting this wrong silently drops a page's `h1` — Stage 2
+caught this via `tests/e2e/accessibility.spec.ts` and
+`tests/e2e/smoke.spec.ts`'s `getByRole("heading", {level: 1})`
+assertions, not the type system, so re-run both after touching either
+component's usage.
 
 ### Fashion-specific cards
 

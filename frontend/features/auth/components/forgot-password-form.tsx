@@ -5,10 +5,9 @@ import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 
-import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { AuthFormError } from "@/features/auth/components/auth-form-error";
+import { AuthFormField } from "@/features/auth/components/auth-form-field";
 import { useForgotPassword } from "@/features/auth/hooks/use-forgot-password";
 import { type ForgotPasswordFormValues, forgotPasswordSchema } from "@/features/auth/schemas";
 
@@ -56,30 +55,16 @@ function ForgotPasswordForm() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? "email-error" : undefined}
-          {...registerField("email")}
-        />
-        {errors.email && (
-          <p id="email-error" className="text-sm text-destructive">
-            {errors.email.message}
-          </p>
-        )}
-      </div>
+      <AuthFormField
+        id="email"
+        label="Email"
+        type="email"
+        autoComplete="email"
+        error={errors.email}
+        registration={registerField("email")}
+      />
 
-      {forgotPasswordMutation.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {forgotPasswordMutation.error instanceof ApiError
-            ? forgotPasswordMutation.error.message
-            : "Something went wrong. Please try again."}
-        </p>
-      )}
+      {forgotPasswordMutation.isError && <AuthFormError error={forgotPasswordMutation.error} />}
 
       <Button type="submit" isLoading={forgotPasswordMutation.isPending} className="mt-1">
         Send reset instructions

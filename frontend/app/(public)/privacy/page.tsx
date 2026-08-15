@@ -1,6 +1,7 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 
-import { Badge } from "@/components/ui/badge";
+import { FashionSection } from "@/shared/components/editorial-section";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -17,23 +18,21 @@ export const metadata: Metadata = {
  */
 export default function PrivacyPage() {
   return (
-    <div className="container max-w-2xl py-20">
-      <Badge variant="outline">Privacy Policy</Badge>
-      <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight md:text-4xl">
-        Privacy Policy
-      </h1>
-      <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-        We&apos;re still finalizing our privacy policy with legal review. This page will be updated
-        with a complete policy — covering what data we collect, how long we keep it, and your rights
-        over it — before FitMirror AI is generally available.
-      </p>
-      <p className="mt-4 text-sm text-muted-foreground">
-        In the meantime, if you have questions about your data, reach out via our{" "}
-        <a href="/contact" className="text-primary-text underline underline-offset-2">
-          contact page
-        </a>
-        .
-      </p>
-    </div>
+    <FashionSection headingLevel="h1" eyebrow="Privacy Policy" heading="Privacy Policy">
+      <div className="max-w-2xl">
+        <p className="text-lg leading-relaxed text-muted-foreground">
+          We&apos;re still finalizing our privacy policy with legal review. This page will be
+          updated with a complete policy — covering what data we collect, how long we keep it, and
+          your rights over it — before FitMirror AI is generally available.
+        </p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          In the meantime, if you have questions about your data, reach out via our{" "}
+          <Link href="/contact" className="text-primary-text underline underline-offset-2">
+            contact page
+          </Link>
+          .
+        </p>
+      </div>
+    </FashionSection>
   );
 }

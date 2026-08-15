@@ -55,10 +55,17 @@ export interface FashionImageProps {
  */
 function FashionImage({ src, alt, aspect = "square", fit = "cover", className }: FashionImageProps) {
   if (!src) {
+    // An empty `alt` means the caller intends this as decorative — mark
+    // it `aria-hidden` instead of `role="img" aria-label=""`, which is a
+    // WCAG violation (an element with `role="img"` must have a non-empty
+    // accessible name, same rule that makes `<img alt="">` correct but
+    // `<div role="img" aria-label="">` incorrect).
+    const isDecorative = alt === "";
     return (
       <div
-        role="img"
-        aria-label={alt}
+        role={isDecorative ? undefined : "img"}
+        aria-label={isDecorative ? undefined : alt}
+        aria-hidden={isDecorative || undefined}
         className={cn(
           "relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-foreground via-foreground/90 to-muted-foreground/40",
           ASPECT_PRESETS[aspect],
