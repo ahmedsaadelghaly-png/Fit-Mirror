@@ -1,0 +1,171 @@
+# ---------------------------------------------------------------------------
+# FitMirror AI — base Docker Compose file.
+#
+# This file defines every service with production-sane defaults (no bind
+# mounts, no --reload, healthchecks on everything). It's usable standalone,
+# but normally combined with an overlay:
+#
+#   Local development: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#   Production:         see docker-compose.prod.yml (a template, not a drop-in overlay)
+# ---------------------------------------------------------------------------
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fitmirror-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fitmirror}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fitmirror}
+      POSTGRES_DB: ${POSTGRES_DB:-fitmirror}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fitmirror}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: fitmirror-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: fitmirror-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-fitmirror}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-fitmirror123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- AI microservice: replaceable model pipelines, no DB dependency ---
+  ai-service:
+    build: ./ai-service
+    container_name: fitmirror-ai-service
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      S3_ENDPOINT_URL: http://minio:9000
+    ports:
+      - "8001:8001"
+    depends_on:
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # --- Backend API: request/response only, never runs AI inference ---
+  backend:
+    build: ./backend
+    container_name: fitmirror-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-fitmirror}:${POSTGRES_PASSWORD:-fitmirror}@postgres:5432/${POSTGRES_DB:-fitmirror}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      S3_ENDPOINT_URL: http://minio:9000
+      AI_SERVICE_BASE_URL: http://ai-service:8001/
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  # --- Celery worker: same codebase as backend, separate process/container.
+  # Scale independently of the API (e.g. `docker compose up --scale worker=3`).
+  worker:
+    build: ./backend
+    container_name: fitmirror-worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-fitmirror}:${POSTGRES_PASSWORD:-fitmirror}@postgres:5432/${POSTGRES_DB:-fitmirror}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      S3_ENDPOINT_URL: http://minio:9000
+      AI_SERVICE_BASE_URL: http://ai-service:8001/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.workers.celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    command: celery -A app.workers.celery_app worker --loglevel=info -Q tryon
+
+  # --- Frontend: Next.js web app. Target stage overridden per environment
+  # (docker-compose.dev.yml uses `dev`; a production compose target would
+  # use the `runner` stage — see frontend/Dockerfile).
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    container_name: fitmirror-frontend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+      NEXT_PUBLIC_APP_ENV: development
+      # Browser-reachable MinIO origin — the frontend uploads directly to a
+      # pre-signed URL there (see features/shopper/hooks/use-upload.ts) and
+      # needs it in its own CSP connect-src. Deliberately NOT
+      # NEXT_PUBLIC_S3_PUBLIC_BASE_URL — that one also enables *direct*
+      # (unsigned) image display via resolve-image-url.ts, which would 403
+      # against this bucket (not configured public-read); this var only
+      # widens CSP, it doesn't change what URLs the app tries to load.
+      NEXT_PUBLIC_S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  minio_data:

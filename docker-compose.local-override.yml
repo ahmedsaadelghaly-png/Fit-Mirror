@@ -1,0 +1,12 @@
+# Sandbox-only override: this host already has a system Postgres and a
+# system Redis bound to 5432/6379, so both containers' host ports are
+# remapped. Not part of the documented workflow — see
+# docs/LOCAL_RUNBOOK.md "Port conflicts". Safe to delete; DATABASE_URL/
+# REDIS_URL/CELERY_*_URL inside the Docker network still use 5432/6379.
+services:
+  postgres:
+    ports: !override
+      - "15432:5432"
+  redis:
+    ports: !override
+      - "16379:6379"

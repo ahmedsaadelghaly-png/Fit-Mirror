@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------------------
+# FitMirror AI — DEVELOPMENT overlay.
+#
+# Adds hot-reload (bind-mounted source + --reload) on top of docker-compose.yml.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# (this is exactly what `make up` runs)
+# ---------------------------------------------------------------------------
+services:
+  ai-service:
+    environment:
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./ai-service/app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+
+  backend:
+    environment:
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    environment:
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./backend/app:/app/app
+    # --autoreload-style workflows aren't built into Celery; restart the
+    # `worker` container after task-code changes (`docker compose restart worker`).
+    command: celery -A app.workers.celery_app worker --loglevel=debug -Q tryon
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    environment:
+      NEXT_PUBLIC_APP_ENV: development
+    volumes:
+      - ./frontend/app:/app/app
+      - ./frontend/features:/app/features
+      - ./frontend/shared:/app/shared
+      - ./frontend/components:/app/components
+      - ./frontend/hooks:/app/hooks
+      - ./frontend/lib:/app/lib
+      - ./frontend/api:/app/api
+      - ./frontend/layouts:/app/layouts
+      - ./frontend/providers:/app/providers
+      - ./frontend/config:/app/config
+      - ./frontend/middleware:/app/middleware
+      - ./frontend/types:/app/types
+      # Anonymous volume so the container's own node_modules (installed for
+      # the container's Linux platform) isn't shadowed by a host bind mount.
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev

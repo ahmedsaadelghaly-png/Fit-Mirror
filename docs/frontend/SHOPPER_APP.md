@@ -1,0 +1,220 @@
+# Shopper Web App (Phase 2.3)
+
+The full Shopper experience: dashboard, onboarding, body profile, photo
+upload, virtual try-on, try-on history, wardrobe, saved looks, AI Stylist
+(placeholder), Shopping Assistant (placeholder), and settings. Everything
+under `app/(shopper)/shopper/*` is now real — no more static placeholder
+pages. Brand dashboard, admin dashboard, and mobile app remain out of
+scope, per the Phase 2.3 brief.
+
+## Folder structure
+
+```
+frontend/
+  types/shopper.ts                       Request/response + frontend-only types (StylePreferences, SavedLook, ...)
+  api/shopper/
+    body-profile.ts                      GET/PUT /users/me/body-profile
+    wardrobe.ts                          POST/GET/DELETE /wardrobe
+    tryon.ts                             POST /tryon/upload-url, POST/GET /tryon, GET /tryon/{id}
+    upload.ts                            Shared pre-signed-URL upload flow + client-side file validation
+    saved-looks.ts                       localStorage-backed placeholder (no backend resource — see below)
+    stylist.ts                           501-backed placeholder (POST /stylist/suggestions)
+    shopping.ts                          501-backed placeholder (POST /shopping/ask)
+  features/shopper/
+    schemas.ts                           Zod schemas: body measurements, style preferences, wardrobe item, stylist/shopping requests
+    hooks/                               One TanStack Query hook per file (see features/auth/ for the established pattern)
+    components/
+      body-profile-form.tsx              Full body profile form (standalone page)
+      dashboard/                         Welcome, recent try-ons, wardrobe/saved-looks summaries, quick actions, AI Stylist + Shopping Assistant placeholder cards
+      onboarding/                        4-step stepper (style, body profile, photo, completion)
+      wardrobe/                          Grid, filters, item card, add-item dialog
+      saved-looks/                       Grid, card, details dialog (drawer placeholder)
+      settings/                          Profile details (read-only), account/notifications placeholders, theme shortcut
+      stylist/, shopping/                Chat-like placeholder UIs, clearly marked "Planned feature"
+  features/tryon/
+    hooks/                               use-create-tryon-job, use-tryon-job (polling), use-tryon-jobs (list + client filter)
+    components/                          Split workspace (user photo / garment / result panels), queue status, history sidebar, history page, job cards
+  shared/components/
+    image-upload-field.tsx               Reusable drag/drop + preview + progress + error UI (used by body profile, wardrobe, try-on)
+    resolved-image.tsx                   Storage-key → image, with a placeholder fallback (see "No image download URL" below)
+  shared/utils/resolve-image-url.ts      Best-effort storage-key → URL resolution
+  app/(shopper)/shopper/
+    page.tsx                             Dashboard
+    onboarding/page.tsx
+    profile/page.tsx                     Body profile
+    wardrobe/page.tsx
+    tryon/page.tsx                       Virtual try-on workspace
+    tryon/history/page.tsx
+    looks/page.tsx                       Saved looks
+    stylist/page.tsx                     AI Stylist (planned)
+    shopping/page.tsx                    Shopping Assistant (planned)
+    settings/page.tsx
+```
+
+Every `page.tsx` is a thin server component that sets `metadata` and
+renders one client `*View`/`*Flow`/`*Workspace` component, matching the
+`app/(auth)/login/page.tsx` → `LoginForm` pattern from Phase 2.2. Business
+logic lives in `features/*/hooks`, not in pages or components.
+
+## API integration
+
+| Feature | Backend endpoint(s) | Status |
+|---|---|---|
+| Body profile | `GET/PUT /users/me/body-profile` | Real — measurements + body shape only (see mismatch below) |
+| Wardrobe | `POST/GET /wardrobe`, `DELETE /wardrobe/{id}` | Real |
+| Virtual try-on | `POST /tryon/upload-url`, `POST /tryon`, `GET /tryon/{id}`, `GET /tryon` | Real |
+| Uploads (all surfaces) | `POST /tryon/upload-url` + direct `PUT` to the pre-signed URL | Real — one endpoint reused for body-profile/wardrobe/try-on images, see backend docs/STORAGE.md |
+| Saved looks | none | **Frontend placeholder** — localStorage, see below |
+| AI Stylist | `POST /stylist/suggestions` | Backend returns `501` — placeholder UI |
+| Shopping Assistant | `POST /shopping/ask` | Backend returns `501` — placeholder UI |
+| Settings → Profile details | `GET /users/me` | Real, read-only |
+| Settings → Account/Notifications | none | UI-only placeholders |
+
+## API contract mismatches (documented per the Phase 2.3 rules)
+
+The spec asked for several fields/behaviors the backend doesn't support
+yet. Rather than silently dropping them or faking persistence, each is
+handled with a typed frontend adapter and called out here:
+
+1. **Body profile style fields.** `BodyProfileUpsert` only has
+   `height_cm/weight_kg/chest_cm/waist_cm/hip_cm/body_shape` (see backend
+   `app/schemas/user.py`). `preferred_fit`, `favorite_colors`, and
+   `style_preferences` from the spec have no backend field. These persist
+   to `localStorage` per user via
+   `features/shopper/hooks/use-style-preferences.ts` (type:
+   `StylePreferences` in `types/shopper.ts`) instead.
+
+2. **Reference photo isn't saveable.** `BodyProfileRead` has a
+   `reference_image_key` field, but `BodyProfileUpsert` has no matching
+   write field — there's no way to persist an uploaded reference photo to
+   the body profile via the API today. The upload itself works (same
+   pre-signed-URL flow as everything else); `features/shopper/components/
+   onboarding/step-photo-upload.tsx` and `body-profile-form.tsx` both
+   surface this in their copy rather than silently discarding the upload.
+
+3. **No wardrobe `color` field or filters.** `WardrobeItemRead` has no
+   `color` field, and `GET /wardrobe` accepts no query params at all
+   (category/source/search all happen client-side against the full list).
+   The spec's "filter by category/color/source" is implemented as
+   category + source only — see `types/shopper.ts` `WardrobeFilters`.
+
+4. ~~No image download-URL endpoint.~~ **Resolved.** Every read API still
+   returns opaque storage *keys* (`image_key`, `result_image_key`, ...),
+   never a URL — but `GET /tryon/download-url?object_key=...` now exists
+   (wires up `StorageService.get_download_url`, previously unused) and
+   `shared/components/resolved-image.tsx` calls it via
+   `hooks/use-resolved-image-url.ts` whenever the faster, synchronous
+   `shared/utils/resolve-image-url.ts` path (which still requires
+   `NEXT_PUBLIC_S3_PUBLIC_BASE_URL`, i.e. a public bucket — not configured
+   in local dev) comes up empty. Real images now render for wardrobe
+   items, try-on results, saved looks, etc.; the placeholder tile is only
+   shown while resolving or if a key genuinely has nothing behind it.
+
+5. **Saved Looks has no backend resource at all** — no model, schema, or
+   router (confirmed absent, not just unimplemented). Per the spec ("This
+   can be frontend placeholder if backend endpoint is not ready"),
+   `api/shopper/saved-looks.ts` persists to `localStorage` with the same
+   function signatures a real API module would have, so swapping in real
+   `apiClient` calls later doesn't touch any caller.
+
+6. **No endpoint to edit profile details.** Only `GET /users/me` exists —
+   no `PATCH`. Settings → Profile details is read-only, not a broken form.
+
+7. **`TryOnJobRead` has no timestamp**, so "recent try-ons" and history
+   sort order use reversed insertion order as an approximation (see
+   `features/shopper/hooks/use-dashboard-summary.ts`) rather than a real
+   `created_at` sort.
+
+8. **Try-on history search is an inert placeholder** — there's no
+   garment name/title on a job to search against, only opaque storage
+   keys, so the spec's "Search placeholder" is implemented literally: a
+   disabled input, not fake client-side matching against meaningless
+   strings.
+
+## Onboarding
+
+`features/shopper/hooks/use-onboarding.ts` persists step progress to
+`localStorage` per user (`style → body-profile → photo → complete`), so
+navigating away mid-flow and coming back resumes at the same step. Each
+step can also be skipped independently. This progress state is separate
+from the actual data the steps collect (body profile via `PUT
+/users/me/body-profile`, style preferences via localStorage) — skipping a
+step just advances the stepper without saving that step's fields.
+
+## Virtual Try-On flow
+
+1. Upload a user photo and a garment photo (`features/shopper/hooks/
+   use-upload.ts` → `POST /tryon/upload-url` → direct `PUT` to storage →
+   `object_key` stored in local state).
+2. `POST /tryon` with both keys → `202 { job_id, status: "pending" }`.
+3. `features/tryon/hooks/use-tryon-job.ts` polls `GET /tryon/{job_id}`
+   every 2s until `completed`/`failed`.
+4. Completed: result preview, a before/after tab, "Save look" (writes to
+   the localStorage-backed saved-looks store), and disabled
+   download/share buttons explicitly marked "coming soon" (per spec, these
+   are UI placeholders, not implemented).
+5. Failed: inline error + retry (re-submits the same two image keys as a
+   new job).
+
+The AI service's try-on pipeline is an explicit placeholder (see
+`ai-service/app/pipelines/placeholder_tryon_pipeline.py`) — jobs complete
+quickly today. Polling is written status-driven, not timing-assumption-
+driven, so it keeps working once a real (slower) model replaces it.
+
+## Testing
+
+Unit tests (Vitest + Testing Library), added under `tests/unit/`:
+
+- `features/shopper-schemas.test.ts` — body measurement bounds/optionality, wardrobe item validation
+- `api/upload.test.ts` — client-side file validation (mime type, size limit)
+- `features/tryon-hooks.test.tsx` — `useCreateTryOnJob` / `useTryOnJob`, with `@/api/shopper/tryon` mocked
+
+Playwright smoke tests, added at `tests/e2e/shopper-smoke.spec.ts`:
+
+- Shopper dashboard, body profile, virtual try-on, and wardrobe pages —
+  each faked into an authenticated session via a `fm_access_token` cookie
+  (the same cookie `middleware/auth-guard.ts` reads) holding an
+  unsigned-but-well-formed JWT, with backend endpoints stubbed via
+  `page.route` to match the documented response shapes. There's still no
+  seeded backend account for a true login-driven e2e flow — see
+  `docs/frontend/AUTHENTICATION.md`; this is the same gap that doc already
+  called out.
+- Route-protection checks for the four new routes (unauthenticated →
+  `/login?redirectTo=...`), extending the existing pattern in
+  `tests/e2e/smoke.spec.ts`.
+
+Storybook: six new component stories for shopper-specific components that
+don't depend on `next/link` — see `docs/frontend/STORYBOOK.md` "Stories
+written (Phase 2.3)" for the full list and why `next/link`-composing
+components (most page-level cards) aren't storified yet.
+
+## Run / test commands
+
+```bash
+# Dev server
+cd frontend && npm run dev              # http://localhost:3000/shopper (requires backend running for real data)
+
+# Type check / lint
+npm run typecheck
+npm run lint
+
+# Unit tests
+npm run test                            # vitest run
+npm run test:coverage
+
+# Playwright e2e (starts its own dev server; backend calls are mocked in the shopper smoke tests)
+npx playwright install                  # one-time
+npm run test:e2e
+
+# Storybook
+npm run storybook                       # http://localhost:6006
+npm run build-storybook                 # verifies all stories compile
+```
+
+## What's still a placeholder after Phase 2.3
+
+- Saved Looks (no backend resource — see mismatch #5)
+- AI Stylist and Shopping Assistant (backend `501`s — see mismatches, clearly badged "Planned feature" in the UI)
+- Download / Share actions on a completed try-on result
+- Account settings (password change, delete account) and Notification preferences
+- A real side-anchored "drawer" for saved look details (currently a centered dialog — `components/ui/dialog.tsx` is the only modal primitive today)

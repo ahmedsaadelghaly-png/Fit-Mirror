@@ -1,0 +1,44 @@
+{
+  "python.analysis.typeCheckingMode": "basic",
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.fixAll.ruff": "explicit"
+    }
+  },
+
+  "black-formatter.args": ["--line-length=100"],
+  "isort.args": ["--profile=black", "--line-length=100"],
+  "ruff.lint.args": ["--config=${workspaceFolder}/pyproject.toml"],
+  "mypy-type-checker.args": ["--config-file=${workspaceFolder}/pyproject.toml"],
+
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true,
+    "**/*.egg-info": true
+  },
+
+  "files.watcherExclude": {
+    "**/.venv/**": true,
+    "**/__pycache__/**": true
+  },
+
+  "[markdown]": {
+    "editor.wordWrap": "on"
+  },
+
+  "[yaml]": {
+    "editor.tabSize": 2
+  },
+
+  "editor.rulers": [100],
+  "editor.insertFinalNewline": true,
+  "editor.trimTrailingWhitespace": true
+}

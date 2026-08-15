@@ -1,0 +1,15 @@
+# Development & code-quality tooling shared by backend/ and ai-service/.
+# Install alongside each service's requirements.txt:
+#   pip install -r requirements.txt -r ../requirements-dev.txt
+
+ruff==0.8.4
+black==24.10.0
+isort==5.13.2
+mypy==1.13.0
+pytest==8.3.4
+pytest-asyncio==0.25.0
+pytest-cov==6.0.0
+coverage==7.6.9
+httpx==0.28.1
+pre-commit==4.0.1
+faker==33.1.0

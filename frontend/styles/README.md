@@ -1,0 +1,1 @@
+This directory is intentionally empty in Phase 2.1. Design tokens live in app/globals.css; component-scoped styles use Tailwind utility classes directly. Reserved for any future global stylesheet that doesn't fit the token/utility model (e.g. print styles).

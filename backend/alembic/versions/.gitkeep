@@ -1,0 +1,4 @@
+# This directory holds Alembic migration files.
+# Generate the first migration after setting up the database:
+#   alembic revision --autogenerate -m "initial schema"
+#   alembic upgrade head
