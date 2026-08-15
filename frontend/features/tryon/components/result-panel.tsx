@@ -22,11 +22,16 @@ export interface ResultPanelProps {
 
 function IdleState() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground">
-      <Sparkles className="size-8" aria-hidden="true" />
-      <p className="max-w-52 text-sm">
-        Upload your photo and a garment, then create a try-on to see the result here.
-      </p>
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20 text-center">
+      <div className="flex size-16 items-center justify-center rounded-full bg-accent">
+        <Sparkles className="size-7 text-accent-foreground" aria-hidden="true" />
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="font-display text-lg font-semibold">Your fitting studio</p>
+        <p className="max-w-64 text-sm text-muted-foreground">
+          Upload your photo and a garment, then create a try-on to see the result here.
+        </p>
+      </div>
     </div>
   );
 }
@@ -49,7 +54,7 @@ function ResultPanel({
   const [compareView, setCompareView] = useState<"result" | "before-after">("result");
 
   return (
-    <Card className="flex flex-col">
+    <Card variant="elevated" className="flex flex-col">
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div>
           <CardTitle className="text-base">Result</CardTitle>

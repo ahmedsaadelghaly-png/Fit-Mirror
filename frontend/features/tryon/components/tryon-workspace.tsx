@@ -99,9 +99,18 @@ function TryOnWorkspace() {
         </p>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))_320px]">
-        <UserPhotoPanel upload={userUpload} disabled={createJobMutation.isPending} />
-        <GarmentPanel upload={garmentUpload} disabled={createJobMutation.isPending} />
+      {/*
+        The result is the payoff of the whole workspace, so it gets the
+        dominant column — inputs (compact, stacked) on the left, result
+        (wide) in the center, queue/history on the right. Purely a layout
+        change: every handler/prop below is identical to before.
+      */}
+      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1.6fr)_320px]">
+        <div className="flex flex-col gap-4">
+          <UserPhotoPanel upload={userUpload} disabled={createJobMutation.isPending} />
+          <GarmentPanel upload={garmentUpload} disabled={createJobMutation.isPending} />
+        </div>
+
         <ResultPanel
           job={activeJob}
           onRetry={() => handleRetry()}
@@ -111,7 +120,7 @@ function TryOnWorkspace() {
           isLookSaved={isLookSaved}
         />
 
-        <div className="flex flex-col gap-4 lg:col-start-4 lg:row-start-1">
+        <div className="flex flex-col gap-4">
           <QueueStatusCard activeJobs={activeJobs} />
           <TryOnHistorySidebar
             jobs={jobs}

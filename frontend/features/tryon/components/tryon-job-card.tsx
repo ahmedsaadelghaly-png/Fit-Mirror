@@ -30,13 +30,13 @@ function TryOnJobCard({ job, isActive, onSelect, onRetry }: TryOnJobCardProps) {
       className={cn(
         "flex items-center gap-3 rounded-lg border p-2 transition-colors",
         onSelect && "cursor-pointer hover:bg-accent/50",
-        isActive && "border-primary bg-accent/40",
+        isActive && "border-primary bg-primary/10",
       )}
     >
       <ResolvedImage
         imageKey={job.result_image_key ?? job.garment_image_key}
         alt={`Try-on job ${job.id.slice(0, 8)}`}
-        className="size-12 shrink-0 rounded-md"
+        className="size-14 shrink-0 rounded-md"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate font-mono text-xs text-muted-foreground">
