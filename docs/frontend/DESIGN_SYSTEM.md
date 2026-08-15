@@ -216,7 +216,47 @@ caption overlay — saved looks, stylist suggestions) and `ProductCard`
 Both are generic presentational primitives (no domain typing), composed
 by feature code that maps its own data into their props — kept that way
 so the same two cards serve Shopper, Brand, and Stylist contexts rather
-than one card type per feature.
+than one card type per feature. Both also take an optional `actions`
+slot (hover/focus-revealed, bottom-right) for a delete/edit affordance —
+added when `WardrobeItemCard`/`TryOnHistoryResultCard` needed one rather
+than growing a third card type.
+
+## Phase 2.8 rollout summary
+
+Stage 1 (this file's sections above) shipped the token/primitive
+foundation; Stages 2–8 adopted it page by page. Auth forms
+(`features/auth/components/auth-form-field.tsx`/`auth-form-error.tsx`)
+and the Stylist/Shopping chat UI
+(`features/shopper/components/ai-chat-panel.tsx`) are two more shared
+primitives that came out of that adoption pass — both are pure
+presentational extractions of markup that was previously hand-duplicated
+across 2–3 near-identical call sites, not new design-system surface area.
+
+What deliberately did **not** change: any hook signature, TanStack Query
+key, mutation payload shape, poll interval, the auth token/refresh
+sequence, the wardrobe/admin/brand localStorage-overlay contracts, or
+any test file's assertions about application behavior (only two smoke
+tests were touched, both to reflect an intentional new UI affordance —
+see Stage 2's commit for the `h1`/decorative-`alt` fixes those same
+e2e/accessibility suites caught).
+
+Admin (Stage 8) intentionally did not adopt `FashionSection`/
+`EditorialHero`/`LookCard`/`ProductCard`/`FashionImage` — per the
+product brief, it stays a dense operational console, not an editorial
+surface. Brand's Inventory/Analytics/Customers/Orders pages and most of
+Brand's onboarding/profile/settings forms were left as Stage 1 already
+found them: functionally complete, honestly labeled placeholders where
+the backend has no real data behind them, not worth the redesign effort
+the flagship surfaces (public site, auth, Shopper dashboard, Virtual
+Try-On, Wardrobe, Saved Looks, Body Profile, Stylist, Shopping, Brand's
+product catalog/creation) received.
+
+Every `FashionImage`/`EditorialImage`/`ModelImage`/`EditorialImage`
+usage introduced across Stages 2–7 still renders the Stage 1 placeholder
+— no real photography was available during this pass. See
+`docs/frontend/ASSETS.md` for the current shot list; grepping for these
+components with no `src` prop at any later date will always produce an
+accurate, up-to-date list of what's still pending.
 
 ## Accessibility rules
 

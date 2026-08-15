@@ -41,18 +41,28 @@ and `<FashionImage` calls with no `src` to get the exact list at any point
 in time; the list below is the Phase 2.8 snapshot and will drift as later
 stages add more.
 
-## Shot list (Phase 2.8 snapshot)
+## Shot list (post-Stage 7, actual call sites)
 
-| Slot | Aspect | Used by | Notes |
+Every row below is a real, shipped `<FashionImage>`/`<EditorialImage>`/
+`<ModelImage>` call in the codebase today (not a speculative plan) —
+regenerate this table at any time with the grep in the section above.
+All of them currently render the placeholder; none has a real photo yet.
+
+| Slot | Component call site | Aspect | Notes |
 |---|---|---|---|
-| Landing hero | `editorial` (21:9) | Public homepage hero | The single most important image in the product — a model in motion trying something on, not a static product-on-white shot. |
-| "Virtual Try-On" story panel | `wide` (16:9) or `portrait` (3:4) | Landing page narrative section | Before/after or a garment mid-render, communicating the core mechanic without a screenshot. |
-| "Digital Wardrobe" story panel | `wide`/`portrait` | Landing page narrative section | A flat-lay or rack composition — several garments, not one. |
-| "Personal Stylist" story panel | `portrait` | Landing page narrative section | A styled outfit composition, not an icon. |
-| "Smart Shopping" story panel | `wide` | Landing page narrative section | Product grid or discovery moment. |
-| "For Fashion Brands" story panel | `wide` | Landing page narrative section | Editorial/studio photography tone, distinct from the consumer sections. |
-| Auth panel (`AuthLayout`) | `portrait`/full-bleed | `/login`, `/register`, etc. | Currently a solid ink panel with the sheen effect and no imagery — a real photo here would substantially lift the first authenticated impression. |
-| Empty states (wardrobe, saved looks, shopping) | `square`/`portrait` | Shopper feature empty states | Illustrative rather than literal — a soft abstract garment motif works here even before real photography exists. |
+| Landing hero | `app/(public)/page.tsx` — `EditorialHero`'s `media` | `editorial` (21:9) | The single most important image in the product — a model in motion trying something on, not a static product-on-white shot. |
+| Per-capability narrative panels (×5: Virtual Try-On, Digital Wardrobe, AI Stylist, Size Recommendation, For Fashion Brands) | `app/(public)/page.tsx` — one `EditorialHero` per `capabilities` entry | `portrait` (`ModelImage`) | Alternating left/right; each panel needs a photo distinct from the others or the repetition reads as one recycled placeholder even after real photos land. |
+| Features grid tiles (×5) | `app/(public)/features/page.tsx` | `landscape` | Smaller/secondary versions — can reuse the narrative-panel shots above at a different crop rather than requiring 5 more originals. |
+| Auth panel | `layouts/auth-layout.tsx` | full-bleed behind the "mirror" sheen | Layered under the existing signature motion effect, not replacing it — see `docs/frontend/DESIGN_SYSTEM.md` "Motion". |
+| Contact page | `app/(public)/contact/page.tsx` | `portrait` (`ModelImage`, decorative `alt=""`) | Purely supporting/balancing the two-column layout — lowest priority in this list. |
+
+Empty states (wardrobe, saved looks, shopping, try-on history) were
+evaluated but deliberately **not** given `FashionImage` treatment —
+`components/ui/empty-state.tsx`'s existing icon+copy pattern already
+reads clearly at that small a size, and duplicating the same abstract
+placeholder glyph inside an already-small empty-state tile added visual
+noise rather than polish (see Stage 4's `ResultPanel` idle-state
+decision, which reached the same conclusion for the same reason).
 
 Populate any row above by dropping a real file into the matching
 `public/images/<folder>/` path and passing that path as `src` to the
