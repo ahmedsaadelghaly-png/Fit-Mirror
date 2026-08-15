@@ -10,7 +10,7 @@ export interface SavedLooksSummaryCardProps {
 
 function SavedLooksSummaryCard({ lookCount }: SavedLooksSummaryCardProps) {
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Heart className="size-4 text-muted-foreground" aria-hidden="true" />

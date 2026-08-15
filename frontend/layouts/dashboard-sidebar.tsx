@@ -92,12 +92,15 @@ function DashboardSidebar({ navItems, areaLabel }: DashboardSidebarProps) {
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-accent text-accent-foreground"
+                  ? "bg-primary/10 text-foreground"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
               )}
               aria-current={isActive ? "page" : undefined}
             >
-              <Icon className="size-4 shrink-0" aria-hidden="true" />
+              <Icon
+                className={cn("size-4 shrink-0", isActive && "text-primary-text")}
+                aria-hidden="true"
+              />
               {!isCollapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );

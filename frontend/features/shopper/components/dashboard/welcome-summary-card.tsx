@@ -15,7 +15,7 @@ function WelcomeSummaryCard({ user, isOnboardingComplete }: WelcomeSummaryCardPr
   const firstName = (user.full_name ?? user.email).split(/[\s@]/)[0];
 
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
         <div>
           <h1 className="font-display text-2xl font-semibold">Welcome back, {firstName}</h1>

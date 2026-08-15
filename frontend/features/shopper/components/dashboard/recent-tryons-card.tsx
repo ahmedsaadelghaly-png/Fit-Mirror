@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
+import { LookCard } from "@/shared/components/cards/look-card";
 import type { TryOnJob } from "@/types/domain";
 
 export interface RecentTryOnsCardProps {
@@ -12,7 +13,7 @@ export interface RecentTryOnsCardProps {
 
 function RecentTryOnsCard({ jobs }: RecentTryOnsCardProps) {
   return (
-    <Card>
+    <Card className="sm:col-span-2">
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div>
           <CardTitle className="text-base">Recent try-ons</CardTitle>
@@ -34,15 +35,25 @@ function RecentTryOnsCard({ jobs }: RecentTryOnsCardProps) {
             </Button>
           </div>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {jobs.map((job) => (
-              <li key={job.id} className="flex items-center justify-between gap-3">
-                <span className="truncate font-mono text-xs text-muted-foreground">
-                  Job {job.id.slice(0, 8)}
-                </span>
-                <StatusChip status={job.status} />
-              </li>
-            ))}
+          <ul className="flex flex-wrap gap-3">
+            {jobs.map((job) =>
+              job.result_image_key ? (
+                <li key={job.id} className="w-24">
+                  <LookCard
+                    imageKey={job.result_image_key}
+                    alt={`Try-on result for job ${job.id.slice(0, 8)}`}
+                    badge={<StatusChip status={job.status} className="scale-90" />}
+                  />
+                </li>
+              ) : (
+                <li key={job.id} className="flex w-full items-center justify-between gap-3">
+                  <span className="truncate font-mono text-xs text-muted-foreground">
+                    Job {job.id.slice(0, 8)}
+                  </span>
+                  <StatusChip status={job.status} />
+                </li>
+              ),
+            )}
           </ul>
         )}
       </CardContent>
