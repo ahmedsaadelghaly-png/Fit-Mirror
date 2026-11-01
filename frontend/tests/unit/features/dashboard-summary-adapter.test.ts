@@ -44,14 +44,14 @@ describe("buildDashboardSummary", () => {
     expect(result.activeProductCount).toBe(1);
   });
 
-  it("approximates recency by reversing insertion order, capped at 5", () => {
+  it("keeps the API's newest-first order, capped at 5", () => {
     const products = Array.from({ length: 7 }, (_, index) =>
       product({ title: `Product ${index}` }),
     );
     const result = buildDashboardSummary({ summary, products, businessInfo: undefined });
 
     expect(result.recentProducts).toHaveLength(5);
-    expect(result.recentProducts[0]?.title).toBe("Product 6");
+    expect(result.recentProducts[0]?.title).toBe("Product 0");
   });
 
   it("marks every checklist item incomplete when there's no business info or products yet", () => {

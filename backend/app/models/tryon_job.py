@@ -16,6 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.product import ProductVariant
     from app.models.user import User
 
 
@@ -56,3 +57,13 @@ class TryOnJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="tryon_jobs")
+    product_variant: Mapped["ProductVariant | None"] = relationship()
+
+    @property
+    def product_title(self) -> str | None:
+        """The catalog product tried on, if this was a catalog try-on."""
+        return self.product_variant.product.title if self.product_variant else None
+
+    @property
+    def size_label(self) -> str | None:
+        return self.product_variant.size_label if self.product_variant else None

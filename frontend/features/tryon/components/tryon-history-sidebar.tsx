@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TryOnJobCard } from "@/features/tryon/components/tryon-job-card";
+import { newestFirst } from "@/features/tryon/lib/job-display";
 import type { TryOnJob } from "@/types/domain";
 
 export interface TryOnHistorySidebarProps {
@@ -47,9 +48,7 @@ function TryOnHistorySidebar({
         )}
 
         {!isLoading &&
-          jobs
-            .slice()
-            .reverse()
+          newestFirst(jobs)
             .slice(0, 6)
             .map((job) => (
               <TryOnJobCard

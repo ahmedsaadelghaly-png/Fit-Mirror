@@ -20,6 +20,7 @@ class UserRead(BaseModel):
 
 
 class BodyProfileUpsert(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
     body_category: BodyCategory | None = None
     height_cm: float | None = None
     weight_kg: float | None = None
@@ -33,10 +34,18 @@ class BodyProfileUpsert(BaseModel):
     style_preferences: list[StyleTag] | None = Field(default=None, max_length=12)
 
 
+class BodyProfileCreate(BodyProfileUpsert):
+    """A family member's profile (e.g. a child): a name is required."""
+
+    name: str = Field(min_length=1, max_length=100)
+
+
 class BodyProfileRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    name: str
+    is_primary: bool
     body_category: BodyCategory | None
     height_cm: float | None
     weight_kg: float | None

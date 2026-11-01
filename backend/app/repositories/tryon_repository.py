@@ -1,5 +1,8 @@
 import uuid
 
+from sqlalchemy.orm import selectinload
+
+from app.models.product import ProductVariant
 from app.models.tryon_job import TryOnJob, TryOnJobStatus
 from app.repositories.base_repository import BaseRepository
 
@@ -10,6 +13,7 @@ class TryOnJobRepository(BaseRepository[TryOnJob]):
     def list_for_user(self, user_id: uuid.UUID, limit: int = 50) -> list[TryOnJob]:
         return (
             self.db.query(TryOnJob)
+            .options(selectinload(TryOnJob.product_variant).selectinload(ProductVariant.product))
             .filter(TryOnJob.user_id == user_id)
             .order_by(TryOnJob.created_at.desc())
             .limit(limit)

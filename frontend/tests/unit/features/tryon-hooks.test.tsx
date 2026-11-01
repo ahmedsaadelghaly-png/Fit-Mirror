@@ -31,6 +31,10 @@ const baseJob: TryOnJob = {
   result_image_key: null,
   ai_model_name: null,
   error_message: null,
+  created_at: "2026-11-01T10:00:00Z",
+  product_variant_id: null,
+  product_title: null,
+  size_label: null,
 };
 
 describe("useCreateTryOnJob", () => {

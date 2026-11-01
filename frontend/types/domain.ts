@@ -21,6 +21,10 @@ export type ProductAudience = BodyCategory | "unisex";
 
 export interface BodyProfile {
   id: string;
+  /** "Me" for the shopper's own profile, or a family member's name. */
+  name: string;
+  /** The shopper's own profile — exactly one per account. */
+  is_primary: boolean;
   body_category: BodyCategory | null;
   height_cm: number | null;
   weight_kg: number | null;
@@ -54,6 +58,11 @@ export interface TryOnJob {
   result_image_key: string | null;
   ai_model_name: string | null;
   error_message: string | null;
+  created_at: string;
+  product_variant_id: string | null;
+  /** Catalog try-ons only: the product tried on and the chosen size. */
+  product_title: string | null;
+  size_label: string | null;
 }
 
 export interface ProductVariant {

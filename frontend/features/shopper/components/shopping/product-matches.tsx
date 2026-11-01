@@ -1,10 +1,12 @@
 "use client";
 
-import { Ruler } from "lucide-react";
+import { Ruler, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
+import { ProductTryOnDialog } from "@/features/shopper/components/shop/product-try-on-dialog";
 import { useCatalogProducts } from "@/features/shopper/hooks/use-catalog-products";
 import { useSizeRecommendation } from "@/features/shopper/hooks/use-size-recommendation";
 import { ProductCard } from "@/shared/components/cards/product-card";
@@ -22,6 +24,7 @@ export interface ProductMatchesProps {
  */
 function ProductMatches({ productIds }: ProductMatchesProps) {
   const { data: products, isLoading, isError } = useCatalogProducts(productIds);
+  const [tryOnProduct, setTryOnProduct] = useState<Product | null>(null);
 
   if (productIds.length === 0) return null;
   if (isLoading) {
@@ -36,14 +39,24 @@ function ProductMatches({ productIds }: ProductMatchesProps) {
       <h2 className="text-sm font-medium">Matches</h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {products.map((product) => (
-          <ProductMatch key={product.id} product={product} />
+          <ProductMatch key={product.id} product={product} onTryOn={setTryOnProduct} />
         ))}
       </div>
+      <ProductTryOnDialog
+        product={tryOnProduct}
+        onOpenChange={(open) => !open && setTryOnProduct(null)}
+      />
     </section>
   );
 }
 
-function ProductMatch({ product }: { product: Product }) {
+function ProductMatch({
+  product,
+  onTryOn,
+}: {
+  product: Product;
+  onTryOn: (product: Product) => void;
+}) {
   const sizing = useSizeRecommendation();
   const sizes = product.variants.map((variant) => variant.size_label).join(" · ");
   const sizingError = sizing.error instanceof ApiError ? sizing.error : null;
@@ -71,11 +84,14 @@ function ProductMatch({ product }: { product: Product }) {
           variant="outline"
           size="sm"
           isLoading={sizing.isPending}
-          onClick={() => sizing.mutate(product.id)}
+          onClick={() => sizing.mutate({ productId: product.id })}
         >
           <Ruler className="size-3.5" /> Find my size
         </Button>
       )}
+      <Button type="button" variant="ghost" size="sm" onClick={() => onTryOn(product)}>
+        <Sparkles className="size-3.5" /> Try on
+      </Button>
       {sizingError && (
         <p className="text-xs text-destructive" role="alert">
           {sizingError.message}{" "}

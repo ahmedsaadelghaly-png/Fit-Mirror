@@ -20,8 +20,8 @@ frontend/
     saved-looks.ts                       GET/POST/DELETE /saved-looks
     stylist.ts                           POST /stylist/suggestions (rule-based outfits from the wardrobe)
     shopping.ts                          POST /shopping/ask
-    catalog.ts                           GET /catalog/products?ids= (Shopping Assistant matches)
-    sizing.ts                            POST /sizing/recommend ("Find my size")
+    catalog.ts                           GET /catalog/products (Shop page; ?ids= for Shopping Assistant matches)
+    sizing.ts                            POST /sizing/recommend ("Find my size", per family profile)
     shopping.ts                          501-backed placeholder (POST /shopping/ask)
   features/shopper/
     schemas.ts                           Zod schemas: body measurements, style preferences, wardrobe item, stylist/shopping requests
@@ -64,6 +64,8 @@ logic lives in `features/*/hooks`, not in pages or components.
 | Feature | Backend endpoint(s) | Status |
 |---|---|---|
 | Body profile | `GET/PUT /users/me/body-profile` | Real — measurements, body type, style preferences, reference photo |
+| Family profiles | `GET/POST /users/me/body-profiles`, `PUT/DELETE /users/me/body-profiles/{id}` | Real — switcher + "Add family member" on Body Profile (`features/shopper/components/family/`) |
+| Shop + catalog try-on | `GET /catalog/products`, `POST /sizing/recommend` (`body_profile_id`), `POST /tryon` (`product_variant_id`) | Real — `/shopper/shop`; the try-on dialog (`features/shopper/components/shop/product-try-on-dialog.tsx`) picks who it's for (a matching child for kids' items), recommends and preselects their size, uses that profile's saved photo, and opens `/shopper/tryon?job=<id>` |
 | Wardrobe | `POST/GET /wardrobe`, `DELETE /wardrobe/{id}` | Real |
 | Virtual try-on | `POST /tryon/upload-url`, `POST /tryon`, `GET /tryon/{id}`, `GET /tryon` | Real |
 | Uploads (all surfaces) | `POST /tryon/upload-url` + direct `PUT` to the pre-signed URL | Real — one endpoint reused for body-profile/wardrobe/try-on images, see backend docs/STORAGE.md |
@@ -114,16 +116,14 @@ handled with a typed frontend adapter and called out here:
 6. **No endpoint to edit profile details.** Only `GET /users/me` exists —
    no `PATCH`. Settings → Profile details is read-only, not a broken form.
 
-7. **`TryOnJobRead` has no timestamp**, so "recent try-ons" and history
-   sort order use reversed insertion order as an approximation (see
-   `features/shopper/hooks/use-dashboard-summary.ts`) rather than a real
-   `created_at` sort.
+7. ~~`TryOnJobRead` has no timestamp.~~ **Resolved (Phase 3.2).** Jobs
+   carry `created_at`; `features/tryon/lib/job-display.ts::newestFirst`
+   sorts everywhere (the old "reverse the list" approximation actually
+   showed oldest first, since the API was already newest first).
 
-8. **Try-on history search is an inert placeholder** — there's no
-   garment name/title on a job to search against, only opaque storage
-   keys, so the spec's "Search placeholder" is implemented literally: a
-   disabled input, not fake client-side matching against meaningless
-   strings.
+8. ~~Try-on history search is an inert placeholder.~~ **Resolved (Phase
+   3.2).** Catalog try-ons carry `product_title` / `size_label`; history
+   cards show them and search matches the product name.
 
 ## Onboarding
 
@@ -206,7 +206,7 @@ npm run build-storybook                 # verifies all stories compile
 
 ## What's still a placeholder after Phase 2.3
 
-- AI Stylist and Shopping Assistant are rule-based v1 engines (badged "Beta"); there is no catalog try-on flow yet (try-on uses uploaded/wardrobe garments)
+- AI Stylist and Shopping Assistant are rule-based v1 engines (badged "Beta")
 - Download / Share actions on a completed try-on result
 - Account settings (password change, delete account) and Notification preferences
 - A real side-anchored "drawer" for saved look details (currently a centered dialog — `components/ui/dialog.tsx` is the only modal primitive today)

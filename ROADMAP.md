@@ -40,12 +40,10 @@
 
 ## In progress — Phase 3.2: Remaining backend gaps
 
-- Family profiles: several body profiles per account (e.g. a parent plus
-  each child), chosen per try-on / size check — today one account has one
-  profile, so sizing a child's item means switching the profile to Girls/Boys
-
-- Catalog try-on in the Shopper app (try on a product variant, with a size
-  recommendation) — the backend already accepts `product_variant_id`
+- ✅ Family profiles: several body profiles per account (the shopper plus
+  e.g. each child), chosen per size check and try-on
+- ✅ Catalog try-on: Shop page → size for anyone in the family → try on a
+  product variant; try-on jobs carry product, size and date
 - ✅ Saved Looks (`saved_looks` table + `GET/POST/DELETE /saved-looks`)
 - ✅ Style preferences (fit / colors / tags) and reference photo on the body
   profile; the AI Stylist favours the shopper's colours

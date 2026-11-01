@@ -43,6 +43,7 @@ export interface NavItem {
  */
 export const shopperNav: NavItem[] = [
   { label: "Overview", href: "/shopper", icon: LayoutDashboard },
+  { label: "Shop", href: "/shopper/shop", icon: Store },
   { label: "Wardrobe", href: "/shopper/wardrobe", icon: Shirt },
   { label: "Try-On", href: "/shopper/tryon", icon: Sparkles },
   { label: "Try-On History", href: "/shopper/tryon/history", icon: History },

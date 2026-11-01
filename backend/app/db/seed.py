@@ -203,6 +203,8 @@ def seed() -> None:
                     hip_cm=98,
                     body_category=BodyCategory.WOMEN,
                     body_shape="rectangle",
+                    name="Me",
+                    is_primary=True,
                     preferred_fit="regular",
                     favorite_colors=["black", "beige"],
                     style_preferences=["minimalist", "classic"],
@@ -210,6 +212,20 @@ def seed() -> None:
             )
             db.commit()
             logger.info("Created body profile for demo shopper")
+        if not any(p.name == "Lina" for p in shopper.body_profiles):
+            # A family profile, so girls' items can be sized out of the box.
+            db.add(
+                BodyProfile(
+                    user_id=shopper.id,
+                    name="Lina",
+                    body_category=BodyCategory.GIRLS,
+                    body_shape="regular",
+                    height_cm=128,
+                    weight_kg=26,
+                )
+            )
+            db.commit()
+            logger.info("Created family profile 'Lina' for demo shopper")
 
         brand_owner = _get_or_create_user(
             db, email="brand@fitmirror.ai", role=UserRole.BRAND_ADMIN, full_name="Demo Brand Owner"

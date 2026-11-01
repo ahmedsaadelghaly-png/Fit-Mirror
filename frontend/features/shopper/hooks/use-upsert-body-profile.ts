@@ -9,6 +9,7 @@ export function useUpsertBodyProfile() {
     mutationFn: upsertBodyProfile,
     onSuccess: (profile) => {
       queryClient.setQueryData(["shopper", "body-profile"], profile);
+      queryClient.invalidateQueries({ queryKey: ["shopper", "body-profiles"] });
     },
   });
 }

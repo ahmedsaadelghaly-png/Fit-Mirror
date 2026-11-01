@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.exceptions import NotFoundError, ValidationAppError
 from app.models.product import Product, ProductAudience
+from app.services.body_profile_service import BodyProfileService
 from app.models.user import KIDS_CATEGORIES, BodyProfile
 
 CM_PER_INCH = 2.54
@@ -84,6 +85,9 @@ class SizeRecommendation:
     recommended_size_label: str
     confidence: float
     fit_note: str
+    # Whose profile the size was computed for (family profiles).
+    body_profile_id: uuid.UUID | None = None
+    profile_name: str | None = None
 
 
 def _size_index_for(measurement: str, value: float) -> tuple[int, bool]:
@@ -107,7 +111,21 @@ class SizingService:
     def __init__(self, db: Session):
         self.db = db
 
-    def recommend(self, user_id: uuid.UUID, product_id: uuid.UUID) -> SizeRecommendation:
+    def recommend(
+        self,
+        user_id: uuid.UUID,
+        product_id: uuid.UUID,
+        body_profile_id: uuid.UUID | None = None,
+    ) -> SizeRecommendation:
+        """Sizes `product_id` for one of the caller's body profiles — the
+        given family profile, or their own (primary) one by default."""
+        profile = BodyProfileService(self.db).resolve(user_id, body_profile_id)
+        result = self._recommend(product_id, profile)
+        if profile is None:
+            return result
+        return replace(result, body_profile_id=profile.id, profile_name=profile.name)
+
+    def _recommend(self, product_id: uuid.UUID, profile: BodyProfile | None) -> SizeRecommendation:
         product = (
             self.db.query(Product)
             .options(selectinload(Product.variants))
@@ -117,20 +135,19 @@ class SizingService:
         if not product:
             raise NotFoundError("Product not found.")
 
-        profile = self.db.query(BodyProfile).filter(BodyProfile.user_id == user_id).first()
         is_kids_profile = bool(profile and profile.body_category in KIDS_CATEGORIES)
 
         if product.audience in KIDS_AUDIENCES:
             if not profile or not is_kids_profile:
                 raise ValidationAppError(
-                    f"This is a {product.audience.value}' item, sized by height. Set your body "
-                    "profile to Girls or Boys with your child's height to get a size."
+                    f"This is a {product.audience.value}' item, sized by height. Choose your "
+                    "child's profile (or add one under Body Profile → Family) to get a size."
                 )
             return self._recommend_kids(product, profile)
-        if is_kids_profile:
+        if profile and is_kids_profile:
             raise ValidationAppError(
-                "This item is cut for adults, but your body profile is set to a child's. "
-                "Switch your profile to Women or Men to get a size."
+                f"This item is cut for adults, but {profile.name}'s profile is a child's. "
+                "Choose an adult profile to get a size."
             )
 
         measurements = CATEGORY_MEASUREMENTS.get(product.category.lower())

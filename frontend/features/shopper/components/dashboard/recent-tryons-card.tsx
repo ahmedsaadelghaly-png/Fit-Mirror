@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
 import { LookCard } from "@/shared/components/cards/look-card";
+import { tryOnJobTitle } from "@/features/tryon/lib/job-display";
 import type { TryOnJob } from "@/types/domain";
 
 export interface RecentTryOnsCardProps {
@@ -46,7 +47,7 @@ function RecentTryOnsCard({ jobs }: RecentTryOnsCardProps) {
                 {job.result_image_key ? (
                   <LookCard
                     imageKey={job.result_image_key}
-                    alt={`Try-on result for job ${job.id.slice(0, 8)}`}
+                    alt={`Try-on: ${tryOnJobTitle(job)}`}
                     badge={<StatusChip status={job.status} className="scale-90" />}
                   />
                 ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { ApiError } from "@/api/client";
@@ -16,6 +17,7 @@ import { UserPhotoPanel } from "@/features/tryon/components/user-photo-panel";
 import { useCreateTryOnJob } from "@/features/tryon/hooks/use-create-tryon-job";
 import { useTryOnJob } from "@/features/tryon/hooks/use-tryon-job";
 import { useTryOnJobs } from "@/features/tryon/hooks/use-tryon-jobs";
+import { retryPayload } from "@/features/tryon/lib/job-display";
 import type { TryOnJob } from "@/types/domain";
 
 /**
@@ -28,7 +30,9 @@ import type { TryOnJob } from "@/types/domain";
 function TryOnWorkspace() {
   const userUpload = useUpload();
   const garmentUpload = useUpload();
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  // `?job=<id>` — arriving from a catalog try-on or a history card.
+  const searchParams = useSearchParams();
+  const [activeJobId, setActiveJobId] = useState<string | null>(searchParams.get("job"));
 
   const createJobMutation = useCreateTryOnJob();
   const activeJobQuery = useTryOnJob(activeJobId);
@@ -60,7 +64,10 @@ function TryOnWorkspace() {
   const handleRetry = (job?: TryOnJob) => {
     const target = job ?? activeJob;
     if (!target) return;
-    createJob(target.user_image_key, target.garment_image_key).catch(() => undefined);
+    createJobMutation
+      .mutateAsync(retryPayload(target))
+      .then((accepted) => setActiveJobId(accepted.job_id))
+      .catch(() => undefined);
   };
 
   const handleSaveLook = () => {

@@ -6,7 +6,7 @@ import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Boolean, Enum, ForeignKey, String
+from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Index, String, and_, false, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -42,6 +42,7 @@ BODY_SHAPES_BY_CATEGORY: dict[BodyCategory, tuple[str, ...]] = {
     BodyCategory.BOYS: ("slim", "regular", "husky"),
 }
 KIDS_CATEGORIES = frozenset({BodyCategory.GIRLS, BodyCategory.BOYS})
+MAX_BODY_PROFILES_PER_USER = 8
 
 # Style preferences (mirrored by the frontend's features/shopper/schemas.ts).
 PREFERRED_FITS = ("slim", "regular", "relaxed", "oversized")
@@ -58,8 +59,16 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    body_profile: Mapped["BodyProfile"] = relationship(
-        back_populates="user", uselist=False, cascade="all, delete-orphan"
+    # Family profiles: one account can hold several body profiles (the
+    # shopper plus e.g. each child). Exactly one is primary — the shopper's
+    # own, used wherever no profile is chosen explicitly.
+    body_profiles: Mapped[list["BodyProfile"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    body_profile: Mapped["BodyProfile | None"] = relationship(
+        primaryjoin=lambda: and_(User.id == BodyProfile.user_id, BodyProfile.is_primary),
+        uselist=False,
+        viewonly=True,
     )
     wardrobe_items: Mapped[list["WardrobeItem"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -74,10 +83,21 @@ class BodyProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """Body measurements used for size recommendation and virtual try-on fitting."""
 
     __tablename__ = "body_profiles"
+    __table_args__ = (
+        Index(
+            "uq_body_profiles_one_primary",
+            "user_id",
+            unique=True,
+            postgresql_where=text("is_primary"),
+            sqlite_where=text("is_primary"),
+        ),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    name: Mapped[str] = mapped_column(String(100), default="Me", server_default="Me")
+    is_primary: Mapped[bool] = mapped_column(default=False, server_default=false())
     height_cm: Mapped[float] = mapped_column(nullable=True)
     weight_kg: Mapped[float] = mapped_column(nullable=True)
     chest_cm: Mapped[float] = mapped_column(nullable=True)
@@ -94,4 +114,4 @@ class BodyProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     favorite_colors: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     style_preferences: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
 
-    user: Mapped["User"] = relationship(back_populates="body_profile")
+    user: Mapped["User"] = relationship(back_populates="body_profiles")

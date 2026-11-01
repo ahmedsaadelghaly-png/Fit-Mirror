@@ -167,7 +167,7 @@ class StylistService:
     def _favorite_color_words(self, user_id: uuid.UUID) -> set[str]:
         colors = (
             self.db.query(BodyProfile.favorite_colors)
-            .filter(BodyProfile.user_id == user_id)
+            .filter(BodyProfile.user_id == user_id, BodyProfile.is_primary)
             .scalar()
         )
         words: set[str] = set()

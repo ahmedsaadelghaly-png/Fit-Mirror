@@ -142,6 +142,7 @@ def make_product(db) -> Callable[..., Product]:
 @pytest.fixture
 def set_body_profile(db) -> Callable[..., BodyProfile]:
     def _set(user: User, **measurements) -> BodyProfile:
+        measurements.setdefault("is_primary", True)
         profile = BodyProfile(user_id=user.id, **measurements)
         db.add(profile)
         db.commit()

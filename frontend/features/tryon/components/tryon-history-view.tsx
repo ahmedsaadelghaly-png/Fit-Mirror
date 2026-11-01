@@ -12,6 +12,7 @@ import { TryOnHistoryResultCard } from "@/features/tryon/components/tryon-histor
 import { TryOnStatusFilter } from "@/features/tryon/components/tryon-status-filter";
 import { useCreateTryOnJob } from "@/features/tryon/hooks/use-create-tryon-job";
 import { useTryOnJobs } from "@/features/tryon/hooks/use-tryon-jobs";
+import { retryPayload } from "@/features/tryon/lib/job-display";
 import type { TryOnJob } from "@/types/domain";
 
 function TryOnHistoryView() {
@@ -19,10 +20,7 @@ function TryOnHistoryView() {
   const retryMutation = useCreateTryOnJob();
 
   const handleRetry = (job: TryOnJob) => {
-    retryMutation.mutate({
-      user_image_key: job.user_image_key,
-      garment_image_key: job.garment_image_key,
-    });
+    retryMutation.mutate(retryPayload(job));
   };
 
   return (
@@ -79,12 +77,11 @@ function TryOnHistoryView() {
                 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden="true"
               />
-              {/* Search placeholder — TryOnJobRead carries no garment name/title
-                  to match against yet, see features/tryon/hooks/use-tryon-jobs.ts */}
               <Input
-                placeholder="Search (coming soon)"
+                type="search"
+                aria-label="Search try-ons by product"
+                placeholder="Search by product"
                 className="w-56 pl-9"
-                disabled
                 value={filters.search}
                 onChange={(event) => setFilters({ ...filters, search: event.target.value })}
               />
@@ -95,17 +92,14 @@ function TryOnHistoryView() {
             <EmptyState title="No try-ons match this filter" />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredJobs
-                .slice()
-                .reverse()
-                .map((job) => (
-                  <TryOnHistoryResultCard
-                    key={job.id}
-                    job={job}
-                    onRetry={handleRetry}
-                    isRetrying={retryMutation.isPending}
-                  />
-                ))}
+              {filteredJobs.map((job) => (
+                <TryOnHistoryResultCard
+                  key={job.id}
+                  job={job}
+                  onRetry={handleRetry}
+                  isRetrying={retryMutation.isPending}
+                />
+              ))}
             </div>
           )}
         </>

@@ -19,6 +19,8 @@ router = APIRouter()
 
 class SizeRecommendationRequest(BaseModel):
     product_id: uuid.UUID
+    # Whose size: one of the caller's family profiles. Defaults to their own.
+    body_profile_id: uuid.UUID | None = None
 
 
 class SizeRecommendationResponse(BaseModel):
@@ -26,6 +28,8 @@ class SizeRecommendationResponse(BaseModel):
     recommended_size_label: str
     confidence: float
     fit_note: str
+    body_profile_id: uuid.UUID | None
+    profile_name: str | None
 
 
 @router.post("/recommend", response_model=SizeRecommendationResponse)
@@ -34,10 +38,14 @@ def recommend_size(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    result = SizingService(db).recommend(uuid.UUID(user_id), payload.product_id)
+    result = SizingService(db).recommend(
+        uuid.UUID(user_id), payload.product_id, payload.body_profile_id
+    )
     return SizeRecommendationResponse(
         product_id=result.product_id,
         recommended_size_label=result.recommended_size_label,
         confidence=result.confidence,
         fit_note=result.fit_note,
+        body_profile_id=result.body_profile_id,
+        profile_name=result.profile_name,
     )

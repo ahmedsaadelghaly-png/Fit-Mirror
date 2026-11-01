@@ -85,7 +85,7 @@ describe("ProductMatches", () => {
 
     expect(await screen.findByText(/Your size: M/)).toBeInTheDocument();
     expect(screen.getByText(/95% match/)).toBeInTheDocument();
-    expect(recommendSizeMock).toHaveBeenCalledWith("p-1", expect.anything());
+    expect(recommendSizeMock).toHaveBeenCalledWith("p-1", undefined);
   });
 
   it("links to the body profile when measurements are missing", async () => {

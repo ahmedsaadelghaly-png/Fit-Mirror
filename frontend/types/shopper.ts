@@ -19,6 +19,7 @@ import type { BodyCategory, TryOnJobStatus, WardrobeItemSource } from "@/types/d
  * an object key this account uploaded.
  */
 export interface BodyProfileUpsertRequest {
+  name?: string;
   body_category?: BodyCategory | null;
   height_cm?: number | null;
   weight_kg?: number | null;
@@ -30,6 +31,11 @@ export interface BodyProfileUpsertRequest {
   preferred_fit?: string | null;
   favorite_colors?: string[];
   style_preferences?: string[];
+}
+
+/** A family member's profile — `POST /users/me/body-profiles`. */
+export interface BodyProfileCreateRequest extends BodyProfileUpsertRequest {
+  name: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,6 +158,9 @@ export interface SizeRecommendation {
   /** 0.3–0.95; lower when measurements span sizes or the exact size isn't stocked. */
   confidence: number;
   fit_note: string;
+  /** Whose profile the size was computed for. */
+  body_profile_id: string | null;
+  profile_name: string | null;
 }
 
 // ---------------------------------------------------------------------------

@@ -26,8 +26,10 @@ class FakeTryOnJobRepository:
     def __init__(self, product_variant=None):
         self.jobs: dict[uuid.UUID, TryOnJob] = {}
         self.db = MagicMock()
-        # ProductVariant lookups go through `self.db.get(...)` in the service.
-        self.db.get.return_value = product_variant
+        # The service looks variants up with a visibility-filtered query.
+        self.db.query.return_value.join.return_value.filter.return_value.first.return_value = (
+            product_variant
+        )
 
     def add(self, job: TryOnJob) -> TryOnJob:
         job.id = uuid.uuid4()

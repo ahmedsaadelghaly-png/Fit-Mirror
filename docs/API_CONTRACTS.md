@@ -35,6 +35,21 @@ Body profiles also carry style preferences — `preferred_fit` (`slim` |
 `style_preferences` (string lists, ≤12 each) — and `reference_image_key`,
 which must be an object key this account uploaded (`422` otherwise).
 
+### Family profiles
+
+An account holds several body profiles: exactly one **primary** (the
+shopper's own — what `/users/me/body-profile` reads and writes) plus
+family members, e.g. each child. `BodyProfileRead` carries `name` and
+`is_primary`.
+
+| Endpoint | Method | Auth | Request Body | Success | Error Responses |
+|---|---|---|---|---|---|
+| `/users/me/body-profiles` | GET | bearer | — | `200` `BodyProfileRead[]` (primary first) | `401` |
+| `/users/me/body-profiles` | POST | bearer | `BodyProfileCreate` (`name` required + any upsert field) — the account's first profile becomes primary | `201` `BodyProfileRead` | `401`, `422` (invalid shape/category; more than 8 profiles) |
+| `/users/me/body-profiles/{id}` | GET | bearer | — | `200` `BodyProfileRead` | `401`, `404` (not yours) |
+| `/users/me/body-profiles/{id}` | PUT | bearer | `BodyProfileUpsert` (partial, incl. `name`) | `200` `BodyProfileRead` | `401`, `404`, `422` |
+| `/users/me/body-profiles/{id}` | DELETE | bearer | — | `204` | `401`, `404`, `422` (primary profile) |
+
 ## Saved Looks
 
 | Endpoint | Method | Auth | Request Body | Success | Error Responses |
@@ -57,9 +72,13 @@ which must be an object key this account uploaded (`422` otherwise).
 |---|---|---|---|---|---|
 | `/tryon/upload-url` | POST | bearer | query params `filename`, `content_type` | `200` `{object_key, upload_url, expires_in_seconds}` | `401`, `502 STORAGE_UPLOAD_FAILED` |
 | `/tryon/download-url` | GET | bearer | query param `object_key` | `200` `{download_url}` | `401`, `502 STORAGE_DOWNLOAD_FAILED` |
-| `/tryon` | POST | bearer | `{user_image_key, garment_image_key?, product_variant_id?}` | `202` `{job_id, status: "pending"}` | `401`, `404 PRODUCT_NOT_FOUND` (bad `product_variant_id`), `422 VALIDATION_ERROR` (neither image nor variant given) |
+| `/tryon` | POST | bearer | `{user_image_key, garment_image_key?, product_variant_id?}` — a catalog try-on sends the variant; its garment image (or the product photo) is used | `202` `{job_id, status: "pending"}` | `401`, `404 PRODUCT_NOT_FOUND` (unknown variant, or its product isn't visible to shoppers), `422 VALIDATION_ERROR` (neither image nor variant given) |
 | `/tryon/{job_id}` | GET | bearer | — | `200` `TryOnJobRead` | `401`, `404 TRYON_JOB_NOT_FOUND` |
 | `/tryon` | GET | bearer | — | `200` `TryOnJobRead[]` | `401` |
+
+`TryOnJobRead` also carries `created_at` and, for catalog try-ons,
+`product_variant_id`, `product_title` and `size_label`. `GET /tryon` is
+newest first.
 
 `TryOnJobRead.status` can be `pending`/`processing`/`completed`/`failed`; a
 `failed` job is still a `200` response (the job resource exists and is
@@ -76,7 +95,7 @@ contracts.*
 | Endpoint | Method | Auth | Request Body | Success | Error Responses |
 |---|---|---|---|---|---|
 | `/stylist/suggestions` | POST | bearer | `{occasion?, weather?}` | `200 {suggestion_id, wardrobe_item_ids, rationale}` (empty wardrobe → `200` with empty `wardrobe_item_ids` and a rationale saying what to add) | `401`, `422` |
-| `/sizing/recommend` | POST | bearer | `{product_id}` | `200 {product_id, recommended_size_label, confidence, fit_note}` — adult items from chest/waist/hip (+ a body-shape tip); girls'/boys' items from height against age (`6Y`, `6-7Y`) or height (`116`, `110-116`) labels, one size up for `plus`/`husky` fits | `401`, `404` (unknown/inactive product), `422` (missing measurements; footwear; kids' item with an adult profile or vice versa) |
+| `/sizing/recommend` | POST | bearer | `{product_id, body_profile_id?}` (a family profile; default: the shopper's own) | `200 {product_id, recommended_size_label, confidence, fit_note, body_profile_id, profile_name}` — adult items from chest/waist/hip (+ a body-shape tip); girls'/boys' items from height against age (`6Y`, `6-7Y`) or height (`116`, `110-116`) labels, one size up for `plus`/`husky` fits | `401`, `404` (unknown/inactive product, or someone else's profile), `422` (missing measurements; footwear; kids' item with an adult profile or vice versa) |
 | `/shopping/ask` | POST | bearer | `{query}` (1–500 chars) | `200 {matched_product_ids, reply}` — up to 10 IDs, best match first | `401`, `422` |
 
 ## Body profile: category & shape

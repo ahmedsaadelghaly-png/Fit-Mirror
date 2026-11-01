@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -27,6 +28,11 @@ class TryOnJobRead(BaseModel):
     result_image_key: str | None
     ai_model_name: str | None
     error_message: str | None
+    created_at: datetime
+    product_variant_id: uuid.UUID | None
+    # Set for catalog try-ons: what was tried on, in which size.
+    product_title: str | None
+    size_label: str | None
 
 
 class TryOnJobAccepted(BaseModel):

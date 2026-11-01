@@ -78,6 +78,53 @@ async function mockEmptySavedLooks(page: Page) {
   );
 }
 
+async function mockNoBodyProfiles(page: Page) {
+  await page.route(`${API_BASE_URL}/users/me/body-profiles`, (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" }),
+  );
+}
+
+const CATALOG_PRODUCT = {
+  id: "44444444-4444-4444-4444-444444444444",
+  title: "Leather Biker Jacket",
+  description: "Classic biker cut in soft black leather.",
+  category: "outerwear",
+  audience: "women",
+  price: "189.00",
+  currency: "USD",
+  primary_image_key: null,
+  is_active: true,
+  is_archived: false,
+  variants: [
+    {
+      id: "v-s",
+      size_label: "S",
+      color: "Black",
+      sku: "LBJ-S",
+      stock_quantity: 2,
+      garment_image_key: null,
+    },
+    {
+      id: "v-m",
+      size_label: "M",
+      color: "Black",
+      sku: "LBJ-M",
+      stock_quantity: 2,
+      garment_image_key: null,
+    },
+  ],
+};
+
+async function mockCatalog(page: Page) {
+  await page.route(`${API_BASE_URL}/catalog/products**`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([CATALOG_PRODUCT]),
+    }),
+  );
+}
+
 async function mockMissingBodyProfile(page: Page) {
   await page.route(`${API_BASE_URL}/users/me/body-profile`, (route) =>
     route.fulfill({
@@ -108,6 +155,7 @@ test.describe("Body profile page", () => {
   test("shows the empty-profile prompt and a full measurements form", async ({ page }) => {
     await signInAsShopper(page);
     await mockMissingBodyProfile(page);
+    await mockNoBodyProfiles(page);
 
     await page.goto("/shopper/profile");
 
@@ -125,6 +173,7 @@ test.describe("Virtual try-on page", () => {
   }) => {
     await signInAsShopper(page);
     await mockEmptyTryOnJobs(page);
+    await mockEmptySavedLooks(page);
 
     await page.goto("/shopper/tryon");
 
@@ -133,6 +182,25 @@ test.describe("Virtual try-on page", () => {
     await expect(page.getByRole("heading", { name: "Garment" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Result" })).toBeVisible();
     await expect(page.getByRole("button", { name: /create try-on/i })).toBeDisabled();
+  });
+});
+
+test.describe("Shop page", () => {
+  test("lists catalog products and opens the try-on dialog", async ({ page }) => {
+    await signInAsShopper(page);
+    await mockCatalog(page);
+    await mockNoBodyProfiles(page);
+
+    await page.goto("/shopper/shop");
+
+    await expect(page.getByRole("heading", { name: "Shop", exact: true })).toBeVisible();
+    await expect(page.getByText("Leather Biker Jacket")).toBeVisible();
+
+    await page.getByRole("button", { name: "Try on", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Leather Biker Jacket" })).toBeVisible();
+    await expect(dialog.getByRole("radio", { name: /^M/ })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: /try it on/i })).toBeDisabled();
   });
 });
 
@@ -154,6 +222,7 @@ test.describe("Wardrobe page", () => {
 test.describe("Route protection for new Shopper routes", () => {
   for (const path of [
     "/shopper/wardrobe",
+    "/shopper/shop",
     "/shopper/tryon",
     "/shopper/profile",
     "/shopper/settings",

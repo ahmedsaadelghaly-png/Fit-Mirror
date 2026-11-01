@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listSavedLooks } from "@/api/shopper/saved-looks";
 import { listTryOnJobs } from "@/api/shopper/tryon";
 import { listWardrobeItems } from "@/api/shopper/wardrobe";
+import { newestFirst } from "@/features/tryon/lib/job-display";
 
 /**
  * No dedicated `/shopper/dashboard-summary` endpoint exists on the backend
@@ -41,9 +42,6 @@ export function useDashboardSummary() {
       (job) => job.status === "pending" || job.status === "processing",
     ).length,
     savedLookCount: savedLooks.length,
-    // TryOnJob carries no timestamp field (see types/domain.ts) — the
-    // backend returns jobs in insertion order, so reversing approximates
-    // "most recent first" without a real `created_at` to sort by.
-    recentTryOnJobs: [...tryOnJobs].reverse().slice(0, 5),
+    recentTryOnJobs: newestFirst(tryOnJobs).slice(0, 5),
   };
 }

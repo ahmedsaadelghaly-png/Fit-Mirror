@@ -21,6 +21,7 @@ import {
 import { ImageUploadField } from "@/shared/components/image-upload-field";
 import { ResolvedImage } from "@/shared/components/resolved-image";
 import { useUpload } from "@/features/shopper/hooks/use-upload";
+import { useUpdateBodyProfile } from "@/features/shopper/hooks/use-body-profiles";
 import { useUpsertBodyProfile } from "@/features/shopper/hooks/use-upsert-body-profile";
 import { findBodyCategory } from "@/features/shopper/body-shapes";
 import { BodyShapePicker } from "@/features/shopper/components/body-shape/body-shape-picker";
@@ -33,6 +34,7 @@ import {
   withBodyShapeRule,
 } from "@/features/shopper/schemas";
 import type { BodyCategory, BodyProfile } from "@/types/domain";
+import type { BodyProfileUpsertRequest } from "@/types/shopper";
 
 const MEASUREMENT_FIELDS = [
   { name: "height_cm", label: "Height (cm)" },
@@ -69,6 +71,11 @@ export interface BodyProfileFormProps {
  */
 function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
   const upsertMutation = useUpsertBodyProfile();
+  const updateMutation = useUpdateBodyProfile();
+  // A family member's profile saves by id; the shopper's own (or a first,
+  // not-yet-created one) through the primary-profile endpoint.
+  const familyProfile = existingProfile && !existingProfile.is_primary ? existingProfile : null;
+  const saveMutation = familyProfile ? updateMutation : upsertMutation;
   const upload = useUpload();
 
   const {
@@ -113,7 +120,7 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
     current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
 
   const onSubmit = handleSubmit(async (values) => {
-    await upsertMutation.mutateAsync({
+    const payload: BodyProfileUpsertRequest = {
       height_cm: values.height_cm ?? null,
       weight_kg: values.weight_kg ?? null,
       chest_cm: values.chest_cm ?? null,
@@ -125,7 +132,16 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
       favorite_colors: values.favorite_colors,
       style_preferences: values.style_preferences,
       ...(upload.objectKey ? { reference_image_key: upload.objectKey } : {}),
-    });
+    };
+    try {
+      if (familyProfile) {
+        await updateMutation.mutateAsync({ id: familyProfile.id, payload });
+      } else {
+        await upsertMutation.mutateAsync(payload);
+      }
+    } catch {
+      // Shown by the alert below.
+    }
   });
 
   return (
@@ -299,27 +315,29 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
               onClear={upload.reset}
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              Saved with your profile and used as your photo for catalog try-ons.
+              Saved with this profile and used as the photo for catalog try-ons.
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {upsertMutation.isError && (
+      {saveMutation.isError && (
         <p role="alert" className="text-sm text-destructive">
-          {upsertMutation.error instanceof ApiError
-            ? upsertMutation.error.message
+          {saveMutation.error instanceof ApiError
+            ? saveMutation.error.message
             : "Something went wrong. Please try again."}
         </p>
       )}
 
-      {upsertMutation.isSuccess && !upsertMutation.isPending && (
+      {saveMutation.isSuccess && !saveMutation.isPending && (
         <p role="status" className="text-sm text-success">
-          Your body profile has been saved.
+          {familyProfile
+            ? `${familyProfile.name}'s profile has been saved.`
+            : "Your body profile has been saved."}
         </p>
       )}
 
-      <Button type="submit" isLoading={upsertMutation.isPending} className="w-fit">
+      <Button type="submit" isLoading={saveMutation.isPending} className="w-fit">
         Save body profile
       </Button>
     </form>

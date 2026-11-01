@@ -27,9 +27,7 @@ export interface DashboardSummaryViewModel {
  * mocking TanStack Query. See
  * tests/unit/features/dashboard-summary-adapter.test.ts.
  *
- * `Product` carries no timestamp field (same gap as `TryOnJob` in Phase
- * 2.3's shopper app), so "recent products" approximates recency by
- * reversing the list endpoint's insertion order.
+ * "Recent products" relies on `GET /store/products` returning newest first.
  */
 export function buildDashboardSummary(input: {
   summary: StoreDashboardSummary;
@@ -72,7 +70,8 @@ export function buildDashboardSummary(input: {
     tryOnJobCount: summary.total_tryon_jobs,
     completedTryOnCount: summary.completed_tryon_jobs,
     failedTryOnCount: summary.failed_tryon_jobs,
-    recentProducts: [...products].reverse().slice(0, 5),
+    // `GET /store/products` is already newest first.
+    recentProducts: products.slice(0, 5),
     setupChecklist,
     isSetupComplete: setupChecklist.every((item) => item.isComplete),
   };
