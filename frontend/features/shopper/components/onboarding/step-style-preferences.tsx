@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useStylePreferences } from "@/features/shopper/hooks/use-style-preferences";
+import { useBodyProfile } from "@/features/shopper/hooks/use-body-profile";
+import { useUpsertBodyProfile } from "@/features/shopper/hooks/use-upsert-body-profile";
 import {
   COLOR_PALETTE,
   PREFERRED_FITS,
@@ -32,18 +34,23 @@ export interface StepStylePreferencesProps {
 }
 
 function StepStylePreferences({ onContinue, onSkip }: StepStylePreferencesProps) {
-  const { preferences, savePreferences } = useStylePreferences();
+  const { data: profile } = useBodyProfile();
+  const upsertMutation = useUpsertBodyProfile();
 
-  const { watch, setValue, handleSubmit } = useForm<StylePreferencesFormValues>({
+  const { watch, setValue, handleSubmit, reset } = useForm<StylePreferencesFormValues>({
     resolver: zodResolver(stylePreferencesSchema),
-    defaultValues: {
-      preferred_fit:
-        (preferences.preferred_fit as StylePreferencesFormValues["preferred_fit"]) ?? "",
-      favorite_colors: preferences.favorite_colors as StylePreferencesFormValues["favorite_colors"],
-      style_preferences:
-        preferences.style_preferences as StylePreferencesFormValues["style_preferences"],
-    },
+    defaultValues: { preferred_fit: "", favorite_colors: [], style_preferences: [] },
   });
+
+  useEffect(() => {
+    if (!profile) return;
+    reset({
+      preferred_fit: (profile.preferred_fit as StylePreferencesFormValues["preferred_fit"]) ?? "",
+      favorite_colors: profile.favorite_colors as StylePreferencesFormValues["favorite_colors"],
+      style_preferences:
+        profile.style_preferences as StylePreferencesFormValues["style_preferences"],
+    });
+  }, [profile, reset]);
 
   const favoriteColors = watch("favorite_colors") ?? [];
   const styleTags = watch("style_preferences") ?? [];
@@ -51,12 +58,16 @@ function StepStylePreferences({ onContinue, onSkip }: StepStylePreferencesProps)
   const toggleInArray = <T,>(current: T[], value: T): T[] =>
     current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
 
-  const onSubmit = handleSubmit((values) => {
-    savePreferences({
-      preferred_fit: values.preferred_fit || null,
-      favorite_colors: values.favorite_colors,
-      style_preferences: values.style_preferences,
-    });
+  const onSubmit = handleSubmit(async (values) => {
+    try {
+      await upsertMutation.mutateAsync({
+        preferred_fit: values.preferred_fit || null,
+        favorite_colors: values.favorite_colors,
+        style_preferences: values.style_preferences,
+      });
+    } catch {
+      return; // the alert below shows the failure
+    }
     onContinue();
   });
 
@@ -122,8 +133,16 @@ function StepStylePreferences({ onContinue, onSkip }: StepStylePreferencesProps)
         </div>
       </fieldset>
 
+      {upsertMutation.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          Couldn&apos;t save your preferences. Please try again.
+        </p>
+      )}
+
       <div className="flex gap-2">
-        <Button type="submit">Continue</Button>
+        <Button type="submit" isLoading={upsertMutation.isPending}>
+          Continue
+        </Button>
         <Button type="button" variant="ghost" onClick={onSkip}>
           Skip for now
         </Button>

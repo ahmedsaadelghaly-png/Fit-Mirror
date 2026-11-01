@@ -12,13 +12,8 @@ export interface StepLogoUploadProps {
 
 /**
  * Reuses features/shopper/hooks/use-upload.ts — the pre-signed-URL upload
- * flow is identical regardless of what the image is for. KNOWN CONTRACT
- * MISMATCH: the resulting `object_key` is namespaced `user-photos/...` (see
- * backend/app/api/v1/endpoints/tryon.py — the only upload-url route
- * hardcodes that namespace), and there is no store-update endpoint to
- * attach it to `Store.logo_image_key` server-side anyway — so the key is
- * saved to the localStorage `StoreBusinessInfo` overlay instead (see
- * docs/frontend/BRAND_APP.md "API contract mismatches").
+ * flow is identical regardless of what the image is for — then saves the
+ * key as the store logo with `PATCH /store/me`.
  */
 const EMPTY_BUSINESS_INFO = {
   category: null,

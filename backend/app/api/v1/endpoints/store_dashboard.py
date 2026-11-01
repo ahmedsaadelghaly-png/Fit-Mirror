@@ -17,7 +17,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.dependencies import get_db, require_role
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models.product import Product, ProductVariant
 from app.models.store import Store
 from app.models.tryon_job import TryOnJob, TryOnJobStatus
@@ -30,7 +30,7 @@ from app.schemas.product import (
     ProductVariantRead,
     ProductVariantUpdate,
 )
-from app.schemas.store import StoreCreate, StoreDashboardSummary, StoreRead
+from app.schemas.store import StoreCreate, StoreDashboardSummary, StoreRead, StoreUpdate
 
 router = APIRouter()
 
@@ -96,6 +96,41 @@ def create_store(
 @router.get("/me", response_model=StoreRead)
 def get_my_store(db: Session = Depends(get_db), user: User = Depends(require_store_manager)):
     return _get_owned_store(db, user)
+
+
+@router.patch("/me", response_model=StoreRead)
+def update_my_store(
+    payload: StoreUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_store_manager),
+):
+    """Business info: name, category, description, social links, logo.
+    The logo must be an image this account uploaded (its object key is
+    namespaced by the uploader's id — see docs/STORAGE.md), so a store
+    can't publish someone else's private photo as its logo."""
+    store = _get_owned_store(db, user)
+    changes = payload.model_dump(exclude_unset=True, exclude={"social_links"})
+    if changes.get("name", "") is None:
+        del changes["name"]  # a store always has a name
+
+    logo_key = changes.get("logo_image_key")
+    if logo_key and logo_key.split("/")[1:2] != [str(user.id)]:
+        raise ValidationAppError("Upload the logo from this account before using it.")
+    for field, value in changes.items():
+        setattr(store, field, value)
+
+    if payload.social_links is not None:
+        links = payload.social_links.model_dump(exclude_unset=True)
+        if "website" in links:
+            store.website_url = str(links["website"]) if links["website"] else None
+        if "instagram" in links:
+            store.instagram_handle = links["instagram"] or None
+        if "tiktok" in links:
+            store.tiktok_handle = links["tiktok"] or None
+
+    db.commit()
+    db.refresh(store)
+    return store
 
 
 @router.get("/me/summary", response_model=StoreDashboardSummary)

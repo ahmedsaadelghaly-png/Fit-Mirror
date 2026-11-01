@@ -32,10 +32,9 @@ function storageKey(userId: string): string {
  * Drives the multi-step store setup stepper's progress — mirrors
  * features/shopper/hooks/use-onboarding.ts from Phase 2.3. This is
  * UI-only progress state, distinct from the actual data each step
- * collects: "basics" persists via a real `POST /store` call; "logo",
- * "details", and "social" persist to the localStorage-backed
- * StoreBusinessInfo (see use-store-business-info.ts) since the backend
- * has no fields for any of them.
+ * collects: "basics" creates the store with `POST /store`; "logo",
+ * "details", and "social" save with `PATCH /store/me` (see
+ * use-store-business-info.ts).
  */
 export function useStoreOnboarding() {
   const { currentUser } = useAuth();

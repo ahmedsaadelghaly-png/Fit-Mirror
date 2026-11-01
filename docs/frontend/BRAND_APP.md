@@ -12,11 +12,10 @@ brief.
 
 ```
 frontend/
-  types/brand.ts                          Request/response + frontend-only types (StoreBusinessInfo, ProductOverlay, ...)
+  types/brand.ts                          Request/response types (StoreBusinessInfo, ProductCreateRequest, ...)
   api/brand/
-    store.ts                              GET /store/me, POST /store, GET /store/me/summary
+    store.ts                              GET/PATCH /store/me, POST /store, GET /store/me/summary
     products.ts                           POST/GET /store/products
-    store-local.ts                        localStorage-backed StoreBusinessInfo placeholder
   features/brand/
     schemas.ts                            Zod: store basics, business info, product, variant
     lib/
@@ -58,7 +57,7 @@ renders one client `*View`/`*Flow` component, same pattern as Phase 2.3.
 | Store read | `GET /store/me` | Real — 404 drives the onboarding redirect |
 | Store summary | `GET /store/me/summary` | Real |
 | Product list/create | `GET/POST /store/products` | Real — includes "Made for" (`audience`: women/men/girls/boys/unisex); girls'/boys' items are sized by height |
-| Store edit (business info, logo) | none | **Frontend placeholder** — localStorage, see below |
+| Store edit (business info, logo) | `PATCH /store/me` | Real (Phase 3.2) |
 | Product edit/archive/active-toggle | `PATCH /store/products/{id}` (`is_archived`, `is_active`) | Real (Phase 3.1) |
 | Product variants (add/edit/delete) | `POST/PATCH/DELETE /store/products/{id}/variants[/{variant_id}]` | Real (Phase 3.1) — duplicate SKU (409) shown on the SKU field |
 | Single product detail | `GET /store/products/{id}` exists | Still derived from the list query cache (one fewer request when arriving from the list) |
@@ -77,28 +76,12 @@ actual schemas/routers (`backend/app/schemas/store.py`,
 `backend/app/api/v1/endpoints/store_dashboard.py`) rather than assume
 parity with the spec. Confirmed gaps:
 
-1. **No store update endpoint at all.** `StoreCreate` is exactly
-   `{name, slug}`; there is no `PUT/PATCH /store` or `/store/me` anywhere
-   in the codebase, and no service/repository method for it either. Store
-   name and slug are therefore **read-only** after creation in
-   `StoreIdentitySection` — there's nothing to edit them against.
-
-2. **`category`, `description`, and `social_links` don't exist on the
-   `Store` model at all** — not read-only, not planned in a schema,
-   completely absent. Captured as `StoreBusinessInfo` (`types/brand.ts`),
-   persisted to `localStorage` per store via
-   `features/brand/hooks/use-store-business-info.ts`, following the exact
-   pattern `features/shopper/hooks/use-style-preferences.ts` established
-   in Phase 2.3.
-
-3. **Logo upload has nowhere to go.** `StoreRead.logo_image_key` is
-   readable but nothing can ever set it server-side (no store-update
-   endpoint). The logo upload flow (`POST /tryon/upload-url` → direct
-   `PUT`) still works — it's the same generic pre-signed-URL mechanism
-   used everywhere — but the resulting key is namespaced `user-photos/...`
-   (the `tryon.py` route hardcodes that namespace; it isn't
-   caller-configurable) and is saved to the local `StoreBusinessInfo`
-   overlay, not the real `Store.logo_image_key`.
+1–3. ~~No store update endpoint; no `category`/`description`/
+   `social_links`; logo has nowhere to go.~~ **Resolved (Phase 3.2).**
+   `PATCH /store/me` updates name, category, description, social links
+   and `logo_image_key` (which must be an object key this account
+   uploaded). `features/brand/hooks/use-store-business-info.ts` reads
+   from `GET /store/me` and saves through it; the slug stays permanent.
 
 4. ~~No product edit, archive, or active-toggle endpoint~~ — **resolved
    in Phase 3.1.** `api/brand/products.ts::updateProduct` calls
@@ -146,13 +129,11 @@ rather than disappearing permanently.
 
 ## Store onboarding
 
-Only the **basics** step (name + slug) persists to a real `POST /store`
-call — everything else (logo, category/description, social links) writes
-to the localStorage `StoreBusinessInfo` overlay. Unlike Phase 2.3's
-Shopper onboarding, this stepper doesn't need "resume mid-flow" to
-reconcile server state across steps, since only one step ever calls the
-backend; `features/brand/hooks/use-store-onboarding.ts` still persists
-step progress per user so a refresh mid-flow resumes at the same step.
+The **basics** step (name + slug) creates the store with `POST /store`;
+logo, category/description and social links each save with
+`PATCH /store/me`. `features/brand/hooks/use-store-onboarding.ts`
+persists step progress per user so a refresh mid-flow resumes at the
+same step.
 
 ## Testing
 
@@ -222,9 +203,6 @@ npm run dev                 # http://localhost:3000/brand — needs backend + Po
 
 ## What's still a placeholder after Phase 2.4
 
-- Store business info (category/description/social links/logo) — no backend field or endpoint (mismatch #1–3)
-- Product editing, archiving, active/inactive toggle — no backend endpoint (mismatch #4)
-- Product variant create/edit/delete — no backend endpoint at all (mismatch #5)
 - Store verification workflow (mismatch #7)
 - Analytics, Customers, Orders — no backend data model (mismatch #8)
 - Billing, team management, API integration (Brand Settings) — no backend at all

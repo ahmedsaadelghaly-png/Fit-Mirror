@@ -85,7 +85,16 @@ def _get_or_create_store(db, *, owner: User, name: str, slug: str) -> Store:
         logger.info("Store already exists, skipping: %s", slug)
         return store
 
-    store = Store(owner_user_id=owner.id, name=name, slug=slug, is_verified=True)
+    store = Store(
+        owner_user_id=owner.id,
+        name=name,
+        slug=slug,
+        is_verified=True,
+        category="womenswear",
+        description="Everyday essentials and statement pieces, made to last.",
+        website_url="https://demo-fashion.example",
+        instagram_handle="@demofashionco",
+    )
     db.add(store)
     db.commit()
     db.refresh(store)
@@ -194,6 +203,9 @@ def seed() -> None:
                     hip_cm=98,
                     body_category=BodyCategory.WOMEN,
                     body_shape="rectangle",
+                    preferred_fit="regular",
+                    favorite_colors=["black", "beige"],
+                    style_preferences=["minimalist", "classic"],
                 )
             )
             db.commit()

@@ -65,11 +65,7 @@ function TryOnWorkspace() {
 
   const handleSaveLook = () => {
     if (!activeJob || activeJob.status !== "completed" || !activeJob.result_image_key) return;
-    saveLookMutation.mutate({
-      tryon_job_id: activeJob.id,
-      result_image_key: activeJob.result_image_key,
-      garment_image_key: activeJob.garment_image_key,
-    });
+    saveLookMutation.mutate({ tryon_job_id: activeJob.id });
   };
 
   return (

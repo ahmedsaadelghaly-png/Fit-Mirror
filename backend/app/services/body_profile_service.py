@@ -31,6 +31,14 @@ class BodyProfileService:
         category_changed = "body_category" in changes and (
             changes["body_category"] != profile.body_category
         )
+        reference_key = changes.get("reference_image_key")
+        if reference_key and reference_key.split("/")[1:2] != [str(user_id)]:
+            # Object keys are namespaced by uploader (docs/STORAGE.md).
+            self.db.rollback()
+            raise ValidationAppError("Upload the reference photo from this account first.")
+        for field in ("favorite_colors", "style_preferences"):
+            if field in changes and changes[field] is None:
+                changes[field] = []
         for field, value in changes.items():
             setattr(profile, field, value)
 

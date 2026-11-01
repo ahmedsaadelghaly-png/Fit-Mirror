@@ -32,7 +32,7 @@ export const BRAND_CATEGORIES = [
   "activewear",
 ] as const;
 
-/** Frontend-only — see types/brand.ts `StoreBusinessInfo` for the documented backend contract mismatch. */
+/** Business info form — saved with `PATCH /store/me` (see types/brand.ts `StoreBusinessInfo`). */
 export const storeBusinessInfoSchema = z.object({
   category: z.enum(BRAND_CATEGORIES).optional().or(z.literal("")),
   description: z.string().max(2000, "Keep it under 2000 characters").optional().or(z.literal("")),

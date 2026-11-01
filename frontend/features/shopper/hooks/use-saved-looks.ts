@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { listSavedLooks } from "@/api/shopper/saved-looks";
 
-/** See api/shopper/saved-looks.ts — localStorage-backed placeholder, no backend resource exists yet. */
+/** `GET /saved-looks` — see api/shopper/saved-looks.ts. */
 export function useSavedLooks() {
   return useQuery({
     queryKey: ["shopper", "saved-looks"],

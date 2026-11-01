@@ -72,6 +72,12 @@ async function mockEmptyTryOnJobs(page: Page) {
   );
 }
 
+async function mockEmptySavedLooks(page: Page) {
+  await page.route(`${API_BASE_URL}/saved-looks`, (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" }),
+  );
+}
+
 async function mockMissingBodyProfile(page: Page) {
   await page.route(`${API_BASE_URL}/users/me/body-profile`, (route) =>
     route.fulfill({
@@ -87,6 +93,7 @@ test.describe("Shopper dashboard", () => {
     await signInAsShopper(page);
     await mockEmptyWardrobe(page);
     await mockEmptyTryOnJobs(page);
+    await mockEmptySavedLooks(page);
 
     await page.goto("/shopper");
 

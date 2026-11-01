@@ -16,6 +16,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from app.models.user import BodyProfile
 from app.models.wardrobe import WardrobeItem
 from app.services.shopping_service import singularize
 
@@ -62,6 +63,15 @@ COLD_WORDS = {
 }
 HOT_WORDS = {"hot", "warm", "sunny", "summer", "humid"}
 
+# Favorite-color preferences (body profile) -> label words that express them.
+COLOR_WORDS: dict[str, set[str]] = {
+    "pastel": {"pastel", "pink", "lilac", "mint", "blush", "lavender"},
+    "bold-print": {"print", "graphic", "pattern", "floral", "stripe", "polka"},
+    "navy": {"navy", "indigo"},
+    "beige": {"beige", "camel", "sand", "cream", "tan"},
+    "burgundy": {"burgundy", "wine", "maroon", "oxblood"},
+}
+
 
 @dataclass
 class OutfitSuggestion:
@@ -97,6 +107,7 @@ class StylistService:
                 "great start) and I'll put outfits together from them.",
             )
 
+        favorite_color_words = self._favorite_color_words(user_id)
         occasion_words = _words(occasion)
         weather_words = _words(weather)
         style_key = next((key for key in OCCASION_STYLES if key in occasion_words), "casual")
@@ -120,6 +131,8 @@ class StylistService:
                 )
                 if is_hot and label_words & {"wool", "knit", "sweater", "coat", "boot"}:
                     value -= 1.5
+                if label_words & favorite_color_words:
+                    value += 1.0
                 return value + self.rng.random()  # random tie-break between equals
 
             return max(candidates, key=score)
@@ -150,6 +163,17 @@ class StylistService:
             [item.id for item in outfit],
             self._rationale(outfit, occasion, style_key, is_cold, is_hot, by_category),
         )
+
+    def _favorite_color_words(self, user_id: uuid.UUID) -> set[str]:
+        colors = (
+            self.db.query(BodyProfile.favorite_colors)
+            .filter(BodyProfile.user_id == user_id)
+            .scalar()
+        )
+        words: set[str] = set()
+        for color in colors or []:
+            words |= COLOR_WORDS.get(color, {color})
+        return words
 
     @staticmethod
     def _rationale(

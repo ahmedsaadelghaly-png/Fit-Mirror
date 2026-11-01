@@ -15,13 +15,8 @@ import type { BodyCategory, TryOnJobStatus, WardrobeItemSource } from "@/types/d
  * optional, no min/max validation server-side (see backend
  * app/schemas/user.py). Zod validation in features/shopper/schemas.ts adds
  * sane client-side bounds on top since the backend doesn't enforce any.
- *
- * KNOWN CONTRACT MISMATCH: the product spec for Phase 2.3 asks for
- * `preferred_fit`, `favorite_colors`, and `style_preferences` on the body
- * profile, but the backend's `BodyProfileUpsert` has no such fields (see
- * docs/frontend/SHOPPER_APP.md "API contract mismatches"). Those three are
- * captured client-side only, in `StylePreferences` below, persisted to
- * localStorage via features/shopper/hooks/use-style-preferences.ts.
+ * Partial update: omitted fields are kept. `reference_image_key` must be
+ * an object key this account uploaded.
  */
 export interface BodyProfileUpsertRequest {
   body_category?: BodyCategory | null;
@@ -31,18 +26,10 @@ export interface BodyProfileUpsertRequest {
   waist_cm?: number | null;
   hip_cm?: number | null;
   body_shape?: string | null;
-}
-
-/**
- * Frontend-only extension of the body profile — the backend has no
- * endpoint for these fields (see the mismatch note above). Persisted to
- * localStorage, keyed per user, so it survives a refresh but is not part
- * of any server-side record yet.
- */
-export interface StylePreferences {
-  preferred_fit: string | null;
-  favorite_colors: string[];
-  style_preferences: string[];
+  reference_image_key?: string | null;
+  preferred_fit?: string | null;
+  favorite_colors?: string[];
+  style_preferences?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -129,8 +116,6 @@ export interface SavedLook {
 
 export interface SavedLookCreateInput {
   tryon_job_id: string;
-  result_image_key: string;
-  garment_image_key: string;
   label?: string | null;
 }
 

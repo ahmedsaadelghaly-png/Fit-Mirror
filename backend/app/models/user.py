@@ -6,7 +6,7 @@ import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Enum, ForeignKey, String
+from sqlalchemy import JSON, Boolean, Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -42,6 +42,9 @@ BODY_SHAPES_BY_CATEGORY: dict[BodyCategory, tuple[str, ...]] = {
     BodyCategory.BOYS: ("slim", "regular", "husky"),
 }
 KIDS_CATEGORIES = frozenset({BodyCategory.GIRLS, BodyCategory.BOYS})
+
+# Style preferences (mirrored by the frontend's features/shopper/schemas.ts).
+PREFERRED_FITS = ("slim", "regular", "relaxed", "oversized")
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -85,5 +88,10 @@ class BodyProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     body_shape: Mapped[str | None] = mapped_column(String(50), nullable=True)
     reference_image_key: Mapped[str] = mapped_column(String(512), nullable=True)
+
+    # Style preferences: free-form tag lists, used by the AI Stylist.
+    preferred_fit: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    favorite_colors: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    style_preferences: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="body_profile")

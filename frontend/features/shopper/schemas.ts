@@ -83,11 +83,7 @@ export function withBodyShapeRule<
 
 export type BodyMeasurementsFormValues = z.infer<typeof bodyMeasurementsSchema>;
 
-/**
- * Frontend-only fields (see types/shopper.ts `StylePreferences` for the
- * documented backend contract mismatch) — persisted to localStorage, not
- * sent to `PUT /users/me/body-profile`.
- */
+/** Style preferences — saved on the body profile (`PUT /users/me/body-profile`). */
 export const stylePreferencesSchema = z.object({
   preferred_fit: z.enum(PREFERRED_FITS).optional().or(z.literal("")),
   favorite_colors: z.array(z.enum(COLOR_PALETTE)).default([]),

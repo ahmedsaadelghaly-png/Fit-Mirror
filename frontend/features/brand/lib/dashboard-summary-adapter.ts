@@ -22,9 +22,9 @@ export interface DashboardSummaryViewModel {
 /**
  * Pure adapter turning the three independent data sources the Brand
  * dashboard needs (`GET /store/me/summary`, `GET /store/products`, and the
- * localStorage-backed `StoreBusinessInfo`) into one view model — kept
+ * store's business info from `GET /store/me`) into one view model — kept
  * side-effect-free and exported standalone so it's unit-testable without
- * mocking TanStack Query or localStorage. See
+ * mocking TanStack Query. See
  * tests/unit/features/dashboard-summary-adapter.test.ts.
  *
  * `Product` carries no timestamp field (same gap as `TryOnJob` in Phase

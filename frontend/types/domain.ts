@@ -29,6 +29,9 @@ export interface BodyProfile {
   hip_cm: number | null;
   body_shape: string | null;
   reference_image_key: string | null;
+  preferred_fit: string | null;
+  favorite_colors: string[];
+  style_preferences: string[];
 }
 
 export type WardrobeItemSource = "uploaded" | "catalog";
@@ -82,6 +85,15 @@ export interface Store {
   slug: string;
   logo_image_key: string | null;
   is_verified: boolean;
+  category: string | null;
+  description: string | null;
+  social_links: StoreSocialLinks;
+}
+
+export interface StoreSocialLinks {
+  website: string | null;
+  instagram: string | null;
+  tiktok: string | null;
 }
 
 export interface StoreDashboardSummary {

@@ -1,4 +1,4 @@
-import type { Product, ProductAudience } from "@/types/domain";
+import type { Product, ProductAudience, StoreSocialLinks } from "@/types/domain";
 
 /**
  * Request/response shapes for the Brand/Store feature area — see backend
@@ -21,28 +21,13 @@ export interface StoreCreateRequest {
 }
 
 /**
- * KNOWN CONTRACT MISMATCH: there is no `PUT/PATCH /store` or `/store/me` —
- * store updates of any kind are unsupported server-side. `description`,
- * `category`, and `social_links` also don't exist on the `Store` model at
- * all (not even read-only). Captured here as frontend-only state,
- * persisted to localStorage via
- * features/brand/hooks/use-store-business-info.ts.
+ * The editable business info on a store — `PATCH /store/me`. The logo
+ * must be an image this account uploaded (backend checks the object key).
  */
 export interface StoreBusinessInfo {
   category: string | null;
   description: string | null;
-  social_links: {
-    website: string | null;
-    instagram: string | null;
-    tiktok: string | null;
-  };
-  /**
-   * An uploaded logo's storage key. `StoreRead.logo_image_key` exists as a
-   * read-only field, but nothing can ever set it (no store-update
-   * endpoint) — this is a local shadow of "the logo this brand admin
-   * uploaded," not the server's `logo_image_key` (which stays `null`
-   * forever via the API today).
-   */
+  social_links: StoreSocialLinks;
   logo_image_key: string | null;
 }
 

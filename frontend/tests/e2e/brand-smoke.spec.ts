@@ -23,6 +23,9 @@ const DEMO_STORE = {
   slug: "demo-fashion-co",
   logo_image_key: null,
   is_verified: true,
+  category: null,
+  description: null,
+  social_links: { website: null, instagram: null, tiktok: null },
 };
 
 const DEMO_PRODUCT = {

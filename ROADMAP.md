@@ -38,7 +38,7 @@
   body-shape / kids' fit-type pickers; product `audience`; kids' sizing by
   height; shape-aware fit tips; audience-aware Shopping Assistant
 
-## Next — Phase 3.2: Remaining backend gaps
+## In progress — Phase 3.2: Remaining backend gaps
 
 - Family profiles: several body profiles per account (e.g. a parent plus
   each child), chosen per try-on / size check — today one account has one
@@ -46,10 +46,11 @@
 
 - Catalog try-on in the Shopper app (try on a product variant, with a size
   recommendation) — the backend already accepts `product_variant_id`
-- Saved Looks (`saved_looks` table + `POST/GET/DELETE /saved-looks`) —
-  needs a migration
-- Style preferences (fit / colors / tags) on `BodyProfile` — needs a migration
-- Store business info (category, description, social links, logo) — needs a migration
+- ✅ Saved Looks (`saved_looks` table + `GET/POST/DELETE /saved-looks`)
+- ✅ Style preferences (fit / colors / tags) and reference photo on the body
+  profile; the AI Stylist favours the shopper's colours
+- ✅ Store business info (category, description, social links, logo) via
+  `PATCH /store/me`
 - `POST /auth/forgot-password` + reset flow (needs an email provider)
 - `POST /contact` (needs an email provider or a support inbox table)
 - Self-service brand sign-up (today brand accounts are provisioned by an

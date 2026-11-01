@@ -22,13 +22,6 @@ function SavedLooksView() {
       <div>
         <h1 className="font-display text-2xl font-semibold">Saved looks</h1>
         <p className="text-sm text-muted-foreground">Try-on results you&apos;ve kept for later.</p>
-        {/* Saved looks are localStorage-only today (see api/shopper/
-            saved-looks.ts) — no backend resource exists yet, so this stays
-            visible rather than letting the LookCard grid imply real
-            cloud sync. */}
-        <p className="mt-1 text-xs text-muted-foreground">
-          Saved on this device — clearing your browser data will remove them.
-        </p>
       </div>
 
       {isLoading && (

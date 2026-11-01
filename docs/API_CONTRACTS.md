@@ -28,7 +28,20 @@ note at the bottom of this file).
 |---|---|---|---|---|---|
 | `/users/me` | GET | bearer | — | `200` `UserRead` | `401`, `404 USER_NOT_FOUND` |
 | `/users/me/body-profile` | GET | bearer | — | `200` `BodyProfileRead` | `401`, `404 BODY_PROFILE_MISSING` |
-| `/users/me/body-profile` | PUT | bearer | `BodyProfileUpsert` (all fields optional) | `200` `BodyProfileRead` | `401`, `422 VALIDATION_ERROR` |
+| `/users/me/body-profile` | PUT | bearer | `BodyProfileUpsert` (all fields optional; omitted fields kept) | `200` `BodyProfileRead` | `401`, `422 VALIDATION_ERROR` |
+
+Body profiles also carry style preferences — `preferred_fit` (`slim` |
+`regular` | `relaxed` | `oversized`), `favorite_colors` and
+`style_preferences` (string lists, ≤12 each) — and `reference_image_key`,
+which must be an object key this account uploaded (`422` otherwise).
+
+## Saved Looks
+
+| Endpoint | Method | Auth | Request Body | Success | Error Responses |
+|---|---|---|---|---|---|
+| `/saved-looks` | GET | bearer | — | `200` `SavedLookRead[]` (newest first) | `401` |
+| `/saved-looks` | POST | bearer | `{tryon_job_id, label?}` | `201` `SavedLookRead` (`result_image_key`, `garment_image_key` come from the job) | `401`, `404` (not your job), `409` (already saved), `422` (job not completed) |
+| `/saved-looks/{id}` | DELETE | bearer | — | `204` | `401`, `404` |
 
 ## Smart Wardrobe
 
@@ -51,8 +64,8 @@ note at the bottom of this file).
 `TryOnJobRead.status` can be `pending`/`processing`/`completed`/`failed`; a
 `failed` job is still a `200` response (the job resource exists and is
 readable) — `TRYON_JOB_FAILED` as an error code applies to *actions that
-require a completed job* (e.g. a planned "promote to Saved Look" endpoint
-would 409 with `TRYON_JOB_FAILED` if attempted on a failed job).
+require a completed job* (`POST /saved-looks` answers `422` for a job
+that hasn't completed).
 
 ## AI Stylist, Size Recommendation, Shopping Assistant
 
@@ -97,6 +110,7 @@ Assistant understands audience words ("for my daughter", "men's", "kids").
 |---|---|---|---|---|---|
 | `/store` | POST | bearer:brand_admin | `{name, slug}` | `201` `StoreRead` | `401`, `403`, `409 CONFLICT` (slug taken, or account already has a store), `422 VALIDATION_ERROR` |
 | `/store/me` | GET | bearer:brand_admin | — | `200` `StoreRead` | `401`, `403`, `404 STORE_NOT_FOUND` |
+| `/store/me` | PATCH | bearer:brand_admin | `StoreUpdate`: any of `name`, `category`, `description`, `social_links {website, instagram, tiktok}`, `logo_image_key` (must be this account's upload) | `200` `StoreRead` | `401`, `403`, `404`, `422` |
 | `/store/me/summary` | GET | bearer:brand_admin | — | `200` `StoreDashboardSummary` | `401`, `403`, `404 STORE_NOT_FOUND` |
 | `/store/products` | POST | bearer:brand_admin | `ProductCreate` | `201` `ProductRead` | `401`, `403`, `404 STORE_NOT_FOUND`, `422 VALIDATION_ERROR` |
 | `/store/products` | GET | bearer:brand_admin | — | `200` `ProductRead[]`, newest first | `401`, `403`, `404 STORE_NOT_FOUND` |

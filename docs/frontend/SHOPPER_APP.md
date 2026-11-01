@@ -11,13 +11,13 @@ scope, per the Phase 2.3 brief.
 
 ```
 frontend/
-  types/shopper.ts                       Request/response + frontend-only types (StylePreferences, SavedLook, ...)
+  types/shopper.ts                       Request/response types (BodyProfileUpsertRequest, SavedLook, ...)
   api/shopper/
     body-profile.ts                      GET/PUT /users/me/body-profile
     wardrobe.ts                          POST/GET/DELETE /wardrobe
     tryon.ts                             POST /tryon/upload-url, POST/GET /tryon, GET /tryon/{id}
     upload.ts                            Shared pre-signed-URL upload flow + client-side file validation
-    saved-looks.ts                       localStorage-backed placeholder (no backend resource — see below)
+    saved-looks.ts                       GET/POST/DELETE /saved-looks
     stylist.ts                           POST /stylist/suggestions (rule-based outfits from the wardrobe)
     shopping.ts                          POST /shopping/ask
     catalog.ts                           GET /catalog/products?ids= (Shopping Assistant matches)
@@ -63,11 +63,11 @@ logic lives in `features/*/hooks`, not in pages or components.
 
 | Feature | Backend endpoint(s) | Status |
 |---|---|---|
-| Body profile | `GET/PUT /users/me/body-profile` | Real — measurements + body shape only (see mismatch below) |
+| Body profile | `GET/PUT /users/me/body-profile` | Real — measurements, body type, style preferences, reference photo |
 | Wardrobe | `POST/GET /wardrobe`, `DELETE /wardrobe/{id}` | Real |
 | Virtual try-on | `POST /tryon/upload-url`, `POST /tryon`, `GET /tryon/{id}`, `GET /tryon` | Real |
 | Uploads (all surfaces) | `POST /tryon/upload-url` + direct `PUT` to the pre-signed URL | Real — one endpoint reused for body-profile/wardrobe/try-on images, see backend docs/STORAGE.md |
-| Saved looks | none | **Frontend placeholder** — localStorage, see below |
+| Saved looks | `GET/POST /saved-looks`, `DELETE /saved-looks/{id}` | Real — a saved look points at a completed try-on job |
 | AI Stylist | `POST /stylist/suggestions` | Real (rule-based v1) |
 | Shopping Assistant | `POST /shopping/ask` + `GET /catalog/products?ids=` | Real (rule-based v1) — matches render as product cards |
 | Body type (women / men / girls / boys + shape) | `PUT /users/me/body-profile` (`body_category`, `body_shape`) | Real — illustrated picker (`features/shopper/components/body-shape/`), shapes listed in `features/shopper/body-shapes.ts` mirror the backend |
@@ -81,21 +81,13 @@ The spec asked for several fields/behaviors the backend doesn't support
 yet. Rather than silently dropping them or faking persistence, each is
 handled with a typed frontend adapter and called out here:
 
-1. **Body profile style fields.** `BodyProfileUpsert` only has
-   `height_cm/weight_kg/chest_cm/waist_cm/hip_cm/body_shape` (see backend
-   `app/schemas/user.py`). `preferred_fit`, `favorite_colors`, and
-   `style_preferences` from the spec have no backend field. These persist
-   to `localStorage` per user via
-   `features/shopper/hooks/use-style-preferences.ts` (type:
-   `StylePreferences` in `types/shopper.ts`) instead.
+1. ~~Body profile style fields.~~ **Resolved (Phase 3.2).**
+   `preferred_fit`, `favorite_colors` and `style_preferences` are body
+   profile fields; the AI Stylist favours items in the favourite colours.
 
-2. **Reference photo isn't saveable.** `BodyProfileRead` has a
-   `reference_image_key` field, but `BodyProfileUpsert` has no matching
-   write field — there's no way to persist an uploaded reference photo to
-   the body profile via the API today. The upload itself works (same
-   pre-signed-URL flow as everything else); `features/shopper/components/
-   onboarding/step-photo-upload.tsx` and `body-profile-form.tsx` both
-   surface this in their copy rather than silently discarding the upload.
+2. ~~Reference photo isn't saveable.~~ **Resolved (Phase 3.2).**
+   `BodyProfileUpsert.reference_image_key` accepts a key this account
+   uploaded (`422` for anyone else's).
 
 3. **No wardrobe `color` field or filters.** `WardrobeItemRead` has no
    `color` field, and `GET /wardrobe` accepts no query params at all
@@ -115,12 +107,9 @@ handled with a typed frontend adapter and called out here:
    items, try-on results, saved looks, etc.; the placeholder tile is only
    shown while resolving or if a key genuinely has nothing behind it.
 
-5. **Saved Looks has no backend resource at all** — no model, schema, or
-   router (confirmed absent, not just unimplemented). Per the spec ("This
-   can be frontend placeholder if backend endpoint is not ready"),
-   `api/shopper/saved-looks.ts` persists to `localStorage` with the same
-   function signatures a real API module would have, so swapping in real
-   `apiClient` calls later doesn't touch any caller.
+5. ~~Saved Looks has no backend resource.~~ **Resolved (Phase 3.2).**
+   `saved_looks` table + `/saved-looks`; looks now follow the account
+   across devices.
 
 6. **No endpoint to edit profile details.** Only `GET /users/me` exists —
    no `PATCH`. Settings → Profile details is read-only, not a broken form.
@@ -143,7 +132,7 @@ handled with a typed frontend adapter and called out here:
 navigating away mid-flow and coming back resumes at the same step. Each
 step can also be skipped independently. This progress state is separate
 from the actual data the steps collect (body profile via `PUT
-/users/me/body-profile`, style preferences via localStorage) — skipping a
+/users/me/body-profile`, style preferences included) — skipping a
 step just advances the stepper without saving that step's fields.
 
 ## Virtual Try-On flow
@@ -154,8 +143,7 @@ step just advances the stepper without saving that step's fields.
 2. `POST /tryon` with both keys → `202 { job_id, status: "pending" }`.
 3. `features/tryon/hooks/use-tryon-job.ts` polls `GET /tryon/{job_id}`
    every 2s until `completed`/`failed`.
-4. Completed: result preview, a before/after tab, "Save look" (writes to
-   the localStorage-backed saved-looks store), and disabled
+4. Completed: result preview, a before/after tab, "Save look" (`POST /saved-looks`), and disabled
    download/share buttons explicitly marked "coming soon" (per spec, these
    are UI placeholders, not implemented).
 5. Failed: inline error + retry (re-submits the same two image keys as a
@@ -218,7 +206,6 @@ npm run build-storybook                 # verifies all stories compile
 
 ## What's still a placeholder after Phase 2.3
 
-- Saved Looks (no backend resource — see mismatch #5)
 - AI Stylist and Shopping Assistant are rule-based v1 engines (badged "Beta"); there is no catalog try-on flow yet (try-on uses uploaded/wardrobe garments)
 - Download / Share actions on a completed try-on result
 - Account settings (password change, delete account) and Notification preferences
