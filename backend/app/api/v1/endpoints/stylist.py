@@ -1,9 +1,9 @@
 """
 AI Stylist endpoints.
 
-Backed by the rule-based StylistService (outfit assembly from the caller's
-wardrobe + occasion + weather). The contract is unchanged from the Phase 1
-reservation, so a model-backed stylist can replace the service later.
+Backed by StylistService: outfits assembled from the caller's wardrobe,
+steered by occasion, weather, favorite colors, and a taste/pairing model
+learned from the shopper's likes and dislikes (POST .../feedback).
 """
 
 import uuid
@@ -27,6 +27,22 @@ class OutfitSuggestionResponse(BaseModel):
     suggestion_id: uuid.UUID
     wardrobe_item_ids: list[uuid.UUID]
     rationale: str
+
+
+class OutfitFeedbackRequest(BaseModel):
+    liked: bool
+
+
+@router.post("/suggestions/{suggestion_id}/feedback", status_code=204)
+def give_outfit_feedback(
+    suggestion_id: uuid.UUID,
+    payload: OutfitFeedbackRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Like or dislike a suggestion (sending again replaces it). Shapes
+    later suggestions; 404 for someone else's suggestion."""
+    StylistService(db).record_feedback(uuid.UUID(user_id), suggestion_id, payload.liked)
 
 
 @router.post("/suggestions", response_model=OutfitSuggestionResponse)

@@ -99,7 +99,8 @@ contracts.*
 
 | Endpoint | Method | Auth | Request Body | Success | Error Responses |
 |---|---|---|---|---|---|
-| `/stylist/suggestions` | POST | bearer | `{occasion?, weather?}` | `200 {suggestion_id, wardrobe_item_ids, rationale}` (empty wardrobe → `200` with empty `wardrobe_item_ids` and a rationale saying what to add) | `401`, `422` |
+| `/stylist/suggestions` | POST | bearer | `{occasion?, weather?}` | `200 {suggestion_id, wardrobe_item_ids, rationale}` (empty wardrobe → `200` with empty `wardrobe_item_ids` and a rationale saying what to add); every suggestion is stored for feedback | `401`, `422` |
+| `/stylist/suggestions/{id}/feedback` | POST | bearer | `{liked: bool}` (re-sending replaces it) | `204` — later suggestions learn from it | `401`, `404` (not your suggestion), `422` |
 | `/sizing/recommend` | POST | bearer | `{product_id, body_profile_id?}` (a family profile; default: the shopper's own) | `200 {product_id, recommended_size_label, confidence, fit_note, body_profile_id, profile_name, size_chart: "brand"\|"standard", fit_feedback}` — the brand's own chart for the category when its labels match the product's; then, once ≥3 fit reports agree ≥60%, one stocked size up (runs small) or down (runs large), explained in `fit_note` — adult items from chest/waist/hip (+ a body-shape tip); girls'/boys' items from height against age (`6Y`, `6-7Y`) or height (`116`, `110-116`) labels, one size up for `plus`/`husky` fits | `401`, `404` (unknown/inactive product, or someone else's profile), `422` (missing measurements; footwear; kids' item with an adult profile or vice versa) |
 | `/shopping/ask` | POST | bearer | `{query}` (1–500 chars) | `200 {matched_product_ids, reply}` — up to 10 IDs, best match first | `401`, `422` |
 

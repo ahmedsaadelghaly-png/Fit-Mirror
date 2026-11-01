@@ -141,20 +141,27 @@ To add a new model (e.g. a real diffusion-based virtual try-on model):
    - Content safety — plug a `SafetyChecker` into the router (see above)
      if the new model has no safety checker of its own.
 
-## Planned: Stylist / Sizing / Shopping pipelines
+## Stylist, Sizing and Shopping (backend services)
 
-The same interface pattern (abstract base + registry) is the intended
-shape for the other AI-dependent features once they move past their
-current `501` stub state:
+These run in the backend as services behind unchanged endpoint contracts
+(they need the database — wardrobe, catalog, feedback — far more than a
+GPU), using shared embeddings from `backend/app/ai/embeddings.py`:
 
-- `StylistPipeline` (Phase 3) — input: wardrobe items + body profile +
-  occasion/weather; output: suggested item combination + rationale.
-- `SizingPipeline` (Phase 4) — input: body profile + a product's size
-  chart; output: recommended size + confidence.
-- `ShoppingPipeline` (Phase 5) — input: natural-language query + catalog;
-  output: matched products + conversational reply.
+| Embedder | When | Notes |
+|---|---|---|
+| `HashingEmbedder` (`hashing-v1`) | default | Local feature hashing of words + character trigrams (512-d). No network; captures shared vocabulary, not meaning. |
+| `VoyageEmbedder` (`voyage:<model>`) | `VOYAGE_API_KEY` set | Voyage AI embeddings (`VOYAGE_EMBED_MODEL`, default `voyage-3.5-lite`). A failed call falls back to hashing for that whole request, so vectors in one comparison always share a space. |
 
-None of these exist yet. When they're implemented, they should live
-alongside `TryOnPipeline` in `ai-service/app/pipelines/`, each with its own
-registry, so that adding a new AI capability never requires touching the
-backend beyond calling a new, equally simple HTTP endpoint.
+Embeddings are computed per request (memoized in-process), never stored.
+
+- **AI Stylist** (`stylist_service.py`): occasion rules + embedding
+  similarity to the occasion + favorite colors + a learned taste model.
+  Every suggestion is stored (`outfit_suggestions`, with each item's text);
+  `POST /stylist/suggestions/{id}/feedback {liked}` labels it. The taste
+  vector (liked minus disliked items), the per-item affinity and the
+  liked/disliked item pairs steer later picks — including toward similar
+  pieces never rated themselves.
+- **Sizing** (`sizing_service.py`): brand size charts, then shopper fit
+  feedback — see `API_CONTRACTS.md` "Size charts & fit feedback".
+- **Shopping Assistant**: see the shopping section below once Phase 4.4
+  lands.

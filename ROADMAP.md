@@ -69,7 +69,10 @@ notification preferences; account deletion.
   job, weighted A/B routing, input/output quality gates, pluggable safety
   check, automatic fallback to the placeholder; rejected photos fail fast
   with a reason instead of being retried
-- Stylist: embedding-based item compatibility + feedback loop (like/dislike)
+- ✅ Stylist: embeddings (local hashing, or Voyage AI) for occasion fit and
+  item compatibility; like/dislike feedback trains a per-shopper taste
+  vector, item affinity and pairing model that carries over to similar
+  pieces
 - ✅ Sizing: per-brand size charts (CSV or rows, per category; Brand
   "Size Charts" page) used whenever their labels match; shopper "runs
   small / true to size / runs large" feedback shifts recommendations one

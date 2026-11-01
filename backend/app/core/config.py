@@ -56,6 +56,11 @@ class Settings(BaseSettings):
     # Leave unset to fall back to S3_ENDPOINT_URL (no behavior change).
     S3_PUBLIC_ENDPOINT_URL: str = ""
 
+    # --- Embeddings (AI Stylist, Shopping Assistant) ---
+    # Empty: a local hashing embedder (no network). Set to use Voyage AI.
+    VOYAGE_API_KEY: str = ""
+    VOYAGE_EMBED_MODEL: str = "voyage-3.5-lite"
+
     # --- Email (password reset, contact form) ---
     # "log" writes each email to the application log instead of sending it
     # (local dev / CI); "smtp" delivers through the SMTP_* server below.

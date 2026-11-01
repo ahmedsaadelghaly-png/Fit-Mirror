@@ -70,7 +70,7 @@ logic lives in `features/*/hooks`, not in pages or components.
 | Virtual try-on | `POST /tryon/upload-url`, `POST /tryon`, `GET /tryon/{id}`, `GET /tryon` | Real |
 | Uploads (all surfaces) | `POST /tryon/upload-url` + direct `PUT` to the pre-signed URL | Real — one endpoint reused for body-profile/wardrobe/try-on images, see backend docs/STORAGE.md |
 | Saved looks | `GET/POST /saved-looks`, `DELETE /saved-looks/{id}` | Real — a saved look points at a completed try-on job |
-| AI Stylist | `POST /stylist/suggestions` | Real (rule-based v1) |
+| AI Stylist | `POST /stylist/suggestions`, `POST /stylist/suggestions/{id}/feedback` | Real — each reply shows the suggested pieces with "Love it" / "Not for me" (`features/shopper/components/stylist/suggested-outfit.tsx`); feedback trains the shopper's taste model |
 | Shopping Assistant | `POST /shopping/ask` + `GET /catalog/products?ids=` | Real (rule-based v1) — matches render as product cards |
 | Body type (women / men / girls / boys + shape) | `PUT /users/me/body-profile` (`body_category`, `body_shape`) | Real — illustrated picker (`features/shopper/components/body-shape/`), shapes listed in `features/shopper/body-shapes.ts` mirror the backend |
 | Size recommendation | `POST /sizing/recommend` | Real — "Find my size" on each Shopping Assistant match; a 422 (missing measurements) links to Body Profile |
