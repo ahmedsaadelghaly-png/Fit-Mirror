@@ -36,7 +36,8 @@ class Settings(BaseSettings):
 
     # --- AI Service ---
     AI_SERVICE_BASE_URL: AnyHttpUrl
-    AI_SERVICE_TIMEOUT_SECONDS: int = 30
+    # Hosted diffusion try-on takes 30-90s; the AI service gives up at 150s.
+    AI_SERVICE_TIMEOUT_SECONDS: int = 180
 
     # --- Object Storage (S3-compatible) ---
     STORAGE_PROVIDER: str = "s3"

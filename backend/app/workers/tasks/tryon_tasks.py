@@ -25,6 +25,38 @@ from app.workers.celery_app import celery_app
 
 logger = get_logger(__name__)
 
+# Catalog categories -> the garment categories try-on models understand.
+GARMENT_CATEGORIES = {
+    "tops": "upper_body",
+    "outerwear": "upper_body",
+    "bottoms": "lower_body",
+    "dresses": "dresses",
+}
+
+
+class TryOnRejected(Exception):
+    """The AI service refused the inputs (4xx): permanent, not retried. The
+    message is shopper-facing (e.g. "The photo is too small ...")."""
+
+
+def _garment_hints(job) -> dict[str, str]:
+    variant = job.product_variant
+    if variant is None:
+        return {}
+    product = variant.product
+    hints = {"garment_description": product.title}
+    if category := GARMENT_CATEGORIES.get(product.category.lower()):
+        hints["garment_category"] = category
+    return hints
+
+
+def _rejection_message(response: httpx.Response) -> str:
+    try:
+        detail = response.json().get("detail")
+    except ValueError:
+        detail = None
+    return detail if isinstance(detail, str) else "This photo couldn't be used for a try-on."
+
 
 @celery_app.task(
     name="tryon.process_job",
@@ -66,9 +98,12 @@ def process_tryon_job(self, job_id: str) -> None:
                 "job_id": str(job.id),
                 "user_image_key": job.user_image_key,
                 "garment_image_key": job.garment_image_key,
+                **_garment_hints(job),
             },
             timeout=settings.AI_SERVICE_TIMEOUT_SECONDS,
         )
+        if 400 <= response.status_code < 500:
+            raise TryOnRejected(_rejection_message(response))
         response.raise_for_status()
         result = response.json()
 
@@ -78,6 +113,13 @@ def process_tryon_job(self, job_id: str) -> None:
             result_image_key=result["result_image_key"],
             ai_model_name=result.get("model_name"),
         )
+        if result.get("fallback_from"):
+            logger.warning(
+                "TryOnJob %s: %s failed, %s produced the result.",
+                job_id,
+                result["fallback_from"],
+                result.get("model_name"),
+            )
         logger.info("TryOnJob %s completed successfully.", job_id)
 
     except Exception as exc:  # noqa: BLE001 - every failure must leave the row consistent

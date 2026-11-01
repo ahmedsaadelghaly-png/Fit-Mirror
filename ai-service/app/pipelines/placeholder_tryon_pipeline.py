@@ -19,7 +19,7 @@ from io import BytesIO
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from app.core.logging_config import get_logger
-from app.pipelines.base_pipeline import TryOnInput, TryOnOutput, TryOnPipeline
+from app.pipelines.base_pipeline import TryOnInput, TryOnModel, TryOnOutput, TryOnPipeline
 from app.storage.s3_client import ObjectStorageClient
 
 logger = get_logger(__name__)
@@ -31,8 +31,21 @@ def _open_rgb(data: bytes) -> Image.Image:
     return (ImageOps.exif_transpose(image) or image).convert("RGB")
 
 
-class PlaceholderTryOnPipeline(TryOnPipeline):
+class PlaceholderTryOnPipeline(TryOnPipeline, TryOnModel):
+    """Usable both standalone (TryOnPipeline) and as the router's always-
+    available fallback model (TryOnModel)."""
+
     name = "placeholder-v0"
+
+    def generate(
+        self,
+        person: Image.Image,
+        garment: Image.Image,
+        *,
+        garment_category: str | None = None,
+        garment_description: str | None = None,
+    ) -> Image.Image:
+        return self._compose(person, garment)
 
     def __init__(self, storage: ObjectStorageClient | None = None):
         self.storage = storage or ObjectStorageClient()
@@ -63,13 +76,17 @@ class PlaceholderTryOnPipeline(TryOnPipeline):
     def _generate_placeholder_result(
         user_image_bytes: bytes, garment_image_bytes: bytes
     ) -> Image.Image:
+        return PlaceholderTryOnPipeline._compose(
+            _open_rgb(user_image_bytes), _open_rgb(garment_image_bytes)
+        )
+
+    @staticmethod
+    def _compose(person: Image.Image, garment: Image.Image) -> Image.Image:
         # Portrait 3:4 canvas from the user photo (center-weighted toward the
         # top, where faces usually are).
-        person = _open_rgb(user_image_bytes)
         canvas = ImageOps.fit(person, (900, 1200), Image.Resampling.LANCZOS, centering=(0.5, 0.35))
 
         # Garment inset: a rounded white card with a soft shadow.
-        garment = _open_rgb(garment_image_bytes)
         card_size = 280
         inner = ImageOps.fit(garment, (card_size - 24, card_size - 24), Image.Resampling.LANCZOS)
         card = Image.new("RGB", (card_size, card_size), (255, 255, 255))

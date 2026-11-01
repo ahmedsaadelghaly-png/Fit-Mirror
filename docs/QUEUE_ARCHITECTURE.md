@@ -16,8 +16,8 @@ task_default_queue = "tryon"
 task_acks_late = True
 worker_prefetch_multiplier = 1
 task_track_started = True
-task_time_limit = 180        # hard kill after 180s
-task_soft_time_limit = 150   # SoftTimeLimitExceeded raised at 150s
+task_time_limit = 240        # hard kill after 240s
+task_soft_time_limit = 210   # SoftTimeLimitExceeded raised at 210s (above the 180s AI HTTP timeout)
 ```
 
 - **Single queue today.** All async work funnels through `tryon`. This is
@@ -81,8 +81,8 @@ system (`NOTIFICATIONS.md`) and an admin-only "retry job" endpoint (see
 | Layer | Timeout | Behavior on expiry |
 |---|---|---|
 | Backend → AI service HTTP call | `AI_SERVICE_TIMEOUT_SECONDS` (default 30s) | `httpx.HTTPError` (timeout) → counts as a retryable failure |
-| Celery soft time limit | 150s | `SoftTimeLimitExceeded` raised inside the task — caught by the generic `except Exception`, job marked `failed` |
-| Celery hard time limit | 180s | Task process is killed unconditionally; job is left in whatever state it was last updated to (`processing`, most likely) — **known gap**, see below |
+| Celery soft time limit | 210s | `SoftTimeLimitExceeded` raised inside the task — caught by the generic `except Exception`, job marked `failed` |
+| Celery hard time limit | 240s | Task process is killed unconditionally; job is left in whatever state it was last updated to (`processing`, most likely) — **known gap**, see below |
 
 **Known gap (planned fix):** a hard-time-limit kill doesn't get a chance
 to update the job row to `failed` — the job could be left stuck in
@@ -128,7 +128,7 @@ stateDiagram-v2
 
     note right of processing
         Known gap: a hard Celery timeout
-        (180s) can strand a job here.
+        (240s) can strand a job here.
         Planned: reconciliation sweep.
     end note
 ```

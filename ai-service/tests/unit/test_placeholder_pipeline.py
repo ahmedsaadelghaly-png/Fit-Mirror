@@ -66,10 +66,10 @@ def test_placeholder_pipeline_writes_valid_png():
     assert result_image.format == "PNG"
 
 
-def test_model_registry_resolves_configured_pipeline():
-    pipeline = get_tryon_pipeline()
-    assert pipeline.name == "placeholder-v0"
-    assert isinstance(pipeline, PlaceholderTryOnPipeline)
+def test_model_registry_routes_to_the_configured_model():
+    router = get_tryon_pipeline()
+    assert isinstance(router.models["placeholder"], PlaceholderTryOnPipeline)
+    assert router.routes == [("placeholder", 1)]
 
 
 def test_model_registry_raises_for_unknown_model(monkeypatch):
@@ -77,7 +77,7 @@ def test_model_registry_raises_for_unknown_model(monkeypatch):
 
     monkeypatch.setattr(settings, "TRYON_MODEL_NAME", "nonexistent-model")
 
-    with pytest.raises(ValueError, match="Unknown TRYON_MODEL_NAME"):
+    with pytest.raises(ValueError, match="Unknown try-on model"):
         get_tryon_pipeline()
 
 

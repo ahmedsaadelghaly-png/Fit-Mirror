@@ -58,49 +58,67 @@ class TryOnOutput:
   what makes results auditable/explainable after the active model changes
   (see "Model versioning" below).
 
-## Model registry
+## Model registry, routing and quality gates (Phase 4)
 
-```python
-# ai-service/app/models/model_registry.py
-_REGISTRY: dict[str, type[TryOnPipeline]] = {
-    "placeholder": PlaceholderTryOnPipeline,
-    # "diffusion_v1": DiffusionTryOnPipeline,   # planned
-}
+Every request goes through `TryOnRouter` (`ai-service/app/pipelines/tryon_router.py`),
+built by `model_registry.get_tryon_pipeline()` from configuration. Models
+implement `TryOnModel.generate(person, garment, *, garment_category,
+garment_description) -> Image`; storage, gates, routing and fallback are
+the router's job.
 
-def get_tryon_pipeline() -> TryOnPipeline:
-    pipeline_cls = _REGISTRY.get(settings.TRYON_MODEL_NAME)
-    if pipeline_cls is None:
-        raise ValueError(f"Unknown TRYON_MODEL_NAME='{settings.TRYON_MODEL_NAME}'. ...")
-    return pipeline_cls()
-```
-
-- The active pipeline is selected purely by the `TRYON_MODEL_NAME`
-  environment variable — a deploy-time config change, not a code change.
-- The registry raises loudly (`ValueError`) on an unknown model name
-  rather than silently falling back — a misconfigured deployment should
-  fail fast at first request, not degrade silently to the wrong model.
-
-## Model versioning (design, mostly planned)
-
-| Aspect | Current state | Planned |
+| Model name | Class | Needs |
 |---|---|---|
-| Version identity | `PlaceholderTryOnPipeline.name = "placeholder-v0"` — version is baked into the class's `name` string | Same convention, extended: real models should version their `name` (e.g. `"diffusion-v1"`, `"diffusion-v1.1"`) so `tryon_jobs.ai_model_name` distinguishes minor model updates, not just major swaps |
-| Multiple concurrent versions | Not supported — one `TRYON_MODEL_NAME` per AI service deployment | **Planned:** register multiple versions in `_REGISTRY` simultaneously and select per-request (e.g. via a request field or a feature flag — see `FEATURE_FLAGS.md`) for A/B testing or gradual rollout |
-| Rollback | Redeploy with `TRYON_MODEL_NAME` set to the previous value | Same — since selection is env-var-driven, rollback is a config change, not a code revert |
-| Historical auditability | `tryon_jobs.ai_model_name` records which model produced each result, forever (not just "current model") | Sufficient as-is; no planned change |
+| `placeholder` | `PlaceholderTryOnPipeline` (`placeholder-v0`) | nothing — composes a labelled preview; always-available fallback |
+| `idm-vton` | `ReplicateTryOnModel` (`idm-vton@<version[:8]>`) | `REPLICATE_API_TOKEN`, `REPLICATE_TRYON_VERSION` — IDM-VTON diffusion try-on on Replicate's GPUs |
+
+| Setting | Meaning |
+|---|---|
+| `TRYON_MODEL_ROUTES` | Weighted A/B split, e.g. `idm-vton=90,placeholder=10`. The bucket is a hash of the job id, so a retried job hits the same model. Empty → all traffic to `TRYON_MODEL_NAME`. |
+| `TRYON_FALLBACK_MODELS` | Tried in order if the routed model errors or its output is rejected (default `placeholder`). |
+
+Unknown model names fail loudly at first request (`ValueError`), never
+silently. `GET /api/v1/health` reports the routing in effect.
+
+**Quality and safety gates** (`ai-service/app/pipelines/quality.py`):
+
+- *Input gate*, before any model call: both images must decode, be at
+  least 256px on each side and no more than 3:1. Failures answer **422**
+  with a shopper-facing reason; the backend worker fails the job at once
+  (no retries) and stores the reason as `error_message`.
+- *Output gate*, before storing: at least 256px, not blank/flat, and
+  visibly different from the person photo. A rejected output falls back
+  to the next model.
+- *Content safety*: a pluggable `SafetyChecker` runs on every output; a
+  rejection also falls back. The default allows everything — hosted
+  models run their own safety checkers; plug a classifier in here for
+  self-hosted ones.
+
+The response's `model_name` (stored on `tryon_jobs.ai_model_name`)
+identifies the exact model version, and `fallback_from` names the routed
+model when a fallback produced the result (the worker logs it).
+
+**Versioning and rollback:** model versions are pinned
+(`REPLICATE_TRYON_VERSION`) and embedded in `model_name`. Roll out a new
+version by routing a share of traffic to it, compare results per
+`ai_model_name`, then shift the weights; rolling back is a config change.
+
+**Timeouts:** the AI service gives Replicate `REPLICATE_TIMEOUT_SECONDS`
+(150); the backend waits `AI_SERVICE_TIMEOUT_SECONDS` (180); Celery's
+soft/hard task limits are 210/240, so a hung call ends as a retryable
+HTTP timeout rather than a killed task.
 
 ## Future model replacement rules
 
 To add a new model (e.g. a real diffusion-based virtual try-on model):
 
 1. **Implement the interface.** Create a new class in
-   `ai-service/app/pipelines/`, e.g. `DiffusionTryOnPipeline(TryOnPipeline)`,
-   implementing `run(payload: TryOnInput) -> TryOnOutput`. It may load
+   `ai-service/app/pipelines/` implementing `TryOnModel.generate(...)`
+   (image in, image out — see `replicate_tryon_model.py`). It may load
    weights, call an external inference API, use a GPU, etc. — the
    interface doesn't constrain the implementation, only the contract.
 2. **Register it.** Add one line to `_REGISTRY` in `model_registry.py`.
-3. **Configure it.** Set `TRYON_MODEL_NAME` in the target environment's
-   `.env` (see `.env.production.example`).
+3. **Configure it.** Route traffic to it with `TRYON_MODEL_ROUTES` (start
+   with a small share) in the target environment's `.env`.
 4. **Do not change:**
    - The backend (`app/services/tryon_service.py`,
      `app/workers/tasks/tryon_tasks.py`) — it only ever calls
@@ -120,10 +138,8 @@ To add a new model (e.g. a real diffusion-based virtual try-on model):
      `QUEUE_ARCHITECTURE.md`) are sized for the placeholder's near-instant
      response; a real model's inference latency will likely require
      raising these.
-   - Content safety — a real generative model needs output moderation
-     that the placeholder has no need for (it only overlays a static
-     banner). This is explicitly **out of scope** until a real model
-     lands; tracked in `ROADMAP.md` Phase 6.
+   - Content safety — plug a `SafetyChecker` into the router (see above)
+     if the new model has no safety checker of its own.
 
 ## Planned: Stylist / Sizing / Shopping pipelines
 

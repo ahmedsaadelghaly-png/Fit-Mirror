@@ -64,9 +64,11 @@ notification preferences; account deletion.
 
 ## Phase 4 — Real AI models (same contracts)
 
-- Virtual try-on: replace `PlaceholderTryOnPipeline` with a diffusion-based
-  model behind `TryOnPipeline`; GPU deployment; model versioning / A-B via
-  the registry; quality and safety filtering
+- ✅ Virtual try-on: IDM-VTON diffusion try-on on Replicate's GPUs behind the
+  same contract (`TRYON_MODEL_ROUTES`), pinned model versions recorded per
+  job, weighted A/B routing, input/output quality gates, pluggable safety
+  check, automatic fallback to the placeholder; rejected photos fail fast
+  with a reason instead of being retried
 - Stylist: embedding-based item compatibility + feedback loop (like/dislike)
 - Sizing: per-brand size chart ingestion; "fits big/small" feedback
 - Shopping: LLM query understanding / embedding search over the catalog
