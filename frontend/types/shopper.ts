@@ -134,11 +134,9 @@ export interface SavedLookCreateInput {
 }
 
 // ---------------------------------------------------------------------------
-// AI Stylist / Shopping Assistant — contracts reserved, not implemented on
-// the backend (501 today, see docs/API_CONTRACTS.md "AI Stylist, Size
-// Recommendation, Shopping Assistant"). Placeholder request/response shapes
-// mirror the "Planned Response" column so swapping in the real call later
-// is a one-line change in api/shopper/stylist.ts / shopping.ts.
+// AI Stylist / Shopping Assistant / Size Recommendation — rule-based v1
+// backends (see docs/API_CONTRACTS.md "AI Stylist, Size Recommendation,
+// Shopping Assistant").
 // ---------------------------------------------------------------------------
 
 export interface StylistSuggestionRequest {
@@ -159,6 +157,15 @@ export interface ShoppingAskRequest {
 export interface ShoppingAskResponse {
   matched_product_ids: string[];
   reply: string;
+}
+
+/** `POST /sizing/recommend` — see backend app/services/sizing_service.py. */
+export interface SizeRecommendation {
+  product_id: string;
+  recommended_size_label: string;
+  /** 0.3–0.95; lower when measurements span sizes or the exact size isn't stocked. */
+  confidence: number;
+  fit_note: string;
 }
 
 // ---------------------------------------------------------------------------

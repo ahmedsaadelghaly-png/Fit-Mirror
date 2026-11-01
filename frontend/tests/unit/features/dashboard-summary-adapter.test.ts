@@ -20,6 +20,7 @@ function product(overrides: Partial<Product>): Product {
     currency: "USD",
     primary_image_key: null,
     is_active: true,
+    is_archived: false,
     variants: [],
     ...overrides,
   };

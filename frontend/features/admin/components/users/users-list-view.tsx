@@ -6,7 +6,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminGuard } from "@/features/admin/components/admin-guard";
-import { MockedBadge } from "@/features/admin/components/mocked-badge";
 import { UserFiltersBar } from "@/features/admin/components/users/user-filters-bar";
 import { UsersTable } from "@/features/admin/components/users/users-table";
 import { useAdminUsers } from "@/features/admin/hooks/use-users";
@@ -30,7 +29,6 @@ function UsersListContent() {
           <h1 className="font-display text-2xl font-semibold">Users</h1>
           <p className="text-sm text-muted-foreground">Everyone with a FitMirror AI account.</p>
         </div>
-        <MockedBadge />
       </div>
 
       {isLoading && (

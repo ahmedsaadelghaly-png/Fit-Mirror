@@ -2,7 +2,7 @@
 
 The full Shopper experience: dashboard, onboarding, body profile, photo
 upload, virtual try-on, try-on history, wardrobe, saved looks, AI Stylist
-(placeholder), Shopping Assistant (placeholder), and settings. Everything
+(Beta), Shopping Assistant (Beta), and settings. Everything
 under `app/(shopper)/shopper/*` is now real — no more static placeholder
 pages. Brand dashboard, admin dashboard, and mobile app remain out of
 scope, per the Phase 2.3 brief.
@@ -18,7 +18,10 @@ frontend/
     tryon.ts                             POST /tryon/upload-url, POST/GET /tryon, GET /tryon/{id}
     upload.ts                            Shared pre-signed-URL upload flow + client-side file validation
     saved-looks.ts                       localStorage-backed placeholder (no backend resource — see below)
-    stylist.ts                           501-backed placeholder (POST /stylist/suggestions)
+    stylist.ts                           POST /stylist/suggestions (rule-based outfits from the wardrobe)
+    shopping.ts                          POST /shopping/ask
+    catalog.ts                           GET /catalog/products?ids= (Shopping Assistant matches)
+    sizing.ts                            POST /sizing/recommend ("Find my size")
     shopping.ts                          501-backed placeholder (POST /shopping/ask)
   features/shopper/
     schemas.ts                           Zod schemas: body measurements, style preferences, wardrobe item, stylist/shopping requests
@@ -30,7 +33,7 @@ frontend/
       wardrobe/                          Grid, filters, item card, add-item dialog
       saved-looks/                       Grid, card, details dialog (drawer placeholder)
       settings/                          Profile details (read-only), account/notifications placeholders, theme shortcut
-      stylist/, shopping/                Chat-like placeholder UIs, clearly marked "Planned feature"
+      stylist/, shopping/                Chat UIs badged "Beta"; shopping/product-matches.tsx renders matches + sizing
   features/tryon/
     hooks/                               use-create-tryon-job, use-tryon-job (polling), use-tryon-jobs (list + client filter)
     components/                          Split workspace (user photo / garment / result panels), queue status, history sidebar, history page, job cards
@@ -46,8 +49,8 @@ frontend/
     tryon/page.tsx                       Virtual try-on workspace
     tryon/history/page.tsx
     looks/page.tsx                       Saved looks
-    stylist/page.tsx                     AI Stylist (planned)
-    shopping/page.tsx                    Shopping Assistant (planned)
+    stylist/page.tsx                     AI Stylist
+    shopping/page.tsx                    Shopping Assistant
     settings/page.tsx
 ```
 
@@ -65,8 +68,9 @@ logic lives in `features/*/hooks`, not in pages or components.
 | Virtual try-on | `POST /tryon/upload-url`, `POST /tryon`, `GET /tryon/{id}`, `GET /tryon` | Real |
 | Uploads (all surfaces) | `POST /tryon/upload-url` + direct `PUT` to the pre-signed URL | Real — one endpoint reused for body-profile/wardrobe/try-on images, see backend docs/STORAGE.md |
 | Saved looks | none | **Frontend placeholder** — localStorage, see below |
-| AI Stylist | `POST /stylist/suggestions` | Backend returns `501` — placeholder UI |
-| Shopping Assistant | `POST /shopping/ask` | Backend returns `501` — placeholder UI |
+| AI Stylist | `POST /stylist/suggestions` | Real (rule-based v1) |
+| Shopping Assistant | `POST /shopping/ask` + `GET /catalog/products?ids=` | Real (rule-based v1) — matches render as product cards |
+| Size recommendation | `POST /sizing/recommend` | Real — "Find my size" on each Shopping Assistant match; a 422 (missing measurements) links to Body Profile |
 | Settings → Profile details | `GET /users/me` | Real, read-only |
 | Settings → Account/Notifications | none | UI-only placeholders |
 
@@ -214,7 +218,7 @@ npm run build-storybook                 # verifies all stories compile
 ## What's still a placeholder after Phase 2.3
 
 - Saved Looks (no backend resource — see mismatch #5)
-- AI Stylist and Shopping Assistant (backend `501`s — see mismatches, clearly badged "Planned feature" in the UI)
+- AI Stylist and Shopping Assistant are rule-based v1 engines (badged "Beta"); there is no catalog try-on flow yet (try-on uses uploaded/wardrobe garments)
 - Download / Share actions on a completed try-on result
 - Account settings (password change, delete account) and Notification preferences
 - A real side-anchored "drawer" for saved look details (currently a centered dialog — `components/ui/dialog.tsx` is the only modal primitive today)

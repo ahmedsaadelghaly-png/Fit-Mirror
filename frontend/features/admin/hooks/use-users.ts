@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { listUsers } from "@/api/admin/users";
-import { resolveUser } from "@/features/admin/lib/resolve-user";
 import type { AdminUserFilters } from "@/types/admin";
 
 const DEFAULT_FILTERS: AdminUserFilters = { role: "all", status: "all", search: "" };
@@ -15,10 +14,10 @@ export function useAdminUsers() {
     queryFn: listUsers,
   });
 
-  const resolvedUsers = useMemo(() => (query.data ?? []).map(resolveUser), [query.data]);
+  const users = useMemo(() => query.data ?? [], [query.data]);
 
   const filteredUsers = useMemo(() => {
-    return resolvedUsers.filter((user) => {
+    return users.filter((user) => {
       if (filters.role !== "all" && user.role !== filters.role) return false;
       if (filters.status === "active" && !user.is_active) return false;
       if (filters.status === "inactive" && user.is_active) return false;
@@ -28,7 +27,7 @@ export function useAdminUsers() {
       }
       return true;
     });
-  }, [resolvedUsers, filters]);
+  }, [users, filters]);
 
-  return { ...query, users: resolvedUsers, filteredUsers, filters, setFilters };
+  return { ...query, users, filteredUsers, filters, setFilters };
 }

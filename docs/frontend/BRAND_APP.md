@@ -17,11 +17,10 @@ frontend/
     store.ts                              GET /store/me, POST /store, GET /store/me/summary
     products.ts                           POST/GET /store/products
     store-local.ts                        localStorage-backed StoreBusinessInfo placeholder
-    product-overlay.ts                    localStorage-backed product edit/archive/active-toggle/variant CRUD placeholder
   features/brand/
     schemas.ts                            Zod: store basics, business info, product, variant
     lib/
-      resolve-product.ts                  Pure adapter: server Product + local overlay → ResolvedProduct
+      resolve-product.ts                  Server Product → ResolvedProduct (camelCase isArchived alias)
       dashboard-summary-adapter.ts        Pure adapter: summary + products + business info → dashboard view model
     hooks/                                One TanStack Query hook per file (store, products, overlays, business info, onboarding)
     components/
@@ -60,9 +59,9 @@ renders one client `*View`/`*Flow` component, same pattern as Phase 2.3.
 | Store summary | `GET /store/me/summary` | Real |
 | Product list/create | `GET/POST /store/products` | Real |
 | Store edit (business info, logo) | none | **Frontend placeholder** — localStorage, see below |
-| Product edit/archive/active-toggle | none | **Frontend placeholder** — localStorage, see below |
-| Product variants (add/edit/delete) | none | **Frontend placeholder** — localStorage, see below |
-| Single product detail | none | Derived from the list query cache, see below |
+| Product edit/archive/active-toggle | `PATCH /store/products/{id}` (`is_archived`, `is_active`) | Real (Phase 3.1) |
+| Product variants (add/edit/delete) | `POST/PATCH/DELETE /store/products/{id}/variants[/{variant_id}]` | Real (Phase 3.1) — duplicate SKU (409) shown on the SKU field |
+| Single product detail | `GET /store/products/{id}` exists | Still derived from the list query cache (one fewer request when arriving from the list) |
 | Inventory stock levels | derived from `GET /store/products` | Real (read), no bulk-update endpoint |
 | Analytics | none | Placeholder, clearly badged "Planned" |
 | Customers | none | Placeholder |
@@ -101,30 +100,21 @@ parity with the spec. Confirmed gaps:
    caller-configurable) and is saved to the local `StoreBusinessInfo`
    overlay, not the real `Store.logo_image_key`.
 
-4. **No product edit, archive, or active-toggle endpoint.** Only
-   `POST /store/products` (create) and `GET /store/products` (list) exist
-   — confirmed by reading the router directly, not by an OpenAPI gap.
-   `ProductCreate` also has no `is_active` field (the model defaults it to
-   `true` server-side) and no `variants` field. All three — editing,
-   archiving, and the active/inactive toggle — are handled by a
-   localStorage `ProductOverlay` per product
-   (`api/brand/product-overlay.ts`), merged onto the server's `ProductRead`
-   for display by the pure adapter `features/brand/lib/resolve-product.ts`.
+4. ~~No product edit, archive, or active-toggle endpoint~~ — **resolved
+   in Phase 3.1.** `api/brand/products.ts::updateProduct` calls
+   `PATCH /store/products/{id}`; archiving is a real `is_archived` column
+   (migration `a3c9d2e41b07`), independent of `is_active`. Archived and
+   inactive products are hidden from shoppers (catalog, sizing, Shopping
+   Assistant) but stay in the brand's own list.
 
-5. **No product-variant endpoint of any kind.** No
-   `ProductVariantCreate`/`Update` schema, no route — variants can only be
-   seeded directly in the database (see `backend/app/db/seed.py`). "Add
-   variant" and "Edit variant" (explicitly flagged in the Phase 2.4 spec as
-   a placeholder if the backend is unavailable) both write to the same
-   `ProductOverlay.variants` array in localStorage.
+5. ~~No product-variant endpoint~~ — **resolved in Phase 3.1.** Variant
+   add/edit/delete call the real variant endpoints. SKUs are unique
+   platform-wide; a clash surfaces under the SKU field.
 
-6. **No single-product GET.** There's no `GET /store/products/{id}` —
-   product details/edit pages derive the one product they need from the
-   same `GET /store/products` list query cache `useProducts()` populates
-   (`features/brand/hooks/use-product.ts`, same query key
-   `["brand", "products"]`). Arriving from the products list is instant
-   (cache already warm); a direct link or refresh triggers one full-list
-   fetch to find it.
+6. **Single product detail is still derived from the list cache.** A
+   `GET /store/products/{id}` now exists, but `use-product.ts` keeps
+   reading the `["brand", "products"]` list query — arriving from the
+   list is instant, and every mutation invalidates that one key.
 
 7. **Store verification has no workflow.** `is_verified` is readable but
    always `false` on `POST /store` (the seed script sets `true` directly in
@@ -141,17 +131,13 @@ parity with the spec. Confirmed gaps:
    dashboard approximates recency by reversing the list endpoint's
    insertion order (same adaptation Phase 2.3 used for `TryOnJob`).
 
-## The `ProductOverlay` pattern
+## Archiving
 
-Every product-level "placeholder" feature (edit, archive, active toggle,
-variants) shares one localStorage-backed overlay per product
-(`api/brand/product-overlay.ts`), keyed `fitmirror.product-overlay.{id}`.
-`features/brand/lib/resolve-product.ts` is the single pure function that
-merges a server `Product` with its overlay into a `ResolvedProduct` —
-every list, table, and detail view renders through this adapter so the
-merge logic exists in exactly one place. This mirrors the
-`api/shopper/saved-looks.ts` pattern from Phase 2.3: real, interactive UI,
-clearly not yet synced to a backend that doesn't support it.
+Since Phase 3.1 there is no local product overlay — the former
+`api/brand/product-overlay.ts` and its localStorage keys
+(`fitmirror.product-overlay.{id}`) are gone; stale keys in a browser are
+simply ignored. `features/brand/lib/resolve-product.ts` only adds the
+camelCase `isArchived` alias the views were built against.
 
 Products marked archived are excluded from every status filter except an
 explicit "Archived" filter (`features/brand/components/products/product-

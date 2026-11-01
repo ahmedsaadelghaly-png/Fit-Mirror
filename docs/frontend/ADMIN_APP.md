@@ -7,7 +7,28 @@ reports, and platform settings. Everything under `app/(admin)/admin/*` is
 now real — no more static placeholder page. Mobile app remains out of
 scope, per the Phase 2.5 brief.
 
-## The central fact of this phase
+## Phase 3.1 update — Users, Stores, Try-On Jobs are real
+
+The backend now has a `platform_admin`-only `/admin` router enforced by
+`require_role` (see `docs/API_CONTRACTS.md` "Platform Admin"). The Users,
+Stores, and Try-On Jobs sections — and the dashboard counts built from
+them — call it directly:
+
+| Action | Endpoint |
+|---|---|
+| List users / change role / activate-deactivate | `GET /admin/users`, `PATCH /admin/users/{id}` |
+| List stores / verify / suspend | `GET /admin/stores`, `PATCH /admin/stores/{id}` |
+| List try-on jobs / retry a failed one | `GET /admin/tryon-jobs`, `POST /admin/tryon-jobs/{id}/retry` |
+
+Notes: suspending a store hides all its products from shoppers; retry
+re-queues a failed job with its original inputs; `last_login_at` isn't
+tracked yet, so it always shows "Never". Lists fetch up to 200 rows and
+filter client-side. The localStorage `UserOverlay` / `StoreOverlay` /
+`TryOnJobRetryOverlay` and the `resolve-user` / `resolve-store` adapters
+were removed. The sections below describe the original Phase 2.5 state;
+the table further down is updated.
+
+## The central fact of this phase (Phase 2.5 — historical)
 
 A thorough audit of the backend (routers, schemas, models, migrations,
 docker-compose, `docs/RBAC.md`) found **exactly one** real, callable
@@ -83,11 +104,11 @@ the pattern from Phases 2.3/2.4.
 
 | Section | Real | Mocked |
 |---|---|---|
-| Dashboard | Nothing directly (composes the sections below) | Users/stores/products/try-on counts, queue, AI health, alerts, storage |
-| User Management | — | Roster, activate/deactivate, role change, sessions, audit history (though audit history *filters* the real mock audit log by actor) |
-| Store Management | — | Roster, verify/suspend, owner details |
+| Dashboard | User/store/try-on counts (Phase 3.1) | Product counts, queue, AI health, alerts, storage |
+| User Management | Roster, activate/deactivate, role change (Phase 3.1) | Sessions, last login, audit history |
+| Store Management | Roster, verify/suspend, owner email (Phase 3.1) | — |
 | Product Monitoring | — | Roster, flag/hide, image moderation |
-| Try-On Jobs Monitoring | — | Roster, retry request, failure-reason grouping (grouping logic is real, over mocked rows) |
+| Try-On Jobs Monitoring | Roster, retry, failure-reason grouping (Phase 3.1) | — |
 | Queue & Worker Monitoring | — | Everything |
 | AI Services | — | Everything (model, GPU, latency, error rate) |
 | System Health | `GET /health` → the "Backend" row | PostgreSQL, Redis, storage, AI service rows |
@@ -101,7 +122,7 @@ context-specific label) per the Phase 2.5 UX requirement. `SystemHealthView`
 goes further and labels each individual row "Live" or "Mocked" rather than
 one badge for the whole page, since it's the one page mixing both.
 
-## The `UserOverlay` / `StoreOverlay` / `ProductModerationOverlay` / `TryOnJobRetryOverlay` pattern
+## The `ProductModerationOverlay` pattern (the only overlay left after Phase 3.1)
 
 Same shape as Phase 2.4's `ProductOverlay`: a localStorage record per
 entity, merged onto the mock row by a pure `resolve*` adapter
@@ -165,12 +186,12 @@ npm run dev                 # http://localhost:3000/admin — the one real call 
 
 ## What would need real backend work to stop being mocked
 
-- A `platform_admin`-scoped `/admin` router with actual `require_role()` enforcement (today: frontend-only role gating)
-- Cross-tenant listing endpoints for users/stores/products/try-on jobs
+- ~~A `platform_admin`-scoped `/admin` router with `require_role()`~~ — done (Phase 3.0)
+- ~~Cross-tenant listing for users/stores/try-on jobs~~ — done (Phase 3.0/3.1); products still mocked
 - A Celery/queue monitoring endpoint (queue depth, worker status, retry/dead-letter queues) — Flower or a custom endpoint
 - A proxy (or direct network exposure) for the AI service's `GET /api/v1/health`, plus real model registry/GPU/latency telemetry
 - An `AuditLog` model, migration, and endpoint (there are currently zero migrations in this repo at all)
 - A `FeatureFlag` model/table/endpoint (today: two unrelated infra booleans in `config.py`)
 - Storage usage/quota reporting
-- Any actual store/product moderation actions (verify, suspend, flag, hide) persisted server-side
+- Product moderation actions (flag, hide) persisted server-side — store verify/suspend are done (Phase 3.1)
 - Platform Settings of any kind (general/security/storage/AI/notifications)

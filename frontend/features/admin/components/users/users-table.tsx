@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal, Shield } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +22,10 @@ import {
 import { RoleChangeDialog } from "@/features/admin/components/users/role-change-dialog";
 import { UserRoleBadge } from "@/features/admin/components/users/user-role-badge";
 import { useToggleUserActive } from "@/features/admin/hooks/use-toggle-user-active";
-import type { ResolvedAdminUser } from "@/features/admin/lib/resolve-user";
+import type { AdminUserRow } from "@/types/admin";
 
 export interface UsersTableProps {
-  users: ResolvedAdminUser[];
+  users: AdminUserRow[];
 }
 
 /** Activate/deactivate and role change are both local-overlay placeholders — see api/admin/users.ts. */
@@ -53,15 +53,7 @@ function UsersTable({ users }: UsersTableProps) {
               </Link>
             </TableCell>
             <TableCell>
-              <div className="flex items-center gap-1.5">
-                <UserRoleBadge role={user.role} />
-                {user.hasLocalEdits && (
-                  <Shield
-                    className="size-3.5 text-muted-foreground"
-                    aria-label="Has unsynced local edits"
-                  />
-                )}
-              </div>
+              <UserRoleBadge role={user.role} />
             </TableCell>
             <TableCell>
               <Badge variant={user.is_active ? "success" : "secondary"}>

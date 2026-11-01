@@ -45,20 +45,21 @@ e.g. via the seed script or a planned admin-only user-management endpoint).
 | | feature flag overrides | — | — | ✅ any |
 | | manage rate-limit exemptions | — | — | ✅ any |
 
-\* **Current enforcement reality:** as documented in
-`API_CONTRACTS.md`'s RBAC note, the codebase enforces most of the "own"
-column via **ownership queries** (e.g. `WHERE user_id = current_user_id`),
-not via an explicit role-check decorator. There is currently no
-`platform_admin`-only endpoint implemented — every row in the "planned"
-column above requires new endpoints, not just a permission check, and is
-tracked in `ROADMAP.md`. The distinction matters: a `platform_admin`
-today has no *more* API access than a `shopper` except by direct database
-access, because the admin-only endpoints simply don't exist yet.
+\* **Current enforcement reality (Phase 3.0):** role checks are
+enforced by `require_role(...)` — `/store/*` accepts `brand_admin` and
+`platform_admin`, `/admin/*` accepts only `platform_admin`, anything else
+gets `403`. "Own" rows are still enforced by ownership-scoped queries.
+Implemented admin endpoints: read any user / change role / deactivate
+(`/admin/users`), verify a store (`/admin/stores`), read any try-on job
+(`/admin/tryon-jobs`), platform stats. Still planned: audit logs, feature
+flag overrides, rate-limit exemptions, store suspension, admin body-profile
+access. Brand accounts are provisioned by an admin promoting a user
+(`PATCH /admin/users/{id}` with `role: brand_admin`) or by the seed script.
 
-## Planned enforcement mechanism
+## Enforcement mechanism (implemented)
 
 ```python
-# Planned: app/core/dependencies.py addition
+# app/core/dependencies.py
 def require_role(*allowed_roles: UserRole):
     def _dependency(
         user_id: str = Depends(get_current_user_id),

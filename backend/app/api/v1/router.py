@@ -1,7 +1,9 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    admin,
     auth,
+    catalog,
     shopping,
     sizing,
     store_dashboard,
@@ -21,3 +23,5 @@ api_router.include_router(stylist.router, prefix="/stylist", tags=["AI Stylist"]
 api_router.include_router(sizing.router, prefix="/sizing", tags=["Size Recommendation"])
 api_router.include_router(shopping.router, prefix="/shopping", tags=["Shopping Assistant"])
 api_router.include_router(store_dashboard.router, prefix="/store", tags=["Store Dashboard"])
+api_router.include_router(catalog.router, prefix="/catalog", tags=["Catalog"])
+api_router.include_router(admin.router, prefix="/admin", tags=["Platform Admin"])

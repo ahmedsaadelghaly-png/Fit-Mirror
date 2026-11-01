@@ -15,6 +15,7 @@ import {
   type ChatMessage,
   SuggestedPrompts,
 } from "@/features/shopper/components/ai-chat-panel";
+import { ProductMatches } from "@/features/shopper/components/shopping/product-matches";
 import { useShoppingAsk } from "@/features/shopper/hooks/use-shopping-ask";
 import { type ShoppingAskFormValues, shoppingAskSchema } from "@/features/shopper/schemas";
 
@@ -25,14 +26,16 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 /**
- * PLACEHOLDER page, clearly marked as planned — `POST /shopping/ask`
- * returns `501` on the backend today (see docs/API_CONTRACTS.md "AI
- * Stylist, Size Recommendation, Shopping Assistant"). Wired to
- * features/shopper/hooks/use-shopping-ask.ts, which calls the documented
- * placeholder in api/shopper/shopping.ts.
+ * Shopping Assistant chat UI, wired to features/shopper/hooks/use-
+ * shopping-ask.ts -> api/shopper/shopping.ts -> the backend's rule-based
+ * `POST /shopping/ask` (natural-language catalog search). Badged "Beta"
+ * until a model-backed assistant replaces the rules behind the same
+ * contract.
  */
 function ShoppingView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Products for the latest answer only — earlier answers stay as text.
+  const [matchedProductIds, setMatchedProductIds] = useState<string[]>([]);
   const askMutation = useShoppingAsk();
 
   const {
@@ -54,6 +57,7 @@ function ShoppingView() {
       ...prev,
       { id: `${userMessageId}-reply`, role: "assistant", content: response.reply },
     ]);
+    setMatchedProductIds(response.matched_product_ids);
   });
 
   return (
@@ -65,7 +69,7 @@ function ShoppingView() {
             Ask questions and get product matches from the catalog.
           </p>
         </div>
-        <Badge variant="secondary">Planned feature</Badge>
+        <Badge variant="secondary">Beta</Badge>
       </div>
 
       <Card>
@@ -102,9 +106,7 @@ function ShoppingView() {
             </form>
           </AiChatPanel>
 
-          <p className="text-xs text-muted-foreground">
-            Answers are simulated while this feature is in development.
-          </p>
+          <ProductMatches productIds={matchedProductIds} />
         </CardContent>
       </Card>
     </div>

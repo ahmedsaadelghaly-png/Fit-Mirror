@@ -19,7 +19,12 @@ class WardrobeService:
         return item
 
     def list_items(self, user_id: uuid.UUID) -> list[WardrobeItem]:
-        return self.db.query(WardrobeItem).filter(WardrobeItem.user_id == user_id).all()
+        return (
+            self.db.query(WardrobeItem)
+            .filter(WardrobeItem.user_id == user_id)
+            .order_by(WardrobeItem.created_at.desc())
+            .all()
+        )
 
     def delete_item(self, user_id: uuid.UUID, item_id: uuid.UUID) -> None:
         item = (

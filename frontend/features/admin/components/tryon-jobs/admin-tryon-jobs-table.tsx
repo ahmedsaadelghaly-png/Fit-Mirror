@@ -18,11 +18,10 @@ import type { AdminTryOnJobRow } from "@/types/admin";
 
 export interface AdminTryOnJobsTableProps {
   jobs: AdminTryOnJobRow[];
-  getRetryOverlay: (jobId: string) => { retryRequestedAt: string } | null;
 }
 
-/** "Retry" has no backend endpoint for an admin to resubmit another user's job — see api/admin/tryon-jobs.ts. */
-function AdminTryOnJobsTable({ jobs, getRetryOverlay }: AdminTryOnJobsTableProps) {
+/** "Retry" re-queues a failed job via `POST /admin/tryon-jobs/{id}/retry` (see api/admin/tryon-jobs.ts). */
+function AdminTryOnJobsTable({ jobs }: AdminTryOnJobsTableProps) {
   const retryMutation = useRetryTryOnJob();
 
   return (
@@ -38,7 +37,7 @@ function AdminTryOnJobsTable({ jobs, getRetryOverlay }: AdminTryOnJobsTableProps
       </TableHeader>
       <TableBody>
         {jobs.map((job) => {
-          const retryOverlay = getRetryOverlay(job.id);
+          const isRetrying = retryMutation.isPending && retryMutation.variables === job.id;
           return (
             <TableRow key={job.id}>
               <TableCell>
@@ -50,7 +49,9 @@ function AdminTryOnJobsTable({ jobs, getRetryOverlay }: AdminTryOnJobsTableProps
                 </Link>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">{job.user_email}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">{job.store_name}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {job.store_name ?? "—"}
+              </TableCell>
               <TableCell>
                 <StatusChip status={job.status} />
               </TableCell>
@@ -60,10 +61,9 @@ function AdminTryOnJobsTable({ jobs, getRetryOverlay }: AdminTryOnJobsTableProps
                     variant="outline"
                     size="sm"
                     onClick={() => retryMutation.mutate(job.id)}
-                    isLoading={retryMutation.isPending}
-                    disabled={!!retryOverlay}
+                    isLoading={isRetrying}
                   >
-                    <RotateCcw className="size-3.5" /> {retryOverlay ? "Requested" : "Retry"}
+                    <RotateCcw className="size-3.5" /> Retry
                   </Button>
                 )}
               </TableCell>

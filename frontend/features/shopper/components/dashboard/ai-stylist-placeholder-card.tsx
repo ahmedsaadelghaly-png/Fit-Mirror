@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-/** Dashboard entry point for the AI Stylist — see app/(shopper)/shopper/stylist/page.tsx, which clearly marks the feature as planned (backend `/stylist/suggestions` returns 501 today). */
+/** Dashboard entry point for the AI Stylist — see app/(shopper)/shopper/stylist/page.tsx (backed by the rule-based backend `/stylist/suggestions`, badged Beta). */
 function AiStylistPlaceholderCard() {
   return (
     <Card className="border-dashed">
@@ -15,7 +15,7 @@ function AiStylistPlaceholderCard() {
             <Wand2 className="size-4 text-muted-foreground" aria-hidden="true" />
             <CardTitle className="text-base">AI Stylist</CardTitle>
           </div>
-          <Badge variant="secondary">Planned</Badge>
+          <Badge variant="secondary">Beta</Badge>
         </div>
         <CardDescription>
           Outfit suggestions built from your wardrobe and style profile.

@@ -56,26 +56,59 @@ would 409 with `TRYON_JOB_FAILED` if attempted on a failed job).
 
 ## AI Stylist, Size Recommendation, Shopping Assistant
 
-*Contracts reserved, not implemented — see `ROADMAP.md` Phases 3/4/5.*
+*Implemented as rule-based v1 engines (Phase 3 backend) — see
+`ROADMAP.md` for the planned model-backed replacements, which keep these
+contracts.*
 
-| Endpoint | Method | Auth | Request Body | Current Response | Planned Response |
+| Endpoint | Method | Auth | Request Body | Success | Error Responses |
 |---|---|---|---|---|---|
-| `/stylist/suggestions` | POST | bearer | `{occasion?, weather?}` | `501` | `200 {suggestion_id, wardrobe_item_ids, rationale}` |
-| `/sizing/recommend` | POST | bearer | `{product_id}` | `501` | `200 {product_id, recommended_size_label, confidence}` |
-| `/shopping/ask` | POST | bearer | `{query}` | `501` | `200 {matched_product_ids, reply}` |
+| `/stylist/suggestions` | POST | bearer | `{occasion?, weather?}` | `200 {suggestion_id, wardrobe_item_ids, rationale}` (empty wardrobe → `200` with empty `wardrobe_item_ids` and a rationale saying what to add) | `401`, `422` |
+| `/sizing/recommend` | POST | bearer | `{product_id}` | `200 {product_id, recommended_size_label, confidence, fit_note}` | `401`, `404` (unknown/inactive product), `422` (missing measurements, or a category without sizing, e.g. footwear) |
+| `/shopping/ask` | POST | bearer | `{query}` (1–500 chars) | `200 {matched_product_ids, reply}` — up to 10 IDs, best match first | `401`, `422` |
+
+## Catalog
+
+| Endpoint | Method | Auth | Query | Success | Error Responses |
+|---|---|---|---|---|---|
+| `/catalog/products` | GET | bearer (any role, shopper-visible = active, not archived, store not suspended) | `ids` (repeatable, ≤50; result keeps this order), `category`, `q`, `limit` (≤100, default 24), `offset` | `200` `ProductRead[]` — active products only | `401`, `422` |
+| `/catalog/products/{id}` | GET | bearer (any role) | — | `200` `ProductRead` | `401`, `404` (unknown or inactive) |
 
 ## Store Dashboard
 
 | Endpoint | Method | Auth | Request Body | Success | Error Responses |
 |---|---|---|---|---|---|
-| `/store` | POST | bearer:brand_admin | `{name, slug}` | `201` `StoreRead` | `401`, `409 CONFLICT` (slug taken), `422 VALIDATION_ERROR` |
-| `/store/me` | GET | bearer:brand_admin | — | `200` `StoreRead` | `401`, `404 STORE_NOT_FOUND` |
-| `/store/me/summary` | GET | bearer:brand_admin | — | `200` `StoreDashboardSummary` | `401`, `404 STORE_NOT_FOUND` |
-| `/store/products` | POST | bearer:brand_admin | `ProductCreate` | `201` `ProductRead` | `401`, `404 STORE_NOT_FOUND`, `422 VALIDATION_ERROR` |
-| `/store/products` | GET | bearer:brand_admin | — | `200` `ProductRead[]` | `401`, `404 STORE_NOT_FOUND` |
+| `/store` | POST | bearer:brand_admin | `{name, slug}` | `201` `StoreRead` | `401`, `403`, `409 CONFLICT` (slug taken, or account already has a store), `422 VALIDATION_ERROR` |
+| `/store/me` | GET | bearer:brand_admin | — | `200` `StoreRead` | `401`, `403`, `404 STORE_NOT_FOUND` |
+| `/store/me/summary` | GET | bearer:brand_admin | — | `200` `StoreDashboardSummary` | `401`, `403`, `404 STORE_NOT_FOUND` |
+| `/store/products` | POST | bearer:brand_admin | `ProductCreate` | `201` `ProductRead` | `401`, `403`, `404 STORE_NOT_FOUND`, `422 VALIDATION_ERROR` |
+| `/store/products` | GET | bearer:brand_admin | — | `200` `ProductRead[]`, newest first | `401`, `403`, `404 STORE_NOT_FOUND` |
+| `/store/products/{id}` | GET | bearer:brand_admin | — | `200` `ProductRead` | `401`, `403`, `404` |
+| `/store/products/{id}` | PATCH | bearer:brand_admin | `ProductUpdate` (any subset, incl. `is_active`, `is_archived`) | `200` `ProductRead` | `401`, `403`, `404`, `422` |
+| `/store/products/{id}` | DELETE | bearer:brand_admin | — | `204` (variants cascade) | `401`, `403`, `404` |
+| `/store/products/{id}/variants` | POST | bearer:brand_admin | `{size_label, sku, color?, stock_quantity?, garment_image_key?}` | `201` `ProductVariantRead` | `401`, `403`, `404`, `409` (SKU in use), `422` |
+| `/store/products/{id}/variants/{variant_id}` | PATCH | bearer:brand_admin | any subset of the above | `200` `ProductVariantRead` | `401`, `403`, `404`, `409`, `422` |
+| `/store/products/{id}/variants/{variant_id}` | DELETE | bearer:brand_admin | — | `204` | `401`, `403`, `404` |
 
-`bearer:brand_admin` here means "authenticated AND owns a store for
-write/summary operations" — see the RBAC enforcement note below.
+`bearer:brand_admin` means role `brand_admin` or `platform_admin`
+(`403` otherwise), **and** every query is scoped to the caller's own
+store — another store's product answers `404`, not `403`.
+
+## Platform Admin
+
+| Endpoint | Method | Auth | Request / Query | Success | Error Responses |
+|---|---|---|---|---|---|
+| `/admin/stats` | GET | bearer:platform_admin | — | `200 {users_by_role, active_users, total_stores, verified_stores, total_products, active_products, tryon_jobs_by_status}` | `401`, `403` |
+| `/admin/users` | GET | bearer:platform_admin | `q` (email/name), `role`, `is_active`, `limit` (≤200), `offset` | `200` `AdminUserRead[]`, newest first | `401`, `403` |
+| `/admin/users/{id}` | PATCH | bearer:platform_admin | `{role?, is_active?}` | `200` `AdminUserRead` | `401`, `403`, `404`, `422` (deactivating/demoting yourself) |
+| `/admin/stores` | GET | bearer:platform_admin | `is_verified`, `limit`, `offset` | `200` `AdminStoreRead[]` (incl. `owner_email`, `product_count`) | `401`, `403` |
+| `/admin/stores/{id}` | PATCH | bearer:platform_admin | `{is_verified?, is_suspended?}` | `200` `AdminStoreRead` | `401`, `403`, `404` |
+| `/admin/tryon-jobs` | GET | bearer:platform_admin | `status`, `user_id`, `limit`, `offset` | `200` `AdminTryOnJobRead[]` (incl. `user_email`, `store_name` for catalog garments, image keys), newest first | `401`, `403` |
+| `/admin/tryon-jobs/{id}/retry` | POST | bearer:platform_admin | — | `200` `AdminTryOnJobRead` (status `pending`, re-queued) | `401`, `403`, `404`, `422` (job isn't `failed`) |
+
+Role and active-status changes take effect on the user's **next request**
+for role-checked routes — `require_role` loads the user row rather than
+trusting the token's `role` claim, so a deactivated user's unexpired
+token stops working there immediately.
 
 ## AI Service (internal only — never called directly by clients)
 
@@ -103,17 +136,15 @@ publicly; see `SECURITY.md`).
 | `422` | Request body failed validation (Pydantic) |
 | `429` | Rate limited (placeholder — see `SECURITY.md`) |
 | `500` | Unhandled internal error |
-| `501` | Contract exists, feature not implemented yet (Stylist/Sizing/Shopping only) |
 | `502` | A downstream dependency (object storage, AI service) failed |
 
 ## RBAC enforcement note (current implementation reality)
 
-As of Phase 1.75, endpoint-level role enforcement is **ownership-based**,
-not a generic `@require_role(...)` decorator: e.g. `/store/*` endpoints
-don't check `user.role == brand_admin` explicitly — they check "does a
-store exist owned by this user_id", which has the same practical effect
-(a `shopper` has no store, so gets `404 STORE_NOT_FOUND`) but is worth
-knowing when reasoning about edge cases (a `platform_admin` calling
-`/store/me` without owning a store also gets `404`, not `403`). See
-`RBAC.md` for the target permission matrix and where a real role-check
-layer is planned.
+Role checks are enforced by the `require_role(...)` dependency in
+`app/core/dependencies.py` (the mechanism `RBAC.md` planned since Phase
+1.75): `/store/*` requires `brand_admin` or `platform_admin`, `/admin/*`
+requires `platform_admin`, and a wrong role gets `403`. Ownership is
+still enforced separately by scoping every query to the caller's own
+rows, so cross-tenant access answers `404`. Endpoints any signed-in user
+may call (users/me, wardrobe, try-on, stylist, sizing, shopping, catalog)
+check only authentication plus ownership.

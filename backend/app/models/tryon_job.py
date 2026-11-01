@@ -53,6 +53,6 @@ class TryOnJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # Output reference — populated only once status == COMPLETED.
     result_image_key: Mapped[str] = mapped_column(String(512), nullable=True)
 
-    error_message: Mapped[str] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="tryon_jobs")

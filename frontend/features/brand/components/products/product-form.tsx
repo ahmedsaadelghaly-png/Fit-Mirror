@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateProduct } from "@/features/brand/hooks/use-create-product";
-import { useSaveProductOverrides } from "@/features/brand/hooks/use-save-product-overrides";
+import { useUpdateProduct } from "@/features/brand/hooks/use-update-product";
 import { useUpload } from "@/features/shopper/hooks/use-upload";
 import {
   CURRENCIES,
@@ -39,12 +39,8 @@ export interface ProductFormProps {
 }
 
 /**
- * Shared create/edit form. Create calls the real
- * `POST /store/products` (see api/brand/products.ts). Edit has no backend
- * endpoint to call at all — `PUT/PATCH /store/products/{id}` doesn't
- * exist — so it saves to the localStorage overlay instead (see
- * api/brand/product-overlay.ts and docs/frontend/BRAND_APP.md "API
- * contract mismatches"). Variant management lives on the product details
+ * Shared create/edit form: create calls `POST /store/products`, edit calls
+ * `PATCH /store/products/{id}` (see api/brand/products.ts). Variant management lives on the product details
  * page, not here — see features/brand/components/products/variant-list.tsx.
  */
 function ProductForm({ product }: ProductFormProps) {
@@ -52,7 +48,7 @@ function ProductForm({ product }: ProductFormProps) {
   const isEditMode = !!product;
 
   const createMutation = useCreateProduct();
-  const saveOverridesMutation = useSaveProductOverrides(product?.id ?? "");
+  const updateMutation = useUpdateProduct(product?.id ?? "");
   const upload = useUpload();
 
   const {
@@ -74,7 +70,7 @@ function ProductForm({ product }: ProductFormProps) {
 
   const onSubmit = handleSubmit(async (values) => {
     if (isEditMode && product) {
-      await saveOverridesMutation.mutateAsync({
+      await updateMutation.mutateAsync({
         title: values.title,
         description: values.description || null,
         category: values.category,
@@ -99,7 +95,7 @@ function ProductForm({ product }: ProductFormProps) {
     router.push(`/brand/products/${created.id}`);
   });
 
-  const mutation = isEditMode ? saveOverridesMutation : createMutation;
+  const mutation = isEditMode ? updateMutation : createMutation;
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex max-w-2xl flex-col gap-6">

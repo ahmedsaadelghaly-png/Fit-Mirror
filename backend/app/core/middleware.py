@@ -9,6 +9,7 @@ until a real backing store (e.g. Redis-based token bucket) and a finalized
 security-header policy are implemented in a later phase.
 """
 
+import time
 import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -51,23 +52,36 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     sliding-window limiter) in a later phase.
     """
 
+    WINDOW_SECONDS = 60
+
     def __init__(self, app):
         super().__init__(app)
+        # Fixed one-minute windows: counts are only kept for the current
+        # window, so a client is never blocked longer than the window it
+        # exceeded the limit in (and memory doesn't grow without bound).
+        self._window_start = 0
         self._request_counts: dict[str, int] = {}
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if not settings.RATE_LIMIT_ENABLED:
             return await call_next(request)
 
+        now = int(time.monotonic())
+        window_start = now - now % self.WINDOW_SECONDS
+        if window_start != self._window_start:
+            self._window_start = window_start
+            self._request_counts.clear()
+
         client_key = request.client.host if request.client else "unknown"
         self._request_counts[client_key] = self._request_counts.get(client_key, 0) + 1
 
         if self._request_counts[client_key] > settings.RATE_LIMIT_REQUESTS_PER_MINUTE:
+            retry_after = window_start + self.WINDOW_SECONDS - now
             return Response(
                 content='{"error_code":"rate_limited","message":"Too many requests."}',
                 status_code=429,
                 media_type="application/json",
-                headers={"Retry-After": "60"},
+                headers={"Retry-After": str(max(retry_after, 1))},
             )
 
         return await call_next(request)

@@ -1,6 +1,6 @@
 # Known Issues
 
-Tracked gaps as of Phase 2.7 (full-system validation). Distinguishes real, open issues from things that are *intentionally* mocked/deferred and already documented elsewhere — this file doesn't repeat those, it links to them.
+Tracked gaps as of Phase 3.0 (backend catch-up; originally written for Phase 2.7). Distinguishes real, open issues from things that are *intentionally* mocked/deferred and already documented elsewhere — this file doesn't repeat those, it links to them.
 
 ## Open issues
 
@@ -18,17 +18,21 @@ Tracked gaps as of Phase 2.7 (full-system validation). Distinguishes real, open 
 
 **Recommendation:** Track the upstream Next.js release that bumps its internal `postcss` dependency past 8.5.10 and take a normal `npm install`/lockfile bump when it ships; don't force a Next.js downgrade for this alone.
 
-### `RBAC.md`'s permission matrix is not enforced server-side
+### ~~`RBAC.md`'s permission matrix is not enforced server-side~~ — resolved in Phase 3.0
 
-Documented since Phase 1.75 (`docs/RBAC.md` "planned enforcement mechanism"), unchanged by this phase. The backend currently checks authentication (a valid JWT) but does not have a generic role/permission-based authorization layer — individual endpoints happen to be scoped correctly (e.g. `/store/*` implicitly operates on `current_user`'s own store) but there's no central enforcement matching the documented matrix. Not a regression from this phase; flagged here because full-system validation is exactly the point where this gap becomes visible in practice, not just on paper.
+`require_role(...)` (`app/core/dependencies.py`) now guards `/store/*`
+(brand_admin / platform_admin) and `/admin/*` (platform_admin); see
+`docs/API_CONTRACTS.md` "RBAC enforcement note". Ownership scoping is
+unchanged.
 
-### Admin platform surface is still mostly mocked data
+### Admin: products, queue, flags, audit log, reports still mocked
 
-Documented in detail in `docs/frontend/ADMIN_APP.md` since Phase 2.5 — only `GET /health` is a real backend call from the Admin app; everything else (user/store/product moderation, queue/worker monitoring, feature flags, reports) is realistic mocked data with visible "Mocked data" labels, because the corresponding backend admin endpoints don't exist. Confirmed still accurate by reading the current backend route table (`backend/app/api/v1/router.py`) during this validation pass — no new admin endpoints were added between Phase 2.5 and now.
+Users, stores, and try-on jobs are real since Phase 3.1. Product
+moderation, queue/worker monitoring, AI-service telemetry, feature flags,
+audit log, and reports still have no backend and stay mocked (badged
+"Mocked data"). `last_login_at` isn't tracked (always "Never").
 
-### Brand product variant management has no backend endpoint
-
-Documented in `docs/frontend/BRAND_APP.md` since Phase 2.4 — variant CRUD is a localStorage-backed overlay on top of the real `POST /store/products` endpoint, since no `POST/PUT/DELETE /store/products/{id}/variants` exists on the backend. Still accurate.
+### ~~Brand product editing/variants use a localStorage overlay~~ — resolved in Phase 3.1
 
 ### Shopper "style preferences" (preferred fit / favorite colors / style tags) has no backend field
 
@@ -37,6 +41,28 @@ Documented in `docs/frontend/SHOPPER_APP.md` and `types/shopper.ts` since Phase 
 ### `passlib`'s `crypt` module deprecation warning
 
 `backend/.venv/lib/.../passlib/utils/__init__.py` imports the standard-library `crypt` module, which is deprecated since Python 3.12 and scheduled for removal in 3.13. Shows up as a `DeprecationWarning` in every backend pytest run. Not a bug today (Python 3.12 still has the module), but will break outright on a future Python 3.13 upgrade. Tracked here rather than fixed now since `passlib`'s bcrypt backend (what this project actually uses via `app/core/security.py`) doesn't need `crypt` at all — the warning fires from an unrelated code path `passlib` imports eagerly. A `passlib` version bump or a switch to `bcrypt` directly (already a pinned dependency) would resolve it; deferred as a dependency-upgrade task, not a validation-blocking issue.
+
+### Rate limiter is per-process
+
+The fixed-window limiter in `app/core/middleware.py` (fixed in Phase 3.0 —
+previously its counters never reset) keeps counts in memory, so with N
+API replicas a client effectively gets N× the limit. Needs a Redis-backed
+implementation before it's relied on in a multi-instance deployment.
+
+### `GET /tryon/download-url` doesn't check key ownership
+
+Documented design choice (see the endpoint docstring and `docs/STORAGE.md`
+"Planned hardening"): keys are unguessable, but any signed-in user who
+obtains one can resolve it. Should be scoped by key namespace/owner.
+
+### e2e smoke tests are timing-sensitive under parallel `next dev`
+
+Locally with Playwright's default (parallel) workers, a few navigation
+tests can exceed their 5s expectation while `next dev` compiles routes on
+first visit — reproduced on the pre-Phase-3.0 code too, so not a
+regression. CI runs one worker (`playwright.config.ts`), where the full
+suite passes (58/58 in Phase 3.1). `brand-smoke.spec.ts` got an exact
+heading match and a longer post-create navigation timeout.
 
 ## Environment-specific, not project issues
 

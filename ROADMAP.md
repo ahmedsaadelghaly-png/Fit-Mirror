@@ -1,68 +1,76 @@
 # FitMirror AI — Development Roadmap
 
-Phase 1 (backend + AI-service skeleton), Phase 1.5 (production tooling),
-Phase 1.75 (system design documentation — see `docs/`), Phase 2.1
-(frontend foundation), and Phase 2.2 (real authentication, API
-integration, public pages, theme tokens, Storybook — see
-`docs/frontend/`) are complete. Proposed scope for subsequent phases:
+## Done
 
-## Phase 2.3 — Shopper/Brand/Admin Dashboard Build-Out
-- Shopper: real wardrobe CRUD UI, try-on upload + job creation + status
-  polling UI (backend already supports all of this — see backend
-  `docs/API_CONTRACTS.md`)
-- Brand: real product/variant management UI, store dashboard summary
-  wired to `GET /store/me/summary`
-- Admin: no backend admin endpoints exist yet (see backend
-  `docs/RBAC.md`) — this phase likely starts with backend admin
-  endpoints, then the UI
-- Real forgot-password backend endpoint, replacing the frontend's
-  documented placeholder adapter (`frontend/features/auth/api.ts`)
-- Real contact-form backend endpoint, replacing
-  `frontend/features/contact/api.ts`'s placeholder adapter
-- Remove `comingSoon` flags in `frontend/config/navigation.ts` as each
-  route ships
+| Phase | Scope |
+|---|---|
+| 1 – 1.75 | Backend + AI-service skeleton, production tooling, system design docs (`docs/`) |
+| 2.1 – 2.6 | Next.js frontend: auth, public site, Shopper / Brand / Admin apps, production hardening (`docs/frontend/`) |
+| 2.7 | Full-stack validation against a real running stack (`docs/VALIDATION_REPORT.md`) |
+| 2.8 | Fashion-first visual redesign across every surface |
+| **3.0 — Backend catch-up** | The backend now covers what the frontend was faking: |
+| | • RBAC enforced via `require_role` (`/store/*` brand-only, `/admin/*` admin-only) |
+| | • Product update/delete and variant CRUD (`/store/products/{id}[/variants]`) |
+| | • Platform Admin API: stats, user role/activation, store verification, try-on job monitoring (`/admin/*`) |
+| | • Catalog browse (`/catalog/products`) |
+| | • AI Stylist, Size Recommendation, Shopping Assistant as rule-based v1 engines (were `501`) |
+| | • Fixes: try-on jobs flipping to `failed` between worker retries; rate limiter never resetting; arbitrary upload content types; per-request storage-client construction; N+1/in-Python aggregation on the store dashboard |
 
-## Phase 3 — AI Stylist
-- Implement `/stylist/suggestions` for real (currently `501`)
-- Rule-based or embedding-based outfit matching from wardrobe items
-- Occasion/weather-aware recommendations (weather API integration)
-- Feedback loop (like/dislike) to personalize future suggestions
+## Done — Phase 3.1: Frontend swap-over
 
-## Phase 4 — Size Recommendation Engine
-- Implement `/sizing/recommend` for real (currently `501`)
-- Per-brand size chart ingestion (Store Dashboard extension)
-- Body-profile-to-size-chart matching algorithm
-- Confidence scoring and "fits big/small" feedback collection
+- Brand: product edit / archive / active toggle / variants call the real
+  endpoints; the localStorage product overlay is gone. Archiving is a real
+  `products.is_archived` column.
+- Admin: Users, Stores, Try-On Jobs (and dashboard counts from them) call
+  `/admin/*`; new store suspension (`stores.is_suspended`, hides the
+  store's products from shoppers) and failed-job retry endpoints.
+- Shopper: Shopping Assistant matches render as product cards with
+  "Find my size"; stale "simulated" copy removed.
+- Still mocked in Admin: product moderation, queue/workers, AI telemetry,
+  feature flags, audit log, reports (need new backend models).
 
-## Phase 5 — Shopping Assistant
-- Implement `/shopping/ask` for real (currently `501`)
-- Natural-language product search over the catalog
-- Conversational cart-building, integrate with try-on and sizing
-- Personalized recommendations using wardrobe + purchase history
+## Next — Phase 3.2: Remaining backend gaps
 
-## Phase 6 — Real Virtual Try-On Model
-- Replace `PlaceholderTryOnPipeline` with a production-grade model
-  (e.g. diffusion-based virtual try-on) behind the existing
-  `TryOnPipeline` interface — no API or schema changes required
-- GPU-backed deployment/autoscaling for the AI service
-- Model versioning, A/B testing support via the model registry
-- Quality/safety filtering on generated images
+- Catalog try-on in the Shopper app (try on a product variant, with a size
+  recommendation) — the backend already accepts `product_variant_id`
+- Saved Looks (`saved_looks` table + `POST/GET/DELETE /saved-looks`) —
+  needs a migration
+- Style preferences (fit / colors / tags) on `BodyProfile` — needs a migration
+- Store business info (category, description, social links, logo) — needs a migration
+- `POST /auth/forgot-password` + reset flow (needs an email provider)
+- `POST /contact` (needs an email provider or a support inbox table)
+- Self-service brand sign-up (today brand accounts are provisioned by an
+  admin via `PATCH /admin/users/{id}` or the seed script)
+- Batch download URLs (`POST /storage/download-urls`) so image grids make
+  one request instead of one per image
 
-## Phase 7 — Store Dashboard Expansion
-- Analytics: try-on conversion rates, popular products, size-fit reports
-- Bulk product/variant import (CSV, catalog API integration)
-- Team management (multiple brand_admin users per store)
-- Billing/subscription tier for brand accounts
+## Phase 4 — Real AI models (same contracts)
 
-## Phase 8 — Platform Hardening
-- Rate limiting, API key management for brand integrations
-- Observability: metrics (Prometheus), tracing, structured log aggregation
-- CI/CD pipelines, staging environment, automated migration checks
-- Load testing for the async try-on pipeline; queue autoscaling policy
-- Security review: JWT rotation, RBAC refinement, PII/image data handling
-  and retention policy
+- Virtual try-on: replace `PlaceholderTryOnPipeline` with a diffusion-based
+  model behind `TryOnPipeline`; GPU deployment; model versioning / A-B via
+  the registry; quality and safety filtering
+- Stylist: embedding-based item compatibility + feedback loop (like/dislike)
+- Sizing: per-brand size chart ingestion; "fits big/small" feedback
+- Shopping: LLM query understanding / embedding search over the catalog
 
-Each phase should extend, not restructure, the Phase 1 architecture: new
-features plug into the existing `api → services → repositories → models`
-layering, and new AI capabilities plug into the existing pipeline/registry
-pattern established for virtual try-on.
+## Phase 5 — Store Dashboard expansion
+
+- Analytics: try-on conversion, popular products, size-fit reports
+- Bulk product/variant import (CSV, catalog API)
+- Team management (multiple brand users per store — see `docs/MULTI_TENANCY.md`)
+- Billing / subscription tiers
+
+## Phase 6 — Platform hardening
+
+- Redis-backed rate limiter (the in-process one is per-instance)
+- Object-key ownership checks on `GET /tryon/download-url` (`docs/STORAGE.md`)
+- Real audit log + feature flag backends (`docs/AUDIT_LOGGING.md`, `docs/FEATURE_FLAGS.md`)
+- Metrics (Prometheus), tracing, log aggregation; staging environment
+- Load testing the try-on pipeline; queue autoscaling
+- JWT rotation / refresh-token revocation; PII and image retention policy
+- Replace `passlib` (Python 3.13 `crypt` removal — see `docs/KNOWN_ISSUES.md`)
+
+Each phase extends, not restructures, the existing architecture: features
+plug into `api → services → repositories → models`, and AI capabilities
+plug into the pipeline/registry pattern (or a service behind an unchanged
+endpoint contract).

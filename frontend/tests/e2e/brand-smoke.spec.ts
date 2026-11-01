@@ -201,7 +201,7 @@ test.describe("Products list", () => {
 
     await page.goto("/brand/products");
 
-    await expect(page.getByRole("heading", { name: "Products" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Products", exact: true })).toBeVisible();
     await expect(page.getByText(/no products yet/i)).toBeVisible();
     await expect(page.getByRole("link", { name: /add product/i }).first()).toBeVisible();
   });
@@ -248,7 +248,11 @@ test.describe("Create product", () => {
     await page.getByLabel(/^price$/i).fill("24.99");
     await page.getByRole("button", { name: /create product/i }).click();
 
-    await expect(page).toHaveURL(/\/brand\/products\/33333333-3333-3333-3333-333333333333$/);
+    // Generous timeout: under `next dev`, the first visit to the detail route
+    // compiles it on demand, which can exceed 5s on a loaded machine.
+    await expect(page).toHaveURL(/\/brand\/products\/33333333-3333-3333-3333-333333333333$/, {
+      timeout: 20_000,
+    });
     expect(productCreated).toBe(true);
   });
 });

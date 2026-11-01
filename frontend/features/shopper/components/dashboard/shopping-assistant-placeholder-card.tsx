@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-/** Dashboard entry point for the Shopping Assistant — see app/(shopper)/shopper/shopping/page.tsx, which clearly marks the feature as planned (backend `/shopping/ask` returns 501 today). */
+/** Dashboard entry point for the Shopping Assistant — see app/(shopper)/shopper/shopping/page.tsx (backed by the rule-based backend `/shopping/ask`, badged Beta). */
 function ShoppingAssistantPlaceholderCard() {
   return (
     <Card className="border-dashed">
@@ -15,7 +15,7 @@ function ShoppingAssistantPlaceholderCard() {
             <MessageCircle className="size-4 text-muted-foreground" aria-hidden="true" />
             <CardTitle className="text-base">Shopping Assistant</CardTitle>
           </div>
-          <Badge variant="secondary">Planned</Badge>
+          <Badge variant="secondary">Beta</Badge>
         </div>
         <CardDescription>Ask questions and get product matches from the catalog.</CardDescription>
       </CardHeader>

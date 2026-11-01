@@ -1,39 +1,20 @@
-import { MOCK_TRYON_JOBS } from "@/api/admin/mock-data";
-import { delay } from "@/api/admin/shared";
-import type { AdminTryOnJobRow, TryOnJobRetryOverlay } from "@/types/admin";
+import { apiClient } from "@/api/client";
+import type { AdminTryOnJobRow } from "@/types/admin";
+
+/** Real `GET /admin/tryon-jobs`, newest first — see docs/API_CONTRACTS.md "Platform Admin". */
+export async function listAllTryOnJobs(): Promise<AdminTryOnJobRow[]> {
+  const { data } = await apiClient.get<AdminTryOnJobRow[]>("/admin/tryon-jobs", {
+    params: { limit: 200 },
+  });
+  return data;
+}
 
 /**
- * PLACEHOLDER — no platform-wide try-on job listing endpoint exists (only
- * `GET /tryon`, scoped to the caller's own jobs — see
- * docs/frontend/ADMIN_APP.md). "Retry failed job" has no backend endpoint
- * for an admin to resubmit another user's job either — captured as a
- * localStorage overlay that only records the retry request, since there's
- * nothing to actually resubmit against.
+ * Re-queues a failed job with its original inputs; it goes back to
+ * `pending` and the worker picks it up. The backend rejects (422) any job
+ * that isn't `failed`.
  */
-export async function listAllTryOnJobs(): Promise<AdminTryOnJobRow[]> {
-  await delay();
-  return MOCK_TRYON_JOBS;
-}
-
-function storageKey(jobId: string): string {
-  return `fitmirror.admin.tryon-retry.${jobId}`;
-}
-
-export function readRetryOverlaySync(jobId: string): TryOnJobRetryOverlay | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(storageKey(jobId));
-    return raw ? (JSON.parse(raw) as TryOnJobRetryOverlay) : null;
-  } catch {
-    return null;
-  }
-}
-
-export async function requestJobRetry(jobId: string): Promise<TryOnJobRetryOverlay> {
-  await delay();
-  const overlay: TryOnJobRetryOverlay = { jobId, retryRequestedAt: new Date().toISOString() };
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(storageKey(jobId), JSON.stringify(overlay));
-  }
-  return overlay;
+export async function retryTryOnJob(jobId: string): Promise<AdminTryOnJobRow> {
+  const { data } = await apiClient.post<AdminTryOnJobRow>(`/admin/tryon-jobs/${jobId}/retry`);
+  return data;
 }

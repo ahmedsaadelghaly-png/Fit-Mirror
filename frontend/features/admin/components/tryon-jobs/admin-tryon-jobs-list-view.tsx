@@ -7,7 +7,6 @@ import { ErrorState } from "@/components/ui/error-state";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminGuard } from "@/features/admin/components/admin-guard";
-import { MockedBadge } from "@/features/admin/components/mocked-badge";
 import { AdminTryOnJobsTable } from "@/features/admin/components/tryon-jobs/admin-tryon-jobs-table";
 import { FailureReasonSummaryCard } from "@/features/admin/components/tryon-jobs/failure-reason-summary-card";
 import { TryOnJobStatusFilter } from "@/features/admin/components/tryon-jobs/tryon-job-status-filter";
@@ -22,7 +21,7 @@ function AdminTryOnJobsListView() {
 }
 
 function AdminTryOnJobsListContent() {
-  const { isLoading, isError, refetch, jobs, filteredJobs, filters, setFilters, getRetryOverlay } =
+  const { isLoading, isError, refetch, jobs, filteredJobs, filters, setFilters } =
     useAdminTryOnJobs();
 
   return (
@@ -34,7 +33,6 @@ function AdminTryOnJobsListContent() {
             Every virtual try-on job across the platform.
           </p>
         </div>
-        <MockedBadge />
       </div>
 
       {isLoading && (
@@ -74,7 +72,7 @@ function AdminTryOnJobsListContent() {
           {filteredJobs.length === 0 ? (
             <EmptyState title="No jobs match this filter" />
           ) : (
-            <AdminTryOnJobsTable jobs={filteredJobs} getRetryOverlay={getRetryOverlay} />
+            <AdminTryOnJobsTable jobs={filteredJobs} />
           )}
         </>
       )}

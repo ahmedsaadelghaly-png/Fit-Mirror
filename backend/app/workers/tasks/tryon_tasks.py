@@ -36,11 +36,12 @@ logger = get_logger(__name__)
 )
 def process_tryon_job(self, job_id: str) -> None:
     """
-    NOTE on retries: Celery's `autoretry_for` re-raises transient httpx
-    errors, which Celery catches *outside* this function body and
-    reschedules the task automatically. The `except Exception` block below
-    only fires once retries are exhausted (or for non-retryable errors),
-    making it the correct place to mark the job FAILED.
+    NOTE on retries: Celery's `autoretry_for` only sees an exception that
+    escapes this function, so this body must decide what the job row
+    looks like before re-raising. A transient httpx error with retries
+    left puts the job back to PENDING (so clients polling it keep
+    polling) and re-raises for Celery to reschedule; only once retries are
+    exhausted, or for a non-retryable error, is the job marked FAILED.
     """
     db = SessionLocal()
     repository = TryOnJobRepository(db)
@@ -49,6 +50,12 @@ def process_tryon_job(self, job_id: str) -> None:
         job = repository.get(uuid.UUID(job_id))
         if job is None:
             logger.error("TryOnJob %s not found; aborting task.", job_id)
+            return
+
+        # task_acks_late means a worker crash after completion can redeliver
+        # the message — don't regenerate (and re-bill) a finished job.
+        if job.status == TryOnJobStatus.COMPLETED:
+            logger.info("TryOnJob %s already completed; skipping redelivery.", job_id)
             return
 
         repository.set_status(job, TryOnJobStatus.PROCESSING)
@@ -73,12 +80,23 @@ def process_tryon_job(self, job_id: str) -> None:
         )
         logger.info("TryOnJob %s completed successfully.", job_id)
 
-    except Exception as exc:  # noqa: BLE001 - final failure path after retries exhausted
-        logger.exception("TryOnJob %s failed permanently.", job_id)
+    except Exception as exc:  # noqa: BLE001 - every failure must leave the row consistent
+        db.rollback()
         job = repository.get(uuid.UUID(job_id))
+        will_retry = isinstance(exc, httpx.HTTPError) and self.request.retries < self.max_retries
+
+        if will_retry:
+            logger.warning(
+                "TryOnJob %s attempt %d failed transiently; retrying.",
+                job_id,
+                self.request.retries + 1,
+            )
+            if job:
+                repository.set_status(job, TryOnJobStatus.PENDING)
+            raise
+
+        logger.exception("TryOnJob %s failed permanently.", job_id)
         if job:
             repository.set_status(job, TryOnJobStatus.FAILED, error_message=str(exc))
-        if isinstance(exc, httpx.HTTPError) and self.request.retries < self.max_retries:
-            raise
     finally:
         db.close()

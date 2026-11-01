@@ -122,16 +122,37 @@ poll interval: 2s, with backoff.
 
 ## AI Stylist, Size Recommendation, Shopping Assistant
 
-**Not implemented in Phase 1 / 1.5.** All three return `501 Not Implemented`:
+Rule-based v1 engines — full status/error table in `docs/API_CONTRACTS.md`.
 
+### `POST /stylist/suggestions`
 ```json
-{ "detail": "AI Stylist is scheduled for a later phase." }
+// Request
+{ "occasion": "Job interview", "weather": "cold" }
+// 200 Response
+{ "suggestion_id": "uuid", "wardrobe_item_ids": ["uuid", "uuid", "uuid", "uuid"],
+  "rationale": "For Job interview in cooler weather, try White Oxford Shirt, Navy Trousers, Brown Loafers with Wool Blazer." }
 ```
 
-Request/response shapes are already defined (see the OpenAPI docs) so
-frontend work can proceed against a stable contract before the logic lands.
-Do not treat the `501` as a bug — it's intentional until the corresponding
-roadmap phase (`ROADMAP.md`).
+### `POST /sizing/recommend`
+```json
+// Request
+{ "product_id": "uuid" }
+// 200 Response
+{ "product_id": "uuid", "recommended_size_label": "M", "confidence": 0.95,
+  "fit_note": "Your measurements fall within M on our size chart." }
+// 422 if the body profile lacks the measurements this category needs
+```
+
+### `POST /shopping/ask`
+```json
+// Request
+{ "query": "black jacket under $100 in size M" }
+// 200 Response
+{ "matched_product_ids": ["uuid"],
+  "reply": "I found 1 match (outerwear, in size M, under $100): Classic Bomber Jacket — USD 89.00." }
+```
+
+### `GET /catalog/products?ids=<uuid>&ids=<uuid>` → `200` array of `ProductRead` (active only, in `ids` order)
 
 ## Store Dashboard
 
@@ -160,6 +181,30 @@ roadmap phase (`ROADMAP.md`).
 ```
 
 ### `GET /store/products` → `200` array of the above shape (with `variants` populated)
+
+### `PATCH /store/products/{id}` → `200` product; body is any subset of `ProductCreate` plus `is_active`
+
+### `DELETE /store/products/{id}` → `204`
+
+### `POST /store/products/{id}/variants`
+```json
+// Request
+{ "size_label": "M", "color": "White", "sku": "TSHIRT-WHT-M", "stock_quantity": 50 }
+// 201 Response
+{ "id": "uuid", "size_label": "M", "color": "White", "sku": "TSHIRT-WHT-M", "stock_quantity": 50, "garment_image_key": null }
+// 409 if the SKU is already used
+```
+
+### `PATCH` / `DELETE /store/products/{id}/variants/{variant_id}` → `200` variant / `204`
+
+All `/store/*` endpoints require role `brand_admin` or `platform_admin` (`403` otherwise).
+
+## Platform Admin (`platform_admin` only)
+
+`GET /admin/stats`, `GET /admin/users`, `PATCH /admin/users/{id}`
+(`{role?, is_active?}`), `GET /admin/stores`, `PATCH /admin/stores/{id}`
+(`{is_verified}`), `GET /admin/tryon-jobs` — see `docs/API_CONTRACTS.md`
+"Platform Admin" for filters and response shapes.
 
 ## AI Service (internal — called by the Celery worker, not by clients)
 

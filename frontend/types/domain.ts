@@ -66,6 +66,7 @@ export interface Product {
   currency: string;
   primary_image_key: string | null;
   is_active: boolean;
+  is_archived: boolean;
   variants: ProductVariant[];
 }
 

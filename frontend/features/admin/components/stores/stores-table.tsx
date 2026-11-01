@@ -21,11 +21,11 @@ import {
 } from "@/components/ui/table";
 import { useSuspendStore } from "@/features/admin/hooks/use-suspend-store";
 import { useVerifyStore } from "@/features/admin/hooks/use-verify-store";
-import type { ResolvedAdminStore } from "@/features/admin/lib/resolve-store";
+import type { AdminStoreRow } from "@/types/admin";
 import { useConfirm } from "@/shared/components/confirm-dialog-provider";
 
 export interface StoresTableProps {
-  stores: ResolvedAdminStore[];
+  stores: AdminStoreRow[];
 }
 
 /** Verify and suspend are both local-overlay placeholders — see api/admin/stores.ts. Suspend goes through `useConfirm()` (docs/frontend/UX_SYSTEM.md) since it's the more consequential of the two actions. */
@@ -34,7 +34,7 @@ function StoresTable({ stores }: StoresTableProps) {
   const suspendMutation = useSuspendStore();
   const confirm = useConfirm();
 
-  const handleSuspendToggle = async (store: ResolvedAdminStore) => {
+  const handleSuspendToggle = async (store: AdminStoreRow) => {
     if (!store.is_suspended) {
       const confirmed = await confirm({
         title: `Suspend ${store.name}?`,

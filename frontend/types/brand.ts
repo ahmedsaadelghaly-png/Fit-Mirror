@@ -1,4 +1,4 @@
-import type { Product, ProductVariant } from "@/types/domain";
+import type { Product } from "@/types/domain";
 
 /**
  * Request/response shapes for the Brand/Store feature area — see backend
@@ -67,24 +67,20 @@ export interface ProductFilters {
   search: string;
 }
 
-/**
- * KNOWN CONTRACT MISMATCH: no `GET/PUT/PATCH/DELETE /store/products/{id}`
- * exists — products can only be created and listed. Edits, archiving, the
- * active/inactive toggle, and ALL variant management are captured as a
- * local "overlay" per product, persisted to localStorage and merged over
- * the server's `ProductRead` for display (see
- * api/brand/product-overlay.ts). None of this is synced back to the
- * backend — there is nothing to sync it to yet.
- */
-export interface ProductOverlay {
-  productId: string;
-  overrides: Partial<
-    Pick<Product, "title" | "description" | "category" | "price" | "currency" | "primary_image_key">
-  >;
-  isActiveOverride: boolean | null;
-  isArchived: boolean;
-  variants: ProductVariant[];
-}
+/** `PATCH /store/products/{id}` body — only the fields present change. */
+export type ProductUpdateRequest = Partial<
+  Pick<
+    Product,
+    | "title"
+    | "description"
+    | "category"
+    | "price"
+    | "currency"
+    | "primary_image_key"
+    | "is_active"
+    | "is_archived"
+  >
+>;
 
 export interface VariantFormInput {
   size_label: string;
@@ -94,8 +90,7 @@ export interface VariantFormInput {
   garment_image_key?: string | null;
 }
 
-/** A `ProductRead` with any local overlay already merged in — what every product-list/detail view actually renders. */
+/** What every product-list/detail view renders — see features/brand/lib/resolve-product.ts. */
 export interface ResolvedProduct extends Product {
   isArchived: boolean;
-  hasLocalEdits: boolean;
 }

@@ -74,7 +74,7 @@ export const productSchema = z.object({
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
-/** No backend variant schema exists — see api/brand/product-overlay.ts. */
+/** Mirrors the backend `ProductVariantCreate` limits (see api/brand/products.ts). */
 export const variantSchema = z.object({
   size_label: z.string().min(1, "Size is required").max(20, "Size is too long"),
   color: z.string().max(50, "Color is too long").optional().or(z.literal("")),
