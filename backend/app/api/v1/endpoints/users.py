@@ -3,10 +3,19 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user_id, get_db
+from app.core.dependencies import get_current_user, get_current_user_id, get_db
 from app.core.exceptions import NotFoundError
 from app.models.user import User
-from app.schemas.user import BodyProfileCreate, BodyProfileRead, BodyProfileUpsert, UserRead
+from app.repositories.user_repository import UserRepository
+from app.schemas.auth import ChangePasswordRequest, TokenResponse
+from app.schemas.user import (
+    BodyProfileCreate,
+    BodyProfileRead,
+    BodyProfileUpsert,
+    UserRead,
+    UserUpdate,
+)
+from app.services.auth_service import AuthService
 from app.services.body_profile_service import BodyProfileService
 
 router = APIRouter()
@@ -18,6 +27,33 @@ def get_me(db: Session = Depends(get_db), user_id: str = Depends(get_current_use
     if not user:
         raise NotFoundError("User not found.")
     return user
+
+
+@router.patch("/me", response_model=UserRead)
+def update_me(
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Profile details the user can edit themselves (today: their name)."""
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(user, field, value)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.post("/me/password", response_model=TokenResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """422 if `current_password` is wrong. Returns fresh tokens for this
+    session; every other session ends at its next token refresh."""
+    return AuthService(UserRepository(db)).change_password(
+        user, payload.current_password, payload.new_password
+    )
 
 
 @router.get("/me/body-profile", response_model=BodyProfileRead)

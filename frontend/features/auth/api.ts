@@ -1,12 +1,15 @@
 import { apiClient } from "@/api/client";
 import type {
+  ChangePasswordRequest,
   ForgotPasswordRequest,
-  ForgotPasswordResponse,
   LoginRequest,
+  MessageResponse,
   RefreshRequest,
   RegisterRequest,
   RegisterResponse,
+  ResetPasswordRequest,
   TokenResponse,
+  UpdateCurrentUserRequest,
 } from "@/types/auth";
 import type { User } from "@/types/domain";
 
@@ -43,21 +46,31 @@ export async function refreshAccessToken(payload: RefreshRequest): Promise<Token
 }
 
 /**
- * PLACEHOLDER — no backend endpoint exists for this yet (there is no
- * `POST /auth/forgot-password` in backend docs/API_CONTRACTS.md, and
- * adding one is a backend change out of scope for this frontend phase).
- *
- * This simulates a network round-trip and always resolves successfully,
- * so the ForgotPasswordForm's loading/success UI can be built and tested
- * end-to-end now. Swap this function's body for a real `apiClient.post`
- * call the moment the backend endpoint exists — no other code should need
- * to change, since callers only depend on this function's signature.
+ * `POST /auth/forgot-password` — emails a single-use reset link. The
+ * answer is the same whether or not the account exists.
  */
-export async function forgotPassword(
-  payload: ForgotPasswordRequest,
-): Promise<ForgotPasswordResponse> {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  return {
-    message: `If an account exists for ${payload.email}, we've sent password reset instructions.`,
-  };
+export async function forgotPassword(payload: ForgotPasswordRequest): Promise<MessageResponse> {
+  const { data } = await apiClient.post<MessageResponse>("/auth/forgot-password", payload);
+  return data;
+}
+
+/** `POST /auth/reset-password` — 422 when the link is unknown, used or expired. */
+export async function resetPassword(payload: ResetPasswordRequest): Promise<MessageResponse> {
+  const { data } = await apiClient.post<MessageResponse>("/auth/reset-password", payload);
+  return data;
+}
+
+/** `PATCH /users/me` — the user's own profile details (their name). */
+export async function updateCurrentUser(payload: UpdateCurrentUserRequest): Promise<User> {
+  const { data } = await apiClient.patch<User>("/users/me", payload);
+  return data;
+}
+
+/**
+ * `POST /users/me/password` — returns fresh tokens for this session; other
+ * sessions end at their next token refresh.
+ */
+export async function changePassword(payload: ChangePasswordRequest): Promise<TokenResponse> {
+  const { data } = await apiClient.post<TokenResponse>("/users/me/password", payload);
+  return data;
 }

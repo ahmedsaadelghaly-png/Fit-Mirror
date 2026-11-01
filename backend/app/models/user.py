@@ -4,9 +4,10 @@ User domain models: end-user accounts and brand/store accounts.
 
 import enum
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Index, String, and_, false, text
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Index, String, and_, false, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -58,6 +59,11 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Enum(UserRole, name="user_role"), default=UserRole.SHOPPER, nullable=False
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Refresh tokens issued before this are rejected (password reset/change
+    # signs out other sessions — see AuthService.refresh).
+    password_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Family profiles: one account can hold several body profiles (the
     # shopper plus e.g. each child). Exactly one is primary — the shopper's

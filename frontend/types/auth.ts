@@ -1,9 +1,13 @@
 import type { User } from "@/types/domain";
 
+export type AccountType = "shopper" | "brand";
+
 export interface RegisterRequest {
   email: string;
   password: string;
   full_name?: string;
+  /** "brand" creates a brand admin, who sets up their store after logging in. */
+  account_type?: AccountType;
 }
 
 export interface LoginRequest {
@@ -27,7 +31,20 @@ export interface ForgotPasswordRequest {
   email: string;
 }
 
-/** See features/auth/api.ts::forgotPassword — no backend endpoint exists yet. */
-export interface ForgotPasswordResponse {
+export interface MessageResponse {
   message: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export interface UpdateCurrentUserRequest {
+  full_name: string;
 }

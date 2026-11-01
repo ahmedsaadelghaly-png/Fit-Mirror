@@ -185,7 +185,7 @@ export default function HomePage() {
                 which pieces shoppers try most.
               </p>
               <Button size="lg" asChild>
-                <Link href="/register">
+                <Link href="/register?type=brand">
                   <ShoppingBag className="size-4" aria-hidden="true" /> Open your store
                 </Link>
               </Button>

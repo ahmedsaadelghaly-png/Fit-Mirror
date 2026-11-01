@@ -32,7 +32,7 @@ frontend/
       onboarding/                        4-step stepper (style, body profile, photo, completion)
       wardrobe/                          Grid, filters, item card, add-item dialog
       saved-looks/                       Grid, card, details dialog (drawer placeholder)
-      settings/                          Profile details (read-only), account/notifications placeholders, theme shortcut
+      settings/                          Notifications placeholder, theme shortcut (name + password: features/auth/components/account-settings.tsx)
       stylist/, shopping/                Chat UIs badged "Beta"; shopping/product-matches.tsx renders matches + sizing
   features/tryon/
     hooks/                               use-create-tryon-job, use-tryon-job (polling), use-tryon-jobs (list + client filter)
@@ -74,8 +74,9 @@ logic lives in `features/*/hooks`, not in pages or components.
 | Shopping Assistant | `POST /shopping/ask` + `GET /catalog/products?ids=` | Real (rule-based v1) — matches render as product cards |
 | Body type (women / men / girls / boys + shape) | `PUT /users/me/body-profile` (`body_category`, `body_shape`) | Real — illustrated picker (`features/shopper/components/body-shape/`), shapes listed in `features/shopper/body-shapes.ts` mirror the backend |
 | Size recommendation | `POST /sizing/recommend` | Real — "Find my size" on each Shopping Assistant match; a 422 (missing measurements) links to Body Profile |
-| Settings → Profile details | `GET /users/me` | Real, read-only |
-| Settings → Account/Notifications | none | UI-only placeholders |
+| Settings → Profile details | `GET/PATCH /users/me` | Real — edit name; email and role read-only |
+| Settings → Password | `POST /users/me/password` | Real — keeps this session, signs out the others |
+| Settings → Notifications | none | UI-only placeholder |
 
 ## API contract mismatches (documented per the Phase 2.3 rules)
 
@@ -113,8 +114,8 @@ handled with a typed frontend adapter and called out here:
    `saved_looks` table + `/saved-looks`; looks now follow the account
    across devices.
 
-6. **No endpoint to edit profile details.** Only `GET /users/me` exists —
-   no `PATCH`. Settings → Profile details is read-only, not a broken form.
+6. ~~No endpoint to edit profile details.~~ **Resolved (Phase 3.2).**
+   `PATCH /users/me` (name) and `POST /users/me/password`.
 
 7. ~~`TryOnJobRead` has no timestamp.~~ **Resolved (Phase 3.2).** Jobs
    carry `created_at`; `features/tryon/lib/job-display.ts::newestFirst`
@@ -208,5 +209,5 @@ npm run build-storybook                 # verifies all stories compile
 
 - AI Stylist and Shopping Assistant are rule-based v1 engines (badged "Beta")
 - Download / Share actions on a completed try-on result
-- Account settings (password change, delete account) and Notification preferences
+- Account deletion and Notification preferences
 - A real side-anchored "drawer" for saved look details (currently a centered dialog — `components/ui/dialog.tsx` is the only modal primitive today)

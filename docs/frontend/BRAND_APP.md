@@ -30,7 +30,7 @@ frontend/
       products/                          Filters, table, status badge, create/edit form, details view, variant list + form dialog
       inventory/                         Real stock-quantity table across all variants + bulk-update placeholder
       analytics/, customers/, orders/    Placeholder views, clearly badged "Planned"
-      settings/                          Account (read-only), store-settings link, billing/team/API placeholders
+      settings/                          Account (name + password, shared with Shopper), store-settings link, billing/team/API placeholders
   app/(brand)/brand/
     page.tsx                              Dashboard
     onboarding/page.tsx

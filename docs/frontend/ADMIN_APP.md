@@ -195,3 +195,10 @@ npm run dev                 # http://localhost:3000/admin — the one real call 
 - Storage usage/quota reporting
 - Product moderation actions (flag, hide) persisted server-side — store verify/suspend are done (Phase 3.1)
 - Platform Settings of any kind (general/security/storage/AI/notifications)
+
+## Support inbox (Phase 3.2)
+
+`/admin/support` lists contact-form messages (`GET /admin/contact-messages`)
+in Open / Resolved tabs. "Reply" opens the admin's mail client addressed to
+the sender; "Mark resolved" / "Reopen" call
+`PATCH /admin/contact-messages/{id}`.

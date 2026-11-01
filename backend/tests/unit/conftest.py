@@ -62,7 +62,7 @@ def make_user(db) -> Callable[..., User]:
     def _make(role: UserRole = UserRole.SHOPPER, email: str | None = None, **fields) -> User:
         user = User(
             email=email or f"{uuid.uuid4().hex[:8]}@example.com",
-            hashed_password="not-used",
+            hashed_password=fields.pop("hashed_password", "not-used"),
             role=role,
             is_active=fields.pop("is_active", True),
             **fields,

@@ -2,8 +2,13 @@
 
 ## Current state
 
-**No notification system exists today.** There is no email/push/in-app
-notification code anywhere in the codebase. Clients learn about job
+**Transactional email exists; event notifications don't yet.** Phase 3.2
+added `app/services/email_service.py` — an `EmailSender` with a `log`
+backend (default: the email is written to the application log) and an
+`smtp` backend — used for password-reset links and for forwarding
+contact-form messages to `SUPPORT_EMAIL`. Emails are sent from FastAPI
+`BackgroundTasks` after the request commits; there is no outbox or retry
+yet (the architecture below). There is no push/in-app notification code. Clients learn about job
 completion exclusively by polling `GET /tryon/{job_id}` (see
 `SEQUENCE_DIAGRAMS.md` §6, `QUEUE_ARCHITECTURE.md`). This document is a
 placeholder design for when push-style notifications are built.

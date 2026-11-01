@@ -8,7 +8,7 @@
 | `/features` | Real | Feature list with honest "Coming soon" badges on unbuilt features |
 | `/pricing` | **Explicit placeholder** | No pricing model decided yet — see the page's docstring |
 | `/about` | Real | Static copy |
-| `/contact` | Real form, placeholder backend | See "Contact form" below |
+| `/contact` | Real | `POST /contact` — see "Contact form" below |
 | `/privacy` | **Explicit placeholder** | Needs legal review before it's real |
 | `/terms` | **Explicit placeholder** | Needs legal review before it's real |
 | `/not-found` (404) | Real | Custom, on-brand 404 — see `app/not-found.tsx` |
@@ -45,18 +45,15 @@ Driven by `config/navigation.ts::footerLinks` — three columns (Product,
 Company, Legal), each a list of `{label, href}`. Adding a new footer link
 means editing that one config array, not the footer component.
 
-## Contact form — real UI, placeholder backend
+## Contact form
 
 `features/contact/` follows the exact same shape as `features/auth/`:
 `schemas.ts` (Zod), `api.ts` (the actual call), `hooks/use-contact-form.ts`
-(TanStack Query mutation), `components/contact-form.tsx` (the form). The
-**form itself is fully real** — client-side validation, loading state,
-success state, error handling all work. What's a placeholder is
-`features/contact/api.ts::submitContactForm`: there is no `POST /contact`
-endpoint anywhere in the backend (see backend `docs/API_CONTRACTS.md` —
-no such route is documented), so this function simulates a network delay
-and always resolves successfully, clearly commented as such. This follows
-Phase 2.2's rule: a marked frontend adapter, not a backend rewrite.
+(TanStack Query mutation), `components/contact-form.tsx` (the form).
+`submitContactForm` calls `POST /contact` (Phase 3.2): the message is
+stored in the support inbox platform admins work through at
+`/admin/support`, and forwarded to the support address with the sender as
+Reply-To.
 
 ## 404 page (`app/not-found.tsx`)
 

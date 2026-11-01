@@ -49,10 +49,11 @@
   profile; the AI Stylist favours the shopper's colours
 - ✅ Store business info (category, description, social links, logo) via
   `PATCH /store/me`
-- `POST /auth/forgot-password` + reset flow (needs an email provider)
-- `POST /contact` (needs an email provider or a support inbox table)
-- Self-service brand sign-up (today brand accounts are provisioned by an
-  admin via `PATCH /admin/users/{id}` or the seed script)
+- ✅ Password reset by email (`/auth/forgot-password`, `/auth/reset-password`),
+  plus change password and edit name in Settings; a reset/change signs out
+  other sessions at their next refresh. Email via SMTP or, in dev, the log
+- ✅ Contact form → support inbox (`/admin/support`), forwarded to support email
+- ✅ Self-service brand sign-up ("I'm a brand" on Register)
 - Batch download URLs (`POST /storage/download-urls`) so image grids make
   one request instead of one per image
 

@@ -4,6 +4,7 @@ from app.api.v1.endpoints import (
     admin,
     auth,
     catalog,
+    contact,
     saved_looks,
     shopping,
     sizing,
@@ -26,4 +27,5 @@ api_router.include_router(sizing.router, prefix="/sizing", tags=["Size Recommend
 api_router.include_router(shopping.router, prefix="/shopping", tags=["Shopping Assistant"])
 api_router.include_router(store_dashboard.router, prefix="/store", tags=["Store Dashboard"])
 api_router.include_router(catalog.router, prefix="/catalog", tags=["Catalog"])
+api_router.include_router(contact.router, prefix="/contact", tags=["Contact"])
 api_router.include_router(admin.router, prefix="/admin", tags=["Platform Admin"])

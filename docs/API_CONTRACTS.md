@@ -18,15 +18,19 @@ note at the bottom of this file).
 
 | Endpoint | Method | Auth | Request Body | Success | Error Responses |
 |---|---|---|---|---|---|
-| `/auth/register` | POST | none | `{email, password, full_name?}` | `201` `UserRead` | `409 CONFLICT`, `422 VALIDATION_ERROR` |
+| `/auth/register` | POST | none | `{email, password, full_name?, account_type?: "shopper" \| "brand"}` (brand → `brand_admin`, who then creates an unverified store) | `201` `UserRead` | `409 CONFLICT`, `422 VALIDATION_ERROR` |
 | `/auth/login` | POST | none | `{email, password}` | `200` `TokenResponse` | `401 AUTH_INVALID_CREDENTIALS` |
-| `/auth/refresh` | POST | none (refresh token in body) | `{refresh_token}` | `200` `TokenResponse` | `401 AUTH_TOKEN_EXPIRED` |
+| `/auth/refresh` | POST | none (refresh token in body) | `{refresh_token}` | `200` `TokenResponse` | `401 AUTH_TOKEN_EXPIRED`; `401` for a token issued before the last password reset/change |
+| `/auth/forgot-password` | POST | none | `{email}` | `202 {message}` — same answer whether or not the account exists; emails a single-use link to `{FRONTEND_BASE_URL}/reset-password?token=…`, valid `PASSWORD_RESET_EXPIRE_MINUTES` (30) | `422` |
+| `/auth/reset-password` | POST | none | `{token, new_password}` (8–128 chars) | `200 {message}` | `422` (unknown, used or expired link; a new request invalidates older links) |
 
 ## Users
 
 | Endpoint | Method | Auth | Request Body | Success | Error Responses |
 |---|---|---|---|---|---|
 | `/users/me` | GET | bearer | — | `200` `UserRead` | `401`, `404 USER_NOT_FOUND` |
+| `/users/me` | PATCH | bearer | `{full_name}` | `200` `UserRead` | `401`, `422` |
+| `/users/me/password` | POST | bearer | `{current_password, new_password}` | `200` `TokenResponse` (fresh tokens for this session; other sessions end at their next refresh) | `401`, `422` (wrong current password) |
 | `/users/me/body-profile` | GET | bearer | — | `200` `BodyProfileRead` | `401`, `404 BODY_PROFILE_MISSING` |
 | `/users/me/body-profile` | PUT | bearer | `BodyProfileUpsert` (all fields optional; omitted fields kept) | `200` `BodyProfileRead` | `401`, `422 VALIDATION_ERROR` |
 
@@ -116,6 +120,17 @@ the new category. Products carry `audience` (`women` | `men` | `girls` |
 `boys` | `unisex`, default `unisex`) on create/update/read; the Shopping
 Assistant understands audience words ("for my daughter", "men's", "kids").
 
+## Contact
+
+| Endpoint | Method | Auth | Request Body | Success | Error Responses |
+|---|---|---|---|---|---|
+| `/contact` | POST | none | `{name, email, message}` (message 10–2000 chars) | `201 {message}` — stored in the support inbox and forwarded to `SUPPORT_EMAIL` with Reply-To set to the sender | `422` |
+
+Email delivery: `EMAIL_BACKEND=log` (default) writes each email to the
+backend log instead of sending it; `EMAIL_BACKEND=smtp` sends through
+`SMTP_HOST`. Emails go out after the request commits, so a mail-server
+failure never fails the request.
+
 ## Catalog
 
 | Endpoint | Method | Auth | Query | Success | Error Responses |
@@ -160,6 +175,9 @@ Role and active-status changes take effect on the user's **next request**
 for role-checked routes — `require_role` loads the user row rather than
 trusting the token's `role` claim, so a deactivated user's unexpired
 token stops working there immediately.
+| `/admin/contact-messages` | GET | bearer:platform_admin | query `is_resolved?`, `limit`, `offset` | `200` `ContactMessageRead[]` (newest first) | `401`, `403` |
+| `/admin/contact-messages/{id}` | PATCH | bearer:platform_admin | `{is_resolved}` | `200` `ContactMessageRead` | `401`, `403`, `404` |
+
 
 ## AI Service (internal only — never called directly by clients)
 

@@ -19,6 +19,10 @@ class UserRead(BaseModel):
     is_active: bool
 
 
+class UserUpdate(BaseModel):
+    full_name: str | None = Field(default=None, min_length=1, max_length=255)
+
+
 class BodyProfileUpsert(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     body_category: BodyCategory | None = None

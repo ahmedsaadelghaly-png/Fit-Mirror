@@ -55,6 +55,21 @@ class Settings(BaseSettings):
     # Leave unset to fall back to S3_ENDPOINT_URL (no behavior change).
     S3_PUBLIC_ENDPOINT_URL: str = ""
 
+    # --- Email (password reset, contact form) ---
+    # "log" writes each email to the application log instead of sending it
+    # (local dev / CI); "smtp" delivers through the SMTP_* server below.
+    EMAIL_BACKEND: str = "log"  # "log" | "smtp"
+    EMAIL_FROM: str = "FitMirror AI <no-reply@fitmirror.ai>"
+    SUPPORT_EMAIL: str = "support@fitmirror.ai"
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_USE_TLS: bool = True
+    # Links in emails (e.g. /reset-password) point at the web app here.
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 30
+
     # --- CORS ---
     CORS_ORIGINS: list[str] = ["*"]
 

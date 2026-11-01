@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, require_role
 from app.core.exceptions import NotFoundError, ValidationAppError
+from app.models.account_support import ContactMessage
 from app.models.product import Product, ProductVariant
 from app.models.store import Store
 from app.models.tryon_job import TryOnJob, TryOnJobStatus
@@ -26,6 +27,7 @@ from app.schemas.admin import (
     AdminUserUpdate,
     PlatformStats,
 )
+from app.schemas.contact import ContactMessageRead, ContactMessageUpdate
 from app.workers.tasks.tryon_tasks import process_tryon_job
 
 router = APIRouter()
@@ -236,3 +238,37 @@ def _job_read(job: TryOnJob, user_email: str, store_name: str | None) -> AdminTr
         created_at=job.created_at,
         updated_at=job.updated_at,
     )
+
+
+# --- Support inbox (contact form messages) ------------------------------------
+
+
+@router.get("/contact-messages", response_model=list[ContactMessageRead])
+def list_contact_messages(
+    is_resolved: bool | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_platform_admin),
+):
+    """Newest first; `is_resolved=false` gives the open queue."""
+    query = db.query(ContactMessage)
+    if is_resolved is not None:
+        query = query.filter(ContactMessage.is_resolved.is_(is_resolved))
+    return query.order_by(ContactMessage.created_at.desc()).offset(offset).limit(limit).all()
+
+
+@router.patch("/contact-messages/{message_id}", response_model=ContactMessageRead)
+def update_contact_message(
+    message_id: uuid.UUID,
+    payload: ContactMessageUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_platform_admin),
+):
+    message = db.get(ContactMessage, message_id)
+    if not message:
+        raise NotFoundError("Message not found.")
+    message.is_resolved = payload.is_resolved
+    db.commit()
+    db.refresh(message)
+    return message
