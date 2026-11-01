@@ -52,7 +52,11 @@ function ResolvedImage({ imageKey, alt, className }: ResolvedImageProps) {
         aria-label={isDecorative ? undefined : alt}
         aria-hidden={isDecorative || undefined}
       >
-        <Shirt className="size-1/4 min-h-6 min-w-6 text-background/15" strokeWidth={1} aria-hidden="true" />
+        <Shirt
+          className="size-1/4 min-h-6 min-w-6 text-background/15"
+          strokeWidth={1}
+          aria-hidden="true"
+        />
       </div>
     );
   }

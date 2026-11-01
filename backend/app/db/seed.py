@@ -11,9 +11,14 @@ Creates:
     - 1 platform admin
     - 1 demo shopper (with a body profile)
     - 1 demo brand/store owner + their store
-    - 3 demo products (each with 2 size variants)
+    - 7 demo products with photos (each with size variants that carry a
+      garment image, so catalog try-on works out of the box)
     - 2 demo wardrobe items for the shopper
+    - the storage bucket (if missing) and every seed image, uploaded from
+      app/db/seed_assets/ (Unsplash License — see docs/frontend/ASSETS.md)
 """
+
+from pathlib import Path
 
 from app.core.logging_config import configure_logging, get_logger
 from app.core.security import hash_password
@@ -29,11 +34,29 @@ from app.models.store import Store
 from app.models.tryon_job import TryOnJob  # noqa: F401
 from app.models.user import BodyProfile, User, UserRole
 from app.models.wardrobe import WardrobeItem, WardrobeItemSource
+from app.storage.s3_storage import S3ObjectStorage
 
 configure_logging()
 logger = get_logger(__name__)
 
 DEMO_PASSWORD = "DemoPass123!"  # noqa: S105 - seed/demo credential only, never used in production
+
+SEED_ASSETS_DIR = Path(__file__).parent / "seed_assets"
+PRODUCT_IMAGE_PREFIX = "seed-data/products"
+WARDROBE_IMAGE_PREFIX = "seed-data/wardrobe"
+
+
+def _upload_seed_images(storage: S3ObjectStorage) -> None:
+    """Uploads every seed_assets/*.jpg under both seed prefixes (skipping
+    objects that already exist), so product and wardrobe image keys below
+    resolve to real photos."""
+    storage.ensure_bucket()
+    for path in sorted(SEED_ASSETS_DIR.glob("*.jpg")):
+        for prefix in (PRODUCT_IMAGE_PREFIX, WARDROBE_IMAGE_PREFIX):
+            key = f"{prefix}/{path.name}"
+            if not storage.object_exists(key):
+                storage.put_object(key, path.read_bytes(), "image/jpeg")
+    logger.info("Seed images uploaded from %s", SEED_ASSETS_DIR)
 
 
 def _get_or_create_user(db, *, email: str, role: UserRole, full_name: str) -> User:
@@ -71,28 +94,46 @@ def _get_or_create_store(db, *, owner: User, name: str, slug: str) -> Store:
 
 
 def _get_or_create_product(
-    db, *, store: Store, title: str, category: str, price: float, variants: list[dict]
+    db,
+    *,
+    store: Store,
+    title: str,
+    category: str,
+    price: float,
+    image: str,
+    variants: list[dict],
+    description: str | None = None,
 ) -> Product:
+    image_key = f"{PRODUCT_IMAGE_PREFIX}/{image}"
     product = db.query(Product).filter(Product.store_id == store.id, Product.title == title).first()
     if product:
-        logger.info("Product already exists, skipping: %s", title)
+        # Backfill photos onto rows seeded before images existed.
+        if not product.primary_image_key:
+            product.primary_image_key = image_key
+            for variant in product.variants:
+                variant.garment_image_key = variant.garment_image_key or image_key
+            db.commit()
+            logger.info("Added photos to existing product: %s", title)
+        else:
+            logger.info("Product already exists, skipping: %s", title)
         return product
 
     product = Product(
         store_id=store.id,
         title=title,
-        description=f"Demo product — {title}",
+        description=description or f"Demo product — {title}",
         category=category,
         price=price,
         currency="USD",
         is_active=True,
+        primary_image_key=image_key,
     )
     db.add(product)
     db.commit()
     db.refresh(product)
 
     for variant in variants:
-        db.add(ProductVariant(product_id=product.id, **variant))
+        db.add(ProductVariant(product_id=product.id, garment_image_key=image_key, **variant))
     db.commit()
 
     logger.info("Created product: %s (%d variants)", title, len(variants))
@@ -128,6 +169,7 @@ def seed() -> None:
     db = SessionLocal()
     try:
         logger.info("Seeding FitMirror AI demo data...")
+        _upload_seed_images(S3ObjectStorage())
 
         admin = _get_or_create_user(
             db, email="admin@fitmirror.ai", role=UserRole.PLATFORM_ADMIN, full_name="Platform Admin"
@@ -164,6 +206,8 @@ def seed() -> None:
             title="Classic Cotton T-Shirt",
             category="tops",
             price=24.99,
+            image="classic-cotton-tshirt.jpg",
+            description="Heavyweight organic cotton crew neck in a clean, boxy fit.",
             variants=[
                 {"size_label": "M", "color": "White", "sku": "TSHIRT-WHT-M", "stock_quantity": 50},
                 {"size_label": "L", "color": "White", "sku": "TSHIRT-WHT-L", "stock_quantity": 40},
@@ -175,6 +219,8 @@ def seed() -> None:
             title="Slim Fit Denim Jeans",
             category="bottoms",
             price=59.99,
+            image="slim-fit-denim-jeans.jpg",
+            description="Indigo stretch denim with a slim, tapered leg.",
             variants=[
                 {
                     "size_label": "32",
@@ -196,9 +242,73 @@ def seed() -> None:
             title="Lightweight Bomber Jacket",
             category="outerwear",
             price=89.99,
+            image="lightweight-bomber-jacket.jpg",
+            description="Water-resistant satin bomber in rust, with a ribbed collar and cuffs.",
             variants=[
-                {"size_label": "S", "color": "Black", "sku": "BOMBER-BLK-S", "stock_quantity": 15},
-                {"size_label": "M", "color": "Black", "sku": "BOMBER-BLK-M", "stock_quantity": 20},
+                {"size_label": "S", "color": "Rust", "sku": "BOMBER-RST-S", "stock_quantity": 15},
+                {"size_label": "M", "color": "Rust", "sku": "BOMBER-RST-M", "stock_quantity": 20},
+                {"size_label": "L", "color": "Rust", "sku": "BOMBER-RST-L", "stock_quantity": 12},
+            ],
+        )
+        _get_or_create_product(
+            db,
+            store=store,
+            title="Essential Black Tee",
+            category="tops",
+            price=19.99,
+            image="essential-black-tee.jpg",
+            description="Everyday black cotton tee with a small chest print.",
+            variants=[
+                {"size_label": "S", "color": "Black", "sku": "TEE-BLK-S", "stock_quantity": 40},
+                {"size_label": "M", "color": "Black", "sku": "TEE-BLK-M", "stock_quantity": 60},
+                {"size_label": "L", "color": "Black", "sku": "TEE-BLK-L", "stock_quantity": 45},
+            ],
+        )
+        _get_or_create_product(
+            db,
+            store=store,
+            title="Graphic Print Tee",
+            category="tops",
+            price=29.99,
+            image="graphic-print-tee.jpg",
+            description="Sand-colored oversized tee with a bold blue graphic print.",
+            variants=[
+                {"size_label": "M", "color": "Sand", "sku": "GRAPHIC-SND-M", "stock_quantity": 25},
+                {"size_label": "L", "color": "Sand", "sku": "GRAPHIC-SND-L", "stock_quantity": 25},
+                {
+                    "size_label": "XL",
+                    "color": "Sand",
+                    "sku": "GRAPHIC-SND-XL",
+                    "stock_quantity": 15,
+                },
+            ],
+        )
+        _get_or_create_product(
+            db,
+            store=store,
+            title="Leather Biker Jacket",
+            category="outerwear",
+            price=189.00,
+            image="leather-biker-jacket.jpg",
+            description="Black lambskin biker jacket with an asymmetric zip.",
+            variants=[
+                {"size_label": "S", "color": "Black", "sku": "BIKER-BLK-S", "stock_quantity": 8},
+                {"size_label": "M", "color": "Black", "sku": "BIKER-BLK-M", "stock_quantity": 10},
+                {"size_label": "L", "color": "Black", "sku": "BIKER-BLK-L", "stock_quantity": 6},
+            ],
+        )
+        _get_or_create_product(
+            db,
+            store=store,
+            title="Red Evening Gown",
+            category="dresses",
+            price=149.00,
+            image="red-evening-gown.jpg",
+            description="Long-sleeve red evening gown with a draped train — for weddings and galas.",
+            variants=[
+                {"size_label": "XS", "color": "Red", "sku": "GOWN-RED-XS", "stock_quantity": 5},
+                {"size_label": "S", "color": "Red", "sku": "GOWN-RED-S", "stock_quantity": 8},
+                {"size_label": "M", "color": "Red", "sku": "GOWN-RED-M", "stock_quantity": 6},
             ],
         )
 
@@ -206,15 +316,15 @@ def seed() -> None:
             db,
             user=shopper,
             category="tops",
-            label="Favorite blue hoodie",
-            image_key="seed-data/wardrobe/blue-hoodie.jpg",
+            label="Favorite grey hoodie",
+            image_key=f"{WARDROBE_IMAGE_PREFIX}/grey-hoodie.jpg",
         )
         _get_or_create_wardrobe_item(
             db,
             user=shopper,
             category="footwear",
             label="White sneakers",
-            image_key="seed-data/wardrobe/white-sneakers.jpg",
+            image_key=f"{WARDROBE_IMAGE_PREFIX}/white-sneakers.jpg",
         )
 
         logger.info("Seeding complete.")

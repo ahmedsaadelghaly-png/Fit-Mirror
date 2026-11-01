@@ -166,6 +166,7 @@ API, a Celery worker, and the frontend (all with hot reload enabled).
 
 ```bash
 # One-time bootstrap (every time you start from a fresh volume):
+# Optional since the photo seed: `make seed` creates the bucket if it is missing.
 docker compose exec minio mc alias set local http://localhost:9000 fitmirror fitmirror123
 docker compose exec minio mc mb local/fitmirror-media
 

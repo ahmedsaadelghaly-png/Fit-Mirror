@@ -20,6 +20,7 @@ Then, **every time you start from a fresh Postgres/MinIO volume** (first run, or
 
 ```bash
 # 1. Create the MinIO bucket — nothing else works without this.
+# Optional since the photo seed: `make seed` creates the bucket if it is missing.
 docker compose exec minio mc alias set local http://localhost:9000 fitmirror fitmirror123
 docker compose exec minio mc mb local/fitmirror-media
 

@@ -13,7 +13,7 @@ export interface RecentProductsCardProps {
 
 function RecentProductsCard({ products }: RecentProductsCardProps) {
   return (
-    <Card className="sm:col-span-2">
+    <Card className="lg:col-span-2">
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div>
           <CardTitle className="text-base">Recent products</CardTitle>

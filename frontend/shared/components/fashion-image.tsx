@@ -53,7 +53,13 @@ export interface FashionImageProps {
  * builds, so it's a development signal, never a customer-facing "missing
  * asset" tell.
  */
-function FashionImage({ src, alt, aspect = "square", fit = "cover", className }: FashionImageProps) {
+function FashionImage({
+  src,
+  alt,
+  aspect = "square",
+  fit = "cover",
+  className,
+}: FashionImageProps) {
   if (!src) {
     // An empty `alt` means the caller intends this as decorative — mark
     // it `aria-hidden` instead of `role="img" aria-label=""`, which is a

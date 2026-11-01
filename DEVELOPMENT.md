@@ -23,6 +23,7 @@ Then, one-time bootstrap:
 
 ```bash
 # Create the MinIO bucket (MinIO doesn't auto-create it)
+# Optional since the photo seed: `make seed` creates the bucket if it is missing.
 docker compose exec minio mc alias set local http://localhost:9000 fitmirror fitmirror123
 docker compose exec minio mc mb local/fitmirror-media
 

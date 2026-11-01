@@ -70,6 +70,26 @@ corresponding component — no code changes beyond that one prop are
 needed, since every consumer already renders the placeholder gracefully
 in its absence.
 
+## Seed product & wardrobe photos
+
+Demo catalog/wardrobe images are user-data-style objects, so they live in
+object storage, not `public/`: `backend/app/db/seed_assets/*.jpg` (800×800)
+are uploaded by `python -m app.db.seed` under `seed-data/products/` and
+`seed-data/wardrobe/`, and set as each demo product's `primary_image_key`
+and every variant's `garment_image_key` (so catalog try-on works).
+
+| File | Unsplash photo id |
+|---|---|
+| classic-cotton-tshirt.jpg | 1521572163474-6864f9cf17ab |
+| slim-fit-denim-jeans.jpg | 1604176354204-9268737828e4 |
+| lightweight-bomber-jacket.jpg | 1591047139829-d91aecb6caea |
+| essential-black-tee.jpg | 1618354691373-d851c5c3a990 |
+| graphic-print-tee.jpg | 1576566588028-4147f3842f27 |
+| leather-biker-jacket.jpg | 1551028719-00167b16eac5 |
+| red-evening-gown.jpg | 1612336307429-8a898d10e223 |
+| grey-hoodie.jpg | 1556821840-3a63f95609a7 |
+| white-sneakers.jpg | 1620799140408-edc6dcb6d633 |
+
 ## Photo credits & license
 
 All photography in `public/images/` comes from [Unsplash](https://unsplash.com)

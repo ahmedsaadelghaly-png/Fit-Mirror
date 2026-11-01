@@ -88,6 +88,24 @@ class S3ObjectStorage(ObjectStorage):
             logger.exception("Failed to delete object key=%s", object_key)
             raise ExternalServiceError("Could not delete object.") from exc
 
+    # --- Provisioning helpers (seed/dev tooling only) -------------------------
+    # Deliberately not on the ObjectStorage interface: request-path code never
+    # writes objects itself (clients upload via presigned URLs, the AI service
+    # writes results), so only app/db/seed.py uses these.
+
+    def ensure_bucket(self) -> None:
+        """Creates the bucket if it doesn't exist yet (fresh MinIO volume)."""
+        try:
+            self._client.head_bucket(Bucket=self._bucket)
+        except self._client.exceptions.ClientError:
+            self._client.create_bucket(Bucket=self._bucket)
+            logger.info("Created bucket %s", self._bucket)
+
+    def put_object(self, object_key: str, data: bytes, content_type: str) -> None:
+        self._client.put_object(
+            Bucket=self._bucket, Key=object_key, Body=data, ContentType=content_type
+        )
+
     def build_object_key(self, *, namespace: str, owner_id: str, filename: str) -> str:
         unique_suffix = uuid.uuid4().hex[:12]
         safe_filename = filename.replace(" ", "_")

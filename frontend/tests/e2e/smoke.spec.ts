@@ -74,7 +74,10 @@ test.describe("Navigation", () => {
 
   test("navigates from landing to register", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /create your account/i }).first().click();
+    await page
+      .getByRole("link", { name: /create your account/i })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/register$/);
     await expect(page.getByRole("heading", { name: /create your account/i })).toBeVisible();
   });
