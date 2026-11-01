@@ -24,6 +24,7 @@ const jacket: Product = {
   title: "Lightweight Bomber Jacket",
   description: null,
   category: "outerwear",
+  audience: "unisex",
   price: "89.99",
   currency: "USD",
   primary_image_key: null,

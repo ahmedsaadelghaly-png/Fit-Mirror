@@ -63,14 +63,32 @@ contracts.*
 | Endpoint | Method | Auth | Request Body | Success | Error Responses |
 |---|---|---|---|---|---|
 | `/stylist/suggestions` | POST | bearer | `{occasion?, weather?}` | `200 {suggestion_id, wardrobe_item_ids, rationale}` (empty wardrobe → `200` with empty `wardrobe_item_ids` and a rationale saying what to add) | `401`, `422` |
-| `/sizing/recommend` | POST | bearer | `{product_id}` | `200 {product_id, recommended_size_label, confidence, fit_note}` | `401`, `404` (unknown/inactive product), `422` (missing measurements, or a category without sizing, e.g. footwear) |
+| `/sizing/recommend` | POST | bearer | `{product_id}` | `200 {product_id, recommended_size_label, confidence, fit_note}` — adult items from chest/waist/hip (+ a body-shape tip); girls'/boys' items from height against age (`6Y`, `6-7Y`) or height (`116`, `110-116`) labels, one size up for `plus`/`husky` fits | `401`, `404` (unknown/inactive product), `422` (missing measurements; footwear; kids' item with an adult profile or vice versa) |
 | `/shopping/ask` | POST | bearer | `{query}` (1–500 chars) | `200 {matched_product_ids, reply}` — up to 10 IDs, best match first | `401`, `422` |
+
+## Body profile: category & shape
+
+`GET/PUT /users/me/body-profile` carry `body_category` (`women` | `men` |
+`girls` | `boys` | null) alongside `body_shape`. The shape must belong to
+the category (`422` otherwise, or if a shape is sent with no category):
+
+| `body_category` | `body_shape` values |
+|---|---|
+| `women` | `hourglass`, `pear`, `apple`, `rectangle`, `inverted_triangle` |
+| `men` | `rectangle`, `triangle`, `inverted_triangle`, `oval`, `trapezoid` |
+| `girls` | `slim`, `regular`, `plus` |
+| `boys` | `slim`, `regular`, `husky` |
+
+Changing only `body_category` clears a stored shape that doesn't belong to
+the new category. Products carry `audience` (`women` | `men` | `girls` |
+`boys` | `unisex`, default `unisex`) on create/update/read; the Shopping
+Assistant understands audience words ("for my daughter", "men's", "kids").
 
 ## Catalog
 
 | Endpoint | Method | Auth | Query | Success | Error Responses |
 |---|---|---|---|---|---|
-| `/catalog/products` | GET | bearer (any role, shopper-visible = active, not archived, store not suspended) | `ids` (repeatable, ≤50; result keeps this order), `category`, `q`, `limit` (≤100, default 24), `offset` | `200` `ProductRead[]` — active products only | `401`, `422` |
+| `/catalog/products` | GET | bearer (any role, shopper-visible = active, not archived, store not suspended) | `ids` (repeatable, ≤50; result keeps this order), `category`, `audience` (`women`/`men`/`girls`/`boys`/`unisex`), `q`, `limit` (≤100, default 24), `offset` | `200` `ProductRead[]` — active products only | `401`, `422` |
 | `/catalog/products/{id}` | GET | bearer (any role) | — | `200` `ProductRead` | `401`, `404` (unknown or inactive) |
 
 ## Store Dashboard

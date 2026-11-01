@@ -21,6 +21,7 @@ import { useUpdateProduct } from "@/features/brand/hooks/use-update-product";
 import { useUpload } from "@/features/shopper/hooks/use-upload";
 import {
   CURRENCIES,
+  PRODUCT_AUDIENCES,
   PRODUCT_CATEGORIES,
   type ProductFormValues,
   productSchema,
@@ -63,6 +64,7 @@ function ProductForm({ product }: ProductFormProps) {
       title: product?.title ?? "",
       description: product?.description ?? "",
       category: (product?.category as ProductFormValues["category"]) ?? undefined,
+      audience: product?.audience ?? "unisex",
       price: product?.price ?? "",
       currency: (product?.currency as ProductFormValues["currency"]) ?? "USD",
     },
@@ -74,6 +76,7 @@ function ProductForm({ product }: ProductFormProps) {
         title: values.title,
         description: values.description || null,
         category: values.category,
+        audience: values.audience,
         price: values.price,
         currency: values.currency,
         primary_image_key: upload.objectKey ?? product.primary_image_key,
@@ -87,6 +90,7 @@ function ProductForm({ product }: ProductFormProps) {
       title: values.title,
       description: values.description || null,
       category: values.category,
+      audience: values.audience,
       price: values.price,
       currency: values.currency,
       primary_image_key: upload.objectKey ?? null,
@@ -133,7 +137,7 @@ function ProductForm({ product }: ProductFormProps) {
         <Textarea id="description" rows={4} {...register("description")} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="category">Category</Label>
           <Select
@@ -152,6 +156,25 @@ function ProductForm({ product }: ProductFormProps) {
             </SelectContent>
           </Select>
           {errors.category && <p className="text-sm text-destructive">{errors.category.message}</p>}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="audience">Made for</Label>
+          <Select
+            value={watch("audience")}
+            onValueChange={(value) => setValue("audience", value as ProductFormValues["audience"])}
+          >
+            <SelectTrigger id="audience">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PRODUCT_AUDIENCES.map((audience) => (
+                <SelectItem key={audience} value={audience}>
+                  {formatOptionLabel(audience)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-1.5">

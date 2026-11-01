@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
-from app.models.user import UserRole
+from app.models.user import BodyCategory, UserRole
 
 
 class UserRead(BaseModel):
@@ -16,6 +16,7 @@ class UserRead(BaseModel):
 
 
 class BodyProfileUpsert(BaseModel):
+    body_category: BodyCategory | None = None
     height_cm: float | None = None
     weight_kg: float | None = None
     chest_cm: float | None = None
@@ -28,6 +29,7 @@ class BodyProfileRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    body_category: BodyCategory | None
     height_cm: float | None
     weight_kg: float | None
     chest_cm: float | None

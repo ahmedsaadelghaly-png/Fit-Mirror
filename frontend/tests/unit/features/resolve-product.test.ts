@@ -8,6 +8,7 @@ const baseProduct: Product = {
   title: "Classic Cotton T-Shirt",
   description: null,
   category: "tops",
+  audience: "unisex",
   price: "24.99",
   currency: "USD",
   primary_image_key: null,

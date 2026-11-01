@@ -30,6 +30,7 @@ const tshirt: Product = {
   title: "Classic Cotton T-Shirt",
   description: null,
   category: "tops",
+  audience: "unisex",
   price: "24.99",
   currency: "USD",
   primary_image_key: null,
@@ -43,6 +44,7 @@ const jeans: Product = {
   title: "Slim Fit Denim Jeans",
   description: null,
   category: "bottoms",
+  audience: "unisex",
   price: "59.99",
   currency: "USD",
   primary_image_key: null,
@@ -101,6 +103,7 @@ describe("useCreateProduct", () => {
     result.current.mutate({
       title: "Classic Cotton T-Shirt",
       category: "tops",
+      audience: "unisex",
       price: "24.99",
       currency: "USD",
     });
@@ -112,6 +115,7 @@ describe("useCreateProduct", () => {
     expect(createProductMock.mock.calls[0]?.[0]).toEqual({
       title: "Classic Cotton T-Shirt",
       category: "tops",
+      audience: "unisex",
       price: "24.99",
       currency: "USD",
     });

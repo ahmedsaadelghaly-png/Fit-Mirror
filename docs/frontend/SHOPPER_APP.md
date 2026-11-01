@@ -70,6 +70,7 @@ logic lives in `features/*/hooks`, not in pages or components.
 | Saved looks | none | **Frontend placeholder** — localStorage, see below |
 | AI Stylist | `POST /stylist/suggestions` | Real (rule-based v1) |
 | Shopping Assistant | `POST /shopping/ask` + `GET /catalog/products?ids=` | Real (rule-based v1) — matches render as product cards |
+| Body type (women / men / girls / boys + shape) | `PUT /users/me/body-profile` (`body_category`, `body_shape`) | Real — illustrated picker (`features/shopper/components/body-shape/`), shapes listed in `features/shopper/body-shapes.ts` mirror the backend |
 | Size recommendation | `POST /sizing/recommend` | Real — "Find my size" on each Shopping Assistant match; a 422 (missing measurements) links to Body Profile |
 | Settings → Profile details | `GET /users/me` | Real, read-only |
 | Settings → Account/Notifications | none | UI-only placeholders |

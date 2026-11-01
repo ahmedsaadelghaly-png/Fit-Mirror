@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Palette, Ruler } from "lucide-react";
+import { Camera, Palette, Ruler, UsersRound } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
@@ -22,15 +22,17 @@ import { ImageUploadField } from "@/shared/components/image-upload-field";
 import { useStylePreferences } from "@/features/shopper/hooks/use-style-preferences";
 import { useUpload } from "@/features/shopper/hooks/use-upload";
 import { useUpsertBodyProfile } from "@/features/shopper/hooks/use-upsert-body-profile";
+import { findBodyCategory } from "@/features/shopper/body-shapes";
+import { BodyShapePicker } from "@/features/shopper/components/body-shape/body-shape-picker";
 import {
-  BODY_SHAPES,
   type BodyProfileFormValues,
   bodyProfileFormSchema,
   COLOR_PALETTE,
   PREFERRED_FITS,
   STYLE_TAGS,
+  withBodyShapeRule,
 } from "@/features/shopper/schemas";
-import type { BodyProfile } from "@/types/domain";
+import type { BodyCategory, BodyProfile } from "@/types/domain";
 
 const MEASUREMENT_FIELDS = [
   { name: "height_cm", label: "Height (cm)" },
@@ -80,7 +82,7 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
     setValue,
     formState: { errors },
   } = useForm<BodyProfileFormValues>({
-    resolver: zodResolver(bodyProfileFormSchema),
+    resolver: zodResolver(withBodyShapeRule(bodyProfileFormSchema)),
     defaultValues: {
       favorite_colors: [],
       style_preferences: [],
@@ -95,7 +97,8 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
       chest_cm: existingProfile?.chest_cm ?? undefined,
       waist_cm: existingProfile?.waist_cm ?? undefined,
       hip_cm: existingProfile?.hip_cm ?? undefined,
-      body_shape: (existingProfile?.body_shape as BodyProfileFormValues["body_shape"]) ?? "",
+      body_category: existingProfile?.body_category ?? "",
+      body_shape: existingProfile?.body_shape ?? "",
       preferred_fit: (preferences.preferred_fit as BodyProfileFormValues["preferred_fit"]) ?? "",
       favorite_colors: preferences.favorite_colors as BodyProfileFormValues["favorite_colors"],
       style_preferences:
@@ -104,6 +107,8 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run once both sources have loaded
   }, [existingProfile, isHydrated]);
 
+  const bodyCategory = watch("body_category") || "";
+  const isKids = findBodyCategory(bodyCategory)?.isKids ?? false;
   const favoriteColors = watch("favorite_colors") ?? [];
   const styleTags = watch("style_preferences") ?? [];
 
@@ -117,6 +122,7 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
       chest_cm: values.chest_cm ?? null,
       waist_cm: values.waist_cm ?? null,
       hip_cm: values.hip_cm ?? null,
+      body_category: (values.body_category || null) as BodyCategory | null,
       body_shape: values.body_shape || null,
     });
     savePreferences({
@@ -131,12 +137,40 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
       <Card variant="flush">
         <CardHeader className="flex-row items-center gap-3 px-0">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent">
+            <UsersRound className="size-4 text-accent-foreground" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold">Body type</h2>
+            <p className="text-sm text-muted-foreground">
+              Sets which sizes and fit advice apply — women&apos;s, men&apos;s, or kids&apos; (sized
+              by height).
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent className="px-0">
+          <BodyShapePicker
+            idPrefix="profile"
+            value={{ category: bodyCategory, shape: watch("body_shape") || "" }}
+            onChange={({ category, shape }) => {
+              setValue("body_category", category, { shouldDirty: true });
+              setValue("body_shape", shape, { shouldDirty: true, shouldValidate: !!shape });
+            }}
+            error={errors.body_shape?.message}
+          />
+        </CardContent>
+      </Card>
+
+      <Card variant="flush">
+        <CardHeader className="flex-row items-center gap-3 px-0">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent">
             <Ruler className="size-4 text-accent-foreground" aria-hidden="true" />
           </div>
           <div>
             <h2 className="font-display text-lg font-semibold">Measurements</h2>
             <p className="text-sm text-muted-foreground">
-              Used to fit try-on results and size recommendations to you.
+              {isKids
+                ? "For kids, height is what matters most — the rest is optional."
+                : "Used to fit try-on results and size recommendations to you."}
             </p>
           </div>
         </CardHeader>
@@ -160,26 +194,6 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
               )}
             </div>
           ))}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="body_shape">Body shape</Label>
-            <Select
-              value={watch("body_shape") || undefined}
-              onValueChange={(value) =>
-                setValue("body_shape", value as BodyProfileFormValues["body_shape"])
-              }
-            >
-              <SelectTrigger id="body_shape">
-                <SelectValue placeholder="Select a body shape" />
-              </SelectTrigger>
-              <SelectContent>
-                {BODY_SHAPES.map((shape) => (
-                  <SelectItem key={shape} value={shape}>
-                    {formatOptionLabel(shape)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </CardContent>
       </Card>
 

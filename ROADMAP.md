@@ -29,7 +29,20 @@
 - Still mocked in Admin: product moderation, queue/workers, AI telemetry,
   feature flags, audit log, reports (need new backend models).
 
+## Done — Visual redesign & body types
+
+- Real photography across the public site and dashboards (Unsplash
+  License, credited in `docs/frontend/ASSETS.md`); photographed demo
+  catalog in the seed
+- Body profile categories (women, men, girls, boys) with illustrated
+  body-shape / kids' fit-type pickers; product `audience`; kids' sizing by
+  height; shape-aware fit tips; audience-aware Shopping Assistant
+
 ## Next — Phase 3.2: Remaining backend gaps
+
+- Family profiles: several body profiles per account (e.g. a parent plus
+  each child), chosen per try-on / size check — today one account has one
+  profile, so sizing a child's item means switching the profile to Girls/Boys
 
 - Catalog try-on in the Shopper app (try on a product variant, with a size
   recommendation) — the backend already accepts `product_variant_id`

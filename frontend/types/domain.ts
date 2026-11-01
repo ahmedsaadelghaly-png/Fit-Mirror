@@ -15,8 +15,13 @@ export interface User {
   is_active: boolean;
 }
 
+export type BodyCategory = "women" | "men" | "girls" | "boys";
+
+export type ProductAudience = BodyCategory | "unisex";
+
 export interface BodyProfile {
   id: string;
+  body_category: BodyCategory | null;
   height_cm: number | null;
   weight_kg: number | null;
   chest_cm: number | null;
@@ -62,6 +67,7 @@ export interface Product {
   title: string;
   description: string | null;
   category: string;
+  audience: ProductAudience;
   price: string;
   currency: string;
   primary_image_key: string | null;

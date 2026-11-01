@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from app.models.wardrobe import WardrobeItem
+from app.services.shopping_service import singularize
 
 # Occasion -> (formality bucket, keywords in an item label that suit it).
 OCCASION_STYLES: dict[str, tuple[str, set[str]]] = {
@@ -72,7 +73,7 @@ class OutfitSuggestion:
 def _words(text: str | None) -> set[str]:
     words = set(re.findall(r"[a-z][a-z-]*", (text or "").lower()))
     # Crude singularization so "jeans"/"sneakers" match "jean"/"sneaker".
-    return words | {w[:-1] for w in words if w.endswith("s") and len(w) > 3}
+    return words | {singularize(w) for w in words}
 
 
 def _describe(item: WardrobeItem) -> str:

@@ -16,7 +16,7 @@ from decimal import Decimal
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.product import Product
+from app.models.product import Product, ProductAudience
 
 MAX_RESULTS = 10
 MAX_SCANNED = 500
@@ -28,6 +28,17 @@ CATEGORY_SYNONYMS: dict[str, set[str]] = {
     "outerwear": {"outerwear", "jacket", "coat", "bomber", "blazer", "parka", "hoodie"},
     "footwear": {"footwear", "shoe", "sneaker", "boot", "sandal", "heel", "trainer", "loafer"},
     "accessories": {"accessory", "accessorie", "bag", "belt", "hat", "scarf", "cap", "jewelry"},
+}
+
+AUDIENCE_WORDS: dict[str, tuple[ProductAudience, ...]] = {
+    **dict.fromkeys(("women", "woman", "ladies", "lady", "female"), (ProductAudience.WOMEN,)),
+    **dict.fromkeys(("men", "man", "male", "gent"), (ProductAudience.MEN,)),
+    **dict.fromkeys(("girl", "daughter"), (ProductAudience.GIRLS,)),
+    **dict.fromkeys(("boy", "son"), (ProductAudience.BOYS,)),
+    **dict.fromkeys(
+        ("kid", "child", "children", "childrens", "toddler"),
+        (ProductAudience.GIRLS, ProductAudience.BOYS),
+    ),
 }
 
 STOPWORDS = set(
@@ -49,6 +60,7 @@ class ParsedQuery:
     min_price: Decimal | None = None
     max_price: Decimal | None = None
     size: str | None = None
+    audiences: list[ProductAudience] = field(default_factory=list)
     terms: list[str] = field(default_factory=list)
 
 
@@ -58,8 +70,14 @@ class ShoppingAnswer:
     reply: str
 
 
-def _singular(word: str) -> str:
-    return word[:-1] if word.endswith("s") and len(word) > 3 else word
+def singularize(word: str) -> str:
+    """Crude plural stripping: "dresses" -> "dress", "jeans" -> "jean", but
+    "dress"/"glass" stay as they are."""
+    if word.endswith("sses"):
+        return word[:-2]
+    if word.endswith("s") and not word.endswith("ss") and len(word) > 3:
+        return word[:-1]
+    return word
 
 
 def parse_query(query: str) -> ParsedQuery:
@@ -78,8 +96,14 @@ def parse_query(query: str) -> ParsedQuery:
         text = pattern.sub(" ", text)
 
     for raw in re.findall(r"[a-z][a-z-]*", text):
-        word = _singular(raw)
+        word = singularize(raw)
         if word in STOPWORDS:
+            continue
+        audience_key = raw if raw in AUDIENCE_WORDS else word  # "ladies" -> "ladie"
+        if audience_key in AUDIENCE_WORDS:
+            for audience in AUDIENCE_WORDS[audience_key]:
+                if audience not in parsed.audiences:
+                    parsed.audiences.append(audience)
             continue
         category = next((c for c, words in CATEGORY_SYNONYMS.items() if word in words), None)
         if category and parsed.category is None:
@@ -107,6 +131,13 @@ class ShoppingService:
         )
         if parsed.category:
             q = q.filter(Product.category == parsed.category)
+        if parsed.audiences:
+            # Adult searches also match unisex items; our unisex items are
+            # adult-sized, so kids' searches don't.
+            allowed = list(parsed.audiences)
+            if not set(allowed) <= {ProductAudience.GIRLS, ProductAudience.BOYS}:
+                allowed.append(ProductAudience.UNISEX)
+            q = q.filter(Product.audience.in_(allowed))
         if parsed.max_price is not None:
             q = q.filter(Product.price <= parsed.max_price)
         if parsed.min_price is not None:
@@ -152,6 +183,8 @@ class ShoppingService:
     @staticmethod
     def _reply(query: str, parsed: ParsedQuery, matches: list[Product]) -> str:
         filters = []
+        if parsed.audiences:
+            filters.append(" & ".join(a.value for a in parsed.audiences))
         if parsed.category:
             filters.append(parsed.category)
         if parsed.size:

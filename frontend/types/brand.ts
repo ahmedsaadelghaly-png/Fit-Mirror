@@ -1,4 +1,4 @@
-import type { Product } from "@/types/domain";
+import type { Product, ProductAudience } from "@/types/domain";
 
 /**
  * Request/response shapes for the Brand/Store feature area — see backend
@@ -55,6 +55,7 @@ export interface ProductCreateRequest {
   title: string;
   description?: string | null;
   category: string;
+  audience?: ProductAudience;
   price: string;
   currency: string;
   primary_image_key?: string | null;
@@ -74,6 +75,7 @@ export type ProductUpdateRequest = Partial<
     | "title"
     | "description"
     | "category"
+    | "audience"
     | "price"
     | "currency"
     | "primary_image_key"

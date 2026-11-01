@@ -7,19 +7,15 @@ import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useUpsertBodyProfile } from "@/features/shopper/hooks/use-upsert-body-profile";
+import { findBodyCategory } from "@/features/shopper/body-shapes";
+import { BodyShapePicker } from "@/features/shopper/components/body-shape/body-shape-picker";
 import {
-  BODY_SHAPES,
   type BodyMeasurementsFormValues,
   bodyMeasurementsSchema,
+  withBodyShapeRule,
 } from "@/features/shopper/schemas";
+import type { BodyCategory } from "@/types/domain";
 
 const MEASUREMENT_FIELDS = [
   { name: "height_cm", label: "Height (cm)" },
@@ -28,10 +24,6 @@ const MEASUREMENT_FIELDS = [
   { name: "waist_cm", label: "Waist (cm)" },
   { name: "hip_cm", label: "Hips (cm)" },
 ] as const;
-
-function formatOptionLabel(value: string): string {
-  return value.replace(/[_-]/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
 
 export interface StepBodyProfileProps {
   onContinue: () => void;
@@ -48,8 +40,10 @@ function StepBodyProfile({ onContinue, onSkip }: StepBodyProfileProps) {
     setValue,
     formState: { errors },
   } = useForm<BodyMeasurementsFormValues>({
-    resolver: zodResolver(bodyMeasurementsSchema),
+    resolver: zodResolver(withBodyShapeRule(bodyMeasurementsSchema)),
   });
+  const bodyCategory = watch("body_category") || "";
+  const isKids = findBodyCategory(bodyCategory)?.isKids ?? false;
 
   const onSubmit = handleSubmit(async (values) => {
     await upsertMutation.mutateAsync({
@@ -58,6 +52,7 @@ function StepBodyProfile({ onContinue, onSkip }: StepBodyProfileProps) {
       chest_cm: values.chest_cm ?? null,
       waist_cm: values.waist_cm ?? null,
       hip_cm: values.hip_cm ?? null,
+      body_category: (values.body_category || null) as BodyCategory | null,
       body_shape: values.body_shape || null,
     });
     onContinue();
@@ -72,6 +67,21 @@ function StepBodyProfile({ onContinue, onSkip }: StepBodyProfileProps) {
         </p>
       </div>
 
+      <BodyShapePicker
+        idPrefix="onboarding"
+        value={{ category: bodyCategory, shape: watch("body_shape") || "" }}
+        onChange={({ category, shape }) => {
+          setValue("body_category", category, { shouldDirty: true });
+          setValue("body_shape", shape, { shouldDirty: true, shouldValidate: !!shape });
+        }}
+        error={errors.body_shape?.message}
+      />
+
+      {isKids && (
+        <p className="text-sm text-muted-foreground">
+          Kids&apos; clothes are sized by height — that&apos;s the one measurement we need.
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         {MEASUREMENT_FIELDS.map(({ name, label }) => (
           <div key={name} className="flex flex-col gap-1.5">
@@ -92,26 +102,6 @@ function StepBodyProfile({ onContinue, onSkip }: StepBodyProfileProps) {
             )}
           </div>
         ))}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="body_shape">Body shape</Label>
-          <Select
-            value={watch("body_shape") || undefined}
-            onValueChange={(value) =>
-              setValue("body_shape", value as BodyMeasurementsFormValues["body_shape"])
-            }
-          >
-            <SelectTrigger id="body_shape">
-              <SelectValue placeholder="Select a body shape" />
-            </SelectTrigger>
-            <SelectContent>
-              {BODY_SHAPES.map((shape) => (
-                <SelectItem key={shape} value={shape}>
-                  {formatOptionLabel(shape)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       {upsertMutation.isError && (

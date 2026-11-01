@@ -57,7 +57,7 @@ renders one client `*View`/`*Flow` component, same pattern as Phase 2.3.
 | Store creation | `POST /store` | Real |
 | Store read | `GET /store/me` | Real — 404 drives the onboarding redirect |
 | Store summary | `GET /store/me/summary` | Real |
-| Product list/create | `GET/POST /store/products` | Real |
+| Product list/create | `GET/POST /store/products` | Real — includes "Made for" (`audience`: women/men/girls/boys/unisex); girls'/boys' items are sized by height |
 | Store edit (business info, logo) | none | **Frontend placeholder** — localStorage, see below |
 | Product edit/archive/active-toggle | `PATCH /store/products/{id}` (`is_archived`, `is_active`) | Real (Phase 3.1) |
 | Product variants (add/edit/delete) | `POST/PATCH/DELETE /store/products/{id}/variants[/{variant_id}]` | Real (Phase 3.1) — duplicate SKU (409) shown on the SKU field |

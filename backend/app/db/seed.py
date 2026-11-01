@@ -11,7 +11,7 @@ Creates:
     - 1 platform admin
     - 1 demo shopper (with a body profile)
     - 1 demo brand/store owner + their store
-    - 7 demo products with photos (each with size variants that carry a
+    - 9 demo products with photos (incl. one girls' and one boys' item) (each with size variants that carry a
       garment image, so catalog try-on works out of the box)
     - 2 demo wardrobe items for the shopper
     - the storage bucket (if missing) and every seed image, uploaded from
@@ -23,7 +23,7 @@ from pathlib import Path
 from app.core.logging_config import configure_logging, get_logger
 from app.core.security import hash_password
 from app.db.session import SessionLocal
-from app.models.product import Product, ProductVariant
+from app.models.product import Product, ProductAudience, ProductVariant
 from app.models.store import Store
 
 # Not otherwise referenced here, but User.tryon_jobs is declared as a string
@@ -32,7 +32,7 @@ from app.models.store import Store
 # this script runs standalone (the app's own router imports pull this in
 # transitively; this script doesn't go through the router at all).
 from app.models.tryon_job import TryOnJob  # noqa: F401
-from app.models.user import BodyProfile, User, UserRole
+from app.models.user import BodyCategory, BodyProfile, User, UserRole
 from app.models.wardrobe import WardrobeItem, WardrobeItemSource
 from app.storage.s3_storage import S3ObjectStorage
 
@@ -103,10 +103,14 @@ def _get_or_create_product(
     image: str,
     variants: list[dict],
     description: str | None = None,
+    audience: ProductAudience = ProductAudience.UNISEX,
 ) -> Product:
     image_key = f"{PRODUCT_IMAGE_PREFIX}/{image}"
     product = db.query(Product).filter(Product.store_id == store.id, Product.title == title).first()
     if product:
+        if product.audience != audience:
+            product.audience = audience
+            db.commit()
         # Backfill photos onto rows seeded before images existed.
         if not product.primary_image_key:
             product.primary_image_key = image_key
@@ -123,6 +127,7 @@ def _get_or_create_product(
         title=title,
         description=description or f"Demo product — {title}",
         category=category,
+        audience=audience,
         price=price,
         currency="USD",
         is_active=True,
@@ -187,6 +192,7 @@ def seed() -> None:
                     chest_cm=92,
                     waist_cm=76,
                     hip_cm=98,
+                    body_category=BodyCategory.WOMEN,
                     body_shape="rectangle",
                 )
             )
@@ -304,11 +310,50 @@ def seed() -> None:
             category="dresses",
             price=149.00,
             image="red-evening-gown.jpg",
+            audience=ProductAudience.WOMEN,
             description="Long-sleeve red evening gown with a draped train — for weddings and galas.",
             variants=[
                 {"size_label": "XS", "color": "Red", "sku": "GOWN-RED-XS", "stock_quantity": 5},
                 {"size_label": "S", "color": "Red", "sku": "GOWN-RED-S", "stock_quantity": 8},
                 {"size_label": "M", "color": "Red", "sku": "GOWN-RED-M", "stock_quantity": 6},
+            ],
+        )
+
+        _get_or_create_product(
+            db,
+            store=store,
+            title="Girls' Polka Dot Smock Top",
+            category="tops",
+            price=22.00,
+            image="girls-polka-dot-smock-top.jpg",
+            description="Soft cotton smock top with navy polka dots and puff sleeves.",
+            audience=ProductAudience.GIRLS,
+            variants=[
+                {"size_label": "4Y", "color": "Ivory", "sku": "SMOCK-IVR-4Y", "stock_quantity": 12},
+                {"size_label": "6Y", "color": "Ivory", "sku": "SMOCK-IVR-6Y", "stock_quantity": 15},
+                {"size_label": "8Y", "color": "Ivory", "sku": "SMOCK-IVR-8Y", "stock_quantity": 10},
+                {
+                    "size_label": "10Y",
+                    "color": "Ivory",
+                    "sku": "SMOCK-IVR-10Y",
+                    "stock_quantity": 8,
+                },
+            ],
+        )
+        _get_or_create_product(
+            db,
+            store=store,
+            title="Boys' Cardigan & Bow Tie Set",
+            category="tops",
+            price=38.00,
+            image="boys-cardigan-bow-tie-set.jpg",
+            description="Navy knit cardigan with a matching bow tie — for parties and photos.",
+            audience=ProductAudience.BOYS,
+            variants=[
+                {"size_label": "4Y", "color": "Navy", "sku": "CARDI-NVY-4Y", "stock_quantity": 10},
+                {"size_label": "6Y", "color": "Navy", "sku": "CARDI-NVY-6Y", "stock_quantity": 12},
+                {"size_label": "8Y", "color": "Navy", "sku": "CARDI-NVY-8Y", "stock_quantity": 9},
+                {"size_label": "10Y", "color": "Navy", "sku": "CARDI-NVY-10Y", "stock_quantity": 6},
             ],
         )
 

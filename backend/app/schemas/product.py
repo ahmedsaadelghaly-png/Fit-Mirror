@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.product import ProductAudience
+
 
 class ProductVariantRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -22,6 +24,7 @@ class ProductRead(BaseModel):
     title: str
     description: str | None
     category: str
+    audience: ProductAudience
     price: Decimal
     currency: str
     primary_image_key: str | None
@@ -34,6 +37,7 @@ class ProductCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     description: str | None = None
     category: str = Field(min_length=1, max_length=100)
+    audience: ProductAudience = ProductAudience.UNISEX
     price: Decimal = Field(ge=0)
     currency: str = Field(default="USD", min_length=3, max_length=3)
     primary_image_key: str | None = None
@@ -45,6 +49,7 @@ class ProductUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
     category: str | None = Field(default=None, min_length=1, max_length=100)
+    audience: ProductAudience | None = None
     price: Decimal | None = Field(default=None, ge=0)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     primary_image_key: str | None = None

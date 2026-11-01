@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.dependencies import get_current_user_id, get_db
 from app.core.exceptions import NotFoundError
-from app.models.product import Product
+from app.models.product import Product, ProductAudience
 from app.schemas.product import ProductRead
 
 router = APIRouter()
@@ -25,6 +25,7 @@ router = APIRouter()
 def browse_products(
     ids: Annotated[list[uuid.UUID] | None, Query(max_length=50)] = None,
     category: str | None = None,
+    audience: ProductAudience | None = None,
     q: str | None = Query(default=None, max_length=100),
     limit: int = Query(default=24, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -40,6 +41,8 @@ def browse_products(
         query = query.filter(Product.id.in_(ids))
     if category:
         query = query.filter(Product.category == category)
+    if audience:
+        query = query.filter(Product.audience == audience)
     if q:
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         pattern = f"%{escaped}%"

@@ -1,4 +1,4 @@
-import type { TryOnJobStatus, WardrobeItemSource } from "@/types/domain";
+import type { BodyCategory, TryOnJobStatus, WardrobeItemSource } from "@/types/domain";
 
 /**
  * Request/response shapes for the Shopper feature area (body profile,
@@ -24,6 +24,7 @@ import type { TryOnJobStatus, WardrobeItemSource } from "@/types/domain";
  * localStorage via features/shopper/hooks/use-style-preferences.ts.
  */
 export interface BodyProfileUpsertRequest {
+  body_category?: BodyCategory | null;
   height_cm?: number | null;
   weight_kg?: number | null;
   chest_cm?: number | null;

@@ -20,7 +20,7 @@ from app.core.dependencies import get_db
 from app.core.security import TokenType, create_token
 from app.db.base_all_models import Base
 from app.main import app
-from app.models.product import Product, ProductVariant
+from app.models.product import Product, ProductAudience, ProductVariant
 from app.models.store import Store
 from app.models.user import BodyProfile, User, UserRole
 
@@ -108,6 +108,7 @@ def make_product(db) -> Callable[..., Product]:
         color: str | None = "White",
         is_active: bool = True,
         description: str | None = None,
+        audience: ProductAudience = ProductAudience.UNISEX,
     ) -> Product:
         product = Product(
             store_id=store.id,
@@ -117,6 +118,7 @@ def make_product(db) -> Callable[..., Product]:
             currency="USD",
             is_active=is_active,
             description=description,
+            audience=audience,
         )
         db.add(product)
         db.flush()

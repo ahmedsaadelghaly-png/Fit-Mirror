@@ -3,16 +3,27 @@ Product catalog models: products belong to a store and have size/color variants.
 Used by Shopping Assistant, Size Recommendation, and Virtual Try-On.
 """
 
+import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ColumnElement, ForeignKey, Numeric, String, and_, false
+from sqlalchemy import Boolean, ColumnElement, Enum, ForeignKey, Numeric, String, and_, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.store import Store
+
+
+class ProductAudience(str, enum.Enum):
+    """Who a product is cut for. Kids' audiences are sized by height."""
+
+    WOMEN = "women"
+    MEN = "men"
+    GIRLS = "girls"
+    BOYS = "boys"
+    UNISEX = "unisex"
 
 
 class Product(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -24,6 +35,13 @@ class Product(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(nullable=True)
     category: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    audience: Mapped[ProductAudience] = mapped_column(
+        Enum(ProductAudience, name="product_audience"),
+        default=ProductAudience.UNISEX,
+        server_default=ProductAudience.UNISEX.name,
+        nullable=False,
+        index=True,
+    )
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="USD", nullable=False)
     primary_image_key: Mapped[str] = mapped_column(String(512), nullable=True)

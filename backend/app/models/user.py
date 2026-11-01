@@ -23,6 +23,27 @@ class UserRole(str, enum.Enum):
     PLATFORM_ADMIN = "platform_admin"
 
 
+class BodyCategory(str, enum.Enum):
+    """Who a body profile describes — drives which shapes and size charts apply."""
+
+    WOMEN = "women"
+    MEN = "men"
+    GIRLS = "girls"
+    BOYS = "boys"
+
+
+# The body shapes offered for each category (the frontend's shape picker
+# mirrors this list — features/shopper/body-shapes.ts). Kids' "shapes" are
+# fit types, since childrenswear is sized by height, not curves.
+BODY_SHAPES_BY_CATEGORY: dict[BodyCategory, tuple[str, ...]] = {
+    BodyCategory.WOMEN: ("hourglass", "pear", "apple", "rectangle", "inverted_triangle"),
+    BodyCategory.MEN: ("rectangle", "triangle", "inverted_triangle", "oval", "trapezoid"),
+    BodyCategory.GIRLS: ("slim", "regular", "plus"),
+    BodyCategory.BOYS: ("slim", "regular", "husky"),
+}
+KIDS_CATEGORIES = frozenset({BodyCategory.GIRLS, BodyCategory.BOYS})
+
+
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "users"
 
@@ -59,7 +80,10 @@ class BodyProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     chest_cm: Mapped[float] = mapped_column(nullable=True)
     waist_cm: Mapped[float] = mapped_column(nullable=True)
     hip_cm: Mapped[float] = mapped_column(nullable=True)
-    body_shape: Mapped[str] = mapped_column(String(50), nullable=True)
+    body_category: Mapped[BodyCategory | None] = mapped_column(
+        Enum(BodyCategory, name="body_category"), nullable=True
+    )
+    body_shape: Mapped[str | None] = mapped_column(String(50), nullable=True)
     reference_image_key: Mapped[str] = mapped_column(String(512), nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="body_profile")
