@@ -29,6 +29,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
         className="sheen-surface sheen-animate relative hidden overflow-hidden bg-foreground lg:block"
       >
         <ModelImage
+          src="/images/models/woman-milan.jpg"
           alt=""
           className="absolute inset-0 h-full [&>img]:opacity-70"
         />
