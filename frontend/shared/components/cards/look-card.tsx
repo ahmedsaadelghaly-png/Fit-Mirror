@@ -72,7 +72,12 @@ function LookCard({
         )}
       />
 
-      {badge && <div className="absolute right-2.5 top-2.5">{badge}</div>}
+      {/* Solid backing: translucent chips are unreadable over light photos. */}
+      {badge && (
+        <div className="absolute right-2.5 top-2.5 rounded-full bg-background/90 shadow-sm backdrop-blur">
+          {badge}
+        </div>
+      )}
 
       {(title || meta) && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/85 via-foreground/25 to-transparent p-4 pt-10">

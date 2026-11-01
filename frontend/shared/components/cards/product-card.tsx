@@ -66,7 +66,12 @@ function ProductCard({
             interactive && "group-hover:scale-[1.04]",
           )}
         />
-        {badge && <div className="absolute left-2.5 top-2.5">{badge}</div>}
+        {/* Solid backing: translucent chips are unreadable over light photos. */}
+        {badge && (
+          <div className="absolute left-2.5 top-2.5 rounded-full bg-background/90 shadow-sm backdrop-blur">
+            {badge}
+          </div>
+        )}
         {actions && (
           <div className="absolute bottom-2.5 right-2.5 flex gap-1.5 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100">
             {actions}
