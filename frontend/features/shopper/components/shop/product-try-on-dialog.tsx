@@ -10,12 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useBodyProfiles } from "@/features/shopper/hooks/use-body-profiles";
+import { useReportFit } from "@/features/shopper/hooks/use-report-fit";
 import { useSizeRecommendation } from "@/features/shopper/hooks/use-size-recommendation";
 import { useUpload } from "@/features/shopper/hooks/use-upload";
 import { useCreateTryOnJob } from "@/features/tryon/hooks/use-create-tryon-job";
 import { ImageUploadField } from "@/shared/components/image-upload-field";
 import { ResolvedImage } from "@/shared/components/resolved-image";
+import { describeFit } from "@/shared/utils/fit-summary";
 import type { BodyProfile, Product } from "@/types/domain";
+import type { FitVerdict } from "@/types/shopper";
 
 export interface ProductTryOnDialogProps {
   /** The product to try on; `null` closes the dialog. */
@@ -198,7 +201,22 @@ function ProductTryOnPanel({ product }: { product: Product }) {
                 {Math.round(recommendation.confidence * 100)}% match)
               </span>
               <span className="block text-muted-foreground">{recommendation.fit_note}</span>
+              {recommendation.size_chart === "brand" && (
+                <span className="block text-muted-foreground">
+                  Based on the brand&apos;s own size chart.
+                </span>
+              )}
             </p>
+          )}
+          {describeFit(recommendation?.fit_feedback) && (
+            <p className="text-xs font-medium">{describeFit(recommendation?.fit_feedback)}</p>
+          )}
+          {selectedVariant && (
+            <FitReport
+              key={selectedVariant.id}
+              productId={product.id}
+              sizeLabel={selectedVariant.size_label}
+            />
           )}
           {sizingError && (
             <p className="text-xs text-destructive" role="alert">
@@ -274,6 +292,50 @@ function ProductTryOnPanel({ product }: { product: Product }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+const FIT_OPTIONS: { value: FitVerdict; label: string }[] = [
+  { value: "small", label: "Runs small" },
+  { value: "true_to_size", label: "True to size" },
+  { value: "large", label: "Runs large" },
+];
+
+/** "Already own it?" — fit feedback that tunes everyone's size recommendations. */
+function FitReport({ productId, sizeLabel }: { productId: string; sizeLabel: string }) {
+  const reportMutation = useReportFit();
+
+  if (reportMutation.isSuccess) {
+    return (
+      <p className="text-xs text-muted-foreground" role="status">
+        Thanks — your fit report helps other shoppers pick the right size.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-muted-foreground">Already own it? How does {sizeLabel} fit?</span>
+      {FIT_OPTIONS.map((option) => (
+        <Button
+          key={option.value}
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 rounded-full px-2.5 text-xs"
+          disabled={reportMutation.isPending}
+          onClick={() =>
+            reportMutation.mutate({
+              product_id: productId,
+              size_label: sizeLabel,
+              fit: option.value,
+            })
+          }
+        >
+          {option.label}
+        </Button>
+      ))}
     </div>
   );
 }

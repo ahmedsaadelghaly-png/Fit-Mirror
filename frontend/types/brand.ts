@@ -81,3 +81,22 @@ export interface VariantFormInput {
 export interface ResolvedProduct extends Product {
   isArchived: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Size charts (Phase 4) — `GET/PUT/DELETE /store/size-charts[/{category}]`
+// ---------------------------------------------------------------------------
+
+/** Measurements in cm as [min, max]; any subset per row, smallest size first. */
+export interface SizeChartRow {
+  size_label: string;
+  chest_cm?: [number, number] | null;
+  waist_cm?: [number, number] | null;
+  hip_cm?: [number, number] | null;
+  height_cm?: [number, number] | null;
+}
+
+export interface SizeChart {
+  category: string;
+  rows: SizeChartRow[];
+  updated_at: string;
+}

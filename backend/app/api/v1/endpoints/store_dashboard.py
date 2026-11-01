@@ -22,6 +22,8 @@ from app.models.product import Product, ProductVariant
 from app.models.store import Store
 from app.models.tryon_job import TryOnJob, TryOnJobStatus
 from app.models.user import User, UserRole
+from app.services.fit_feedback_service import FitFeedbackService
+from app.services.size_chart_service import SizeChartService, parse_csv
 from app.schemas.product import (
     ProductCreate,
     ProductRead,
@@ -30,6 +32,7 @@ from app.schemas.product import (
     ProductVariantRead,
     ProductVariantUpdate,
 )
+from app.schemas.sizing import FitSummaryRead, SizeChartRead, SizeChartUpsert
 from app.schemas.store import StoreCreate, StoreDashboardSummary, StoreRead, StoreUpdate
 
 router = APIRouter()
@@ -276,3 +279,56 @@ def delete_variant(
     db.delete(_get_owned_variant(db, product, variant_id))
     db.commit()
     return Response(status_code=204)
+
+
+# --- Size charts & fit feedback -------------------------------------------------
+
+
+@router.get("/size-charts", response_model=list[SizeChartRead])
+def list_size_charts(db: Session = Depends(get_db), user: User = Depends(require_store_manager)):
+    return SizeChartService(db).list_for_store(_get_owned_store(db, user).id)
+
+
+@router.put("/size-charts/{category}", response_model=SizeChartRead)
+def upsert_size_chart(
+    category: str,
+    payload: SizeChartUpsert,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_store_manager),
+):
+    """The brand's own measurements for one garment category (tops,
+    outerwear, dresses, bottoms), as rows or CSV; replaces any existing
+    chart. Recommendations for this store's products in the category use
+    it whenever its size labels match the product's."""
+    store = _get_owned_store(db, user)
+    rows = (
+        parse_csv(payload.csv)
+        if payload.csv is not None
+        else [row.model_dump(exclude_none=True) for row in payload.rows or []]
+    )
+    return SizeChartService(db).upsert(store.id, category, rows)
+
+
+@router.delete("/size-charts/{category}", status_code=204)
+def delete_size_chart(
+    category: str, db: Session = Depends(get_db), user: User = Depends(require_store_manager)
+):
+    store = _get_owned_store(db, user)
+    chart = SizeChartService(db).get(store.id, category)
+    if not chart:
+        raise NotFoundError("No size chart for this category.")
+    db.delete(chart)
+    db.commit()
+    return Response(status_code=204)
+
+
+@router.get("/products/{product_id}/fit-feedback", response_model=FitSummaryRead)
+def get_product_fit_feedback(
+    product_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_store_manager),
+):
+    """How shoppers say this product fits (runs small / true / large)."""
+    product = _get_owned_product(db, _get_owned_store(db, user), product_id)
+    summary = FitFeedbackService(db).summarize(product.id)
+    return FitSummaryRead(**summary.__dict__, runs=summary.runs)

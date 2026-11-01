@@ -100,8 +100,18 @@ contracts.*
 | Endpoint | Method | Auth | Request Body | Success | Error Responses |
 |---|---|---|---|---|---|
 | `/stylist/suggestions` | POST | bearer | `{occasion?, weather?}` | `200 {suggestion_id, wardrobe_item_ids, rationale}` (empty wardrobe → `200` with empty `wardrobe_item_ids` and a rationale saying what to add) | `401`, `422` |
-| `/sizing/recommend` | POST | bearer | `{product_id, body_profile_id?}` (a family profile; default: the shopper's own) | `200 {product_id, recommended_size_label, confidence, fit_note, body_profile_id, profile_name}` — adult items from chest/waist/hip (+ a body-shape tip); girls'/boys' items from height against age (`6Y`, `6-7Y`) or height (`116`, `110-116`) labels, one size up for `plus`/`husky` fits | `401`, `404` (unknown/inactive product, or someone else's profile), `422` (missing measurements; footwear; kids' item with an adult profile or vice versa) |
+| `/sizing/recommend` | POST | bearer | `{product_id, body_profile_id?}` (a family profile; default: the shopper's own) | `200 {product_id, recommended_size_label, confidence, fit_note, body_profile_id, profile_name, size_chart: "brand"\|"standard", fit_feedback}` — the brand's own chart for the category when its labels match the product's; then, once ≥3 fit reports agree ≥60%, one stocked size up (runs small) or down (runs large), explained in `fit_note` — adult items from chest/waist/hip (+ a body-shape tip); girls'/boys' items from height against age (`6Y`, `6-7Y`) or height (`116`, `110-116`) labels, one size up for `plus`/`husky` fits | `401`, `404` (unknown/inactive product, or someone else's profile), `422` (missing measurements; footwear; kids' item with an adult profile or vice versa) |
 | `/shopping/ask` | POST | bearer | `{query}` (1–500 chars) | `200 {matched_product_ids, reply}` — up to 10 IDs, best match first | `401`, `422` |
+
+### Size charts & fit feedback (Phase 4)
+
+| Endpoint | Method | Auth | Request Body | Success | Error Responses |
+|---|---|---|---|---|---|
+| `/sizing/feedback` | POST | bearer | `{product_id, size_label, fit: "small"\|"true_to_size"\|"large"}` — one verdict per shopper per product (re-sending replaces it) | `200 FitSummary {reports, small, true_to_size, large, runs}` | `401`, `404` (product not visible), `422` (size not stocked) |
+| `/store/size-charts` | GET | bearer:brand_admin | — | `200 SizeChartRead[] {category, rows, updated_at}` | `401`, `403`, `404` |
+| `/store/size-charts/{category}` | PUT | bearer:brand_admin | `{rows: [{size_label, chest_cm?, waist_cm?, hip_cm?, height_cm?}]}` (each `[min, max]` cm, smallest size first) **or** `{csv}` (`size,chest,waist,hip,height` header, `86-94` cells); category ∈ tops/outerwear/dresses/bottoms; replaces the existing chart | `200 SizeChartRead` | `401`, `403`, `404`, `422` (explains the bad line/column) |
+| `/store/size-charts/{category}` | DELETE | bearer:brand_admin | — | `204` | `401`, `403`, `404` |
+| `/store/products/{id}/fit-feedback` | GET | bearer:brand_admin | — | `200 FitSummary` | `401`, `403`, `404` |
 
 ## Body profile: category & shape
 

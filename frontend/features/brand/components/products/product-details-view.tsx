@@ -12,9 +12,11 @@ import { ProductStatusBadge } from "@/features/brand/components/products/product
 import { VariantList } from "@/features/brand/components/products/variant-list";
 import { RequireStore } from "@/features/brand/components/require-store";
 import { useArchiveProduct } from "@/features/brand/hooks/use-archive-product";
+import { useProductFitFeedback } from "@/features/brand/hooks/use-size-charts";
 import { useProduct } from "@/features/brand/hooks/use-product";
 import { useToggleProductActive } from "@/features/brand/hooks/use-toggle-product-active";
 import { ResolvedImage } from "@/shared/components/resolved-image";
+import { describeFit } from "@/shared/utils/fit-summary";
 
 export interface ProductDetailsViewProps {
   productId: string;
@@ -120,7 +122,44 @@ function ProductDetailsContent({ productId }: { productId: string }) {
           <VariantList productId={product.id} variants={product.variants} />
         </CardContent>
       </Card>
+
+      <FitFeedbackCard productId={product.id} />
     </div>
+  );
+}
+
+/** What shoppers report about this product's fit (`GET /store/products/{id}/fit-feedback`). */
+function FitFeedbackCard({ productId }: { productId: string }) {
+  const { data: summary } = useProductFitFeedback(productId);
+  if (!summary) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Fit feedback</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 text-sm">
+        {summary.reports === 0 ? (
+          <p className="text-muted-foreground">No shopper has reported on the fit yet.</p>
+        ) : (
+          <>
+            <p className="font-medium">
+              {describeFit(summary) ?? `Mixed — ${summary.reports} reports so far`}
+            </p>
+            <p className="text-muted-foreground">
+              Runs small {summary.small} · True to size {summary.true_to_size} · Runs large{" "}
+              {summary.large}
+            </p>
+            {summary.runs && summary.runs !== "true_to_size" && (
+              <p className="text-muted-foreground">
+                Size recommendations now go one size {summary.runs === "small" ? "up" : "down"} for
+                this product.
+              </p>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

@@ -70,7 +70,10 @@ notification preferences; account deletion.
   check, automatic fallback to the placeholder; rejected photos fail fast
   with a reason instead of being retried
 - Stylist: embedding-based item compatibility + feedback loop (like/dislike)
-- Sizing: per-brand size chart ingestion; "fits big/small" feedback
+- ✅ Sizing: per-brand size charts (CSV or rows, per category; Brand
+  "Size Charts" page) used whenever their labels match; shopper "runs
+  small / true to size / runs large" feedback shifts recommendations one
+  size once ≥3 reports agree ≥60%, and brands see the summary per product
 - Shopping: LLM query understanding / embedding search over the catalog
 
 ## Phase 5 — Store Dashboard expansion

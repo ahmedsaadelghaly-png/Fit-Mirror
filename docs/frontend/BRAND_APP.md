@@ -207,3 +207,14 @@ npm run dev                 # http://localhost:3000/brand — needs backend + Po
 - Analytics, Customers, Orders — no backend data model (mismatch #8)
 - Billing, team management, API integration (Brand Settings) — no backend at all
 - Bulk inventory stock update
+
+## Size charts and fit feedback (Phase 4)
+
+- `/brand/size-charts` (`features/brand/components/size-charts/`): one card
+  per sized category (tops, outerwear, dresses, bottoms) showing the
+  brand's chart or "Using the standard chart". Add/Edit opens a CSV editor
+  (paste, or upload a `.csv`); the backend parses and validates it and the
+  error message points at the bad line or column.
+- Product details show a **Fit feedback** card
+  (`GET /store/products/{id}/fit-feedback`): counts of runs small / true to
+  size / runs large, and whether recommendations now shift a size.

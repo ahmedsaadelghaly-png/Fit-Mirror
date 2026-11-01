@@ -65,7 +65,7 @@ logic lives in `features/*/hooks`, not in pages or components.
 |---|---|---|
 | Body profile | `GET/PUT /users/me/body-profile` | Real — measurements, body type, style preferences, reference photo |
 | Family profiles | `GET/POST /users/me/body-profiles`, `PUT/DELETE /users/me/body-profiles/{id}` | Real — switcher + "Add family member" on Body Profile (`features/shopper/components/family/`) |
-| Shop + catalog try-on | `GET /catalog/products`, `POST /sizing/recommend` (`body_profile_id`), `POST /tryon` (`product_variant_id`) | Real — `/shopper/shop`; the try-on dialog (`features/shopper/components/shop/product-try-on-dialog.tsx`) picks who it's for (a matching child for kids' items), recommends and preselects their size, uses that profile's saved photo, and opens `/shopper/tryon?job=<id>` |
+| Shop + catalog try-on | `GET /catalog/products`, `POST /sizing/recommend` (`body_profile_id`), `POST /tryon` (`product_variant_id`) | Real — `/shopper/shop`; the try-on dialog (`features/shopper/components/shop/product-try-on-dialog.tsx`) picks who it's for (a matching child for kids' items), recommends and preselects their size, uses that profile's saved photo, and opens `/shopper/tryon?job=<id>`. Shows what shoppers say about the fit and whether the brand's own chart was used; "Already own it?" sends `POST /sizing/feedback` |
 | Wardrobe | `POST/GET /wardrobe`, `DELETE /wardrobe/{id}` | Real |
 | Virtual try-on | `POST /tryon/upload-url`, `POST /tryon`, `GET /tryon/{id}`, `GET /tryon` | Real |
 | Uploads (all surfaces) | `POST /tryon/upload-url` + direct `PUT` to the pre-signed URL | Real — one endpoint reused for body-profile/wardrobe/try-on images, see backend docs/STORAGE.md |

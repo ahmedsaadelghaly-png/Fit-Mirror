@@ -84,6 +84,14 @@ async function signInAsBrandAdmin(page: Page) {
       }),
     }),
   );
+  // Product pages load the fit-feedback summary; no reports in these tests.
+  await page.route(`${API_BASE_URL}/store/products/*/fit-feedback`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ reports: 0, small: 0, true_to_size: 0, large: 0, runs: null }),
+    }),
+  );
 }
 
 async function mockExistingStore(page: Page) {

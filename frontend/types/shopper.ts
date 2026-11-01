@@ -161,6 +161,20 @@ export interface SizeRecommendation {
   /** Whose profile the size was computed for. */
   body_profile_id: string | null;
   profile_name: string | null;
+  /** "brand": the brand's own size chart was used; "standard": FitMirror's. */
+  size_chart: "brand" | "standard";
+  fit_feedback: FitSummary | null;
+}
+
+export type FitVerdict = "small" | "true_to_size" | "large";
+
+/** What shoppers say about a product's fit; `runs` is set once enough agree. */
+export interface FitSummary {
+  reports: number;
+  small: number;
+  true_to_size: number;
+  large: number;
+  runs: FitVerdict | null;
 }
 
 // ---------------------------------------------------------------------------
