@@ -46,8 +46,18 @@ def client() -> TestClient:
 @pytest.fixture(scope="session")
 def db_engine():
     """Real Postgres engine for integration tests. Requires DATABASE_URL to
-    point at a reachable database (see docker-compose / CI service containers)."""
+    point at a reachable database (see docker-compose / CI service containers).
+
+    The fixture creates and DROPS every table, so it refuses to run against
+    any database whose name doesn't contain "test" (CI uses fitmirror_test)
+    — pointing it at a dev database would wipe that database."""
     engine = create_engine(settings.DATABASE_URL)
+    if "test" not in (engine.url.database or ""):
+        engine.dispose()
+        pytest.skip(
+            f"Integration tests drop all tables; refusing to use database "
+            f"'{engine.url.database}'. Point DATABASE_URL at a *_test database."
+        )
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
