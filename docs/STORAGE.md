@@ -65,7 +65,11 @@ Example: `user-photos/3f2a1b90-.../9f2a3c1e4b7a_photo.jpg`
 4. Client references the resulting `object_key` in a subsequent API call
    (e.g. `POST /tryon`).
 
-Download/read access is exposed via `GET /tryon/download-url?object_key=...`
+Download/read access is exposed via `POST /storage/download-urls`
+(`{object_keys: [...]}`, up to 100 keys → `{download_urls: {key: url}}`;
+the web app batches every image key requested within ~10ms into one call —
+see `frontend/api/storage.ts::loadDownloadUrl`) and the single-key
+`GET /tryon/download-url?object_key=...`
 (`app/api/v1/endpoints/tryon.py::create_download_url`), which calls
 `StorageService.get_download_url()` → `generate_download_url` (1 hour
 expiry) unless `S3_PUBLIC_BASE_URL` is configured, in which case a public

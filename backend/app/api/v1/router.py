@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     shopping,
     sizing,
     store_dashboard,
+    storage,
     stylist,
     tryon,
     users,
@@ -20,6 +21,7 @@ api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(wardrobe.router, prefix="/wardrobe", tags=["Smart Wardrobe"])
+api_router.include_router(storage.router, prefix="/storage", tags=["Storage"])
 api_router.include_router(tryon.router, prefix="/tryon", tags=["Virtual Try-On"])
 api_router.include_router(saved_looks.router, prefix="/saved-looks", tags=["Saved Looks"])
 api_router.include_router(stylist.router, prefix="/stylist", tags=["AI Stylist"])

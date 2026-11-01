@@ -38,7 +38,7 @@
   body-shape / kids' fit-type pickers; product `audience`; kids' sizing by
   height; shape-aware fit tips; audience-aware Shopping Assistant
 
-## In progress — Phase 3.2: Remaining backend gaps
+## Done — Phase 3.2: Remaining backend gaps
 
 - ✅ Family profiles: several body profiles per account (the shopper plus
   e.g. each child), chosen per size check and try-on
@@ -54,8 +54,13 @@
   other sessions at their next refresh. Email via SMTP or, in dev, the log
 - ✅ Contact form → support inbox (`/admin/support`), forwarded to support email
 - ✅ Self-service brand sign-up ("I'm a brand" on Register)
-- Batch download URLs (`POST /storage/download-urls`) so image grids make
-  one request instead of one per image
+- ✅ Batch download URLs (`POST /storage/download-urls`): the web app batches
+  every image on screen into one request instead of one per image
+
+Still mocked after Phase 3 (each needs its own backend model, see Phase 5–6):
+Admin product moderation, queue/worker monitoring, AI telemetry, feature
+flags, audit log and reports; Brand analytics, customers and orders;
+notification preferences; account deletion.
 
 ## Phase 4 — Real AI models (same contracts)
 

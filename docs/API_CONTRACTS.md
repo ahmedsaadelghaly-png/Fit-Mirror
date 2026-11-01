@@ -76,6 +76,7 @@ family members, e.g. each child. `BodyProfileRead` carries `name` and
 |---|---|---|---|---|---|
 | `/tryon/upload-url` | POST | bearer | query params `filename`, `content_type` | `200` `{object_key, upload_url, expires_in_seconds}` | `401`, `502 STORAGE_UPLOAD_FAILED` |
 | `/tryon/download-url` | GET | bearer | query param `object_key` | `200` `{download_url}` | `401`, `502 STORAGE_DOWNLOAD_FAILED` |
+| `/storage/download-urls` | POST | bearer | `{object_keys: string[]}` (1–100) | `200` `{download_urls: {key: url}}` — one entry per distinct key | `401`, `422`, `502 STORAGE_DOWNLOAD_FAILED` |
 | `/tryon` | POST | bearer | `{user_image_key, garment_image_key?, product_variant_id?}` — a catalog try-on sends the variant; its garment image (or the product photo) is used | `202` `{job_id, status: "pending"}` | `401`, `404 PRODUCT_NOT_FOUND` (unknown variant, or its product isn't visible to shoppers), `422 VALIDATION_ERROR` (neither image nor variant given) |
 | `/tryon/{job_id}` | GET | bearer | — | `200` `TryOnJobRead` | `401`, `404 TRYON_JOB_NOT_FOUND` |
 | `/tryon` | GET | bearer | — | `200` `TryOnJobRead[]` | `401` |
