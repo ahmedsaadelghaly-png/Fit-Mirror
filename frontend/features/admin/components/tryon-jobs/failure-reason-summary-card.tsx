@@ -1,12 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MockedBadge } from "@/features/admin/components/mocked-badge";
 import type { AdminTryOnJobRow } from "@/types/admin";
 
 export interface FailureReasonSummaryCardProps {
   jobs: AdminTryOnJobRow[];
 }
 
-/** Genuinely aggregates the mocked jobs' error messages by frequency — the underlying rows are mocked, but the grouping itself is real. */
+/** Aggregates the loaded jobs' error messages by frequency (the most recent 200 jobs — see api/admin/tryon-jobs.ts). */
 function FailureReasonSummaryCard({ jobs }: FailureReasonSummaryCardProps) {
   const failedJobs = jobs.filter((job) => job.status === "failed" && job.error_message);
   const counts = new Map<string, number>();
@@ -25,7 +24,6 @@ function FailureReasonSummaryCard({ jobs }: FailureReasonSummaryCardProps) {
             Grouped by error message, {failedJobs.length} failed jobs total
           </CardDescription>
         </div>
-        <MockedBadge />
       </CardHeader>
       <CardContent>
         {sorted.length === 0 ? (

@@ -1,6 +1,7 @@
 import { Clock } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { tryOnJobTitle } from "@/features/tryon/lib/job-display";
 import type { TryOnJob } from "@/types/domain";
 
 export interface QueueStatusCardProps {
@@ -27,10 +28,10 @@ function QueueStatusCard({ activeJobs }: QueueStatusCardProps) {
           <ul className="flex flex-col gap-2">
             {activeJobs.map((job) => (
               <li key={job.id} className="flex items-center justify-between text-sm">
-                <span className="truncate font-mono text-xs text-muted-foreground">
-                  Job {job.id.slice(0, 8)}
+                <span className="truncate text-muted-foreground">{tryOnJobTitle(job)}</span>
+                <span className="shrink-0">
+                  {STATUS_COPY[job.status as "pending" | "processing"]}
                 </span>
-                <span>{STATUS_COPY[job.status as "pending" | "processing"]}</span>
               </li>
             ))}
           </ul>

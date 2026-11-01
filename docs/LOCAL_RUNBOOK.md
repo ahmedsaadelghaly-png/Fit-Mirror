@@ -20,6 +20,7 @@ Then, **every time you start from a fresh Postgres/MinIO volume** (first run, or
 
 ```bash
 # 1. Create the MinIO bucket — nothing else works without this.
+# Optional since the photo seed: `make seed` creates the bucket if it is missing.
 docker compose exec minio mc alias set local http://localhost:9000 fitmirror fitmirror123
 docker compose exec minio mc mb local/fitmirror-media
 
@@ -118,6 +119,8 @@ The Alembic migration hasn't been applied yet (or was somehow reverted — see "
 ### Don't run backend integration tests against your Docker Compose dev database
 
 `backend/tests/conftest.py`'s fixtures call `Base.metadata.create_all()` at setup and `Base.metadata.drop_all()` at teardown — they assume a **disposable** database. The default `DATABASE_URL` they fall back to (`.../fitmirror_test`) is already a different database name than the dev default (`.../fitmirror`), specifically so a normal `pytest` run doesn't touch your seeded dev data. If you explicitly override `DATABASE_URL` to point at your dev database when running integration tests, they *will* drop every table at the end of the run, leaving your `docker compose up` environment with data you thought was there.
+
+The `db_engine` fixture now enforces this: it skips the integration tests unless the database name contains `test`.
 
 If you need to run the backend test suite against a local (non-CI) Postgres, create a dedicated database first:
 

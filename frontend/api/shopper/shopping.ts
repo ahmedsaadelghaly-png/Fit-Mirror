@@ -1,18 +1,16 @@
+import { apiClient } from "@/api/client";
 import type { ShoppingAskRequest, ShoppingAskResponse } from "@/types/shopper";
 
 /**
- * PLACEHOLDER — `POST /shopping/ask` returns `501` on the backend today
- * (see docs/API_CONTRACTS.md "AI Stylist, Size Recommendation, Shopping
- * Assistant", ROADMAP.md Phase 5). Same simulated-round-trip pattern as
- * api/shopper/stylist.ts — swap for a real `apiClient.post` call once the
- * backend implements it.
+ * Real call to `POST /shopping/ask` — the backend parses the query into
+ * catalog filters (category, price bounds, size) plus search terms and
+ * answers with ranked product IDs and a reply (see backend
+ * app/services/shopping_service.py). Matched products can be loaded with
+ * `GET /catalog/products?ids=...`.
  */
 export async function askShoppingAssistant(
   payload: ShoppingAskRequest,
 ): Promise<ShoppingAskResponse> {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  return {
-    matched_product_ids: [],
-    reply: `Shopping Assistant is a planned feature — once live, "${payload.query}" will be answered from the product catalog instead of shown as a placeholder.`,
-  };
+  const { data } = await apiClient.post<ShoppingAskResponse>("/shopping/ask", payload);
+  return data;
 }

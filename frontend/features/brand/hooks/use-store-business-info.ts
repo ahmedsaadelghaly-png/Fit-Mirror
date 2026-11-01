@@ -1,32 +1,37 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchStoreBusinessInfo, saveStoreBusinessInfo } from "@/api/brand/store-local";
+import { updateMyStore } from "@/api/brand/store";
 import { useStore } from "@/features/brand/hooks/use-store";
 import type { StoreBusinessInfo } from "@/types/brand";
+import type { Store } from "@/types/domain";
+
+function toBusinessInfo(store: Store): StoreBusinessInfo {
+  return {
+    category: store.category,
+    description: store.description,
+    social_links: store.social_links,
+    logo_image_key: store.logo_image_key,
+  };
+}
 
 /**
- * See api/brand/store-local.ts — localStorage-backed placeholder for
- * fields (`category`/`description`/`social_links`/a usable
- * `logo_image_key`) the `Store` model and API don't support at all.
- * Namespaced per store id, so it only loads once a store exists.
+ * The store's business info (category, description, social links, logo)
+ * — read from `GET /store/me`, saved with `PATCH /store/me`.
  */
 export function useStoreBusinessInfo() {
-  const { data: store } = useStore();
-  const storeId = store?.id;
-
-  const query = useQuery({
-    queryKey: ["brand", "store-business-info", storeId],
-    queryFn: () => fetchStoreBusinessInfo(storeId as string),
-    enabled: !!storeId,
-  });
-
+  const storeQuery = useStore();
   const queryClient = useQueryClient();
-  const saveMutation = useMutation({
-    mutationFn: (info: StoreBusinessInfo) => saveStoreBusinessInfo(storeId as string, info),
-    onSuccess: (info) => {
-      queryClient.setQueryData(["brand", "store-business-info", storeId], info);
+
+  const save = useMutation({
+    mutationFn: (info: StoreBusinessInfo) => updateMyStore(info),
+    onSuccess: (store) => {
+      queryClient.setQueryData(["brand", "store"], store);
     },
   });
 
-  return { ...query, save: saveMutation };
+  return {
+    data: storeQuery.data ? toBusinessInfo(storeQuery.data) : undefined,
+    isLoading: storeQuery.isLoading,
+    save,
+  };
 }

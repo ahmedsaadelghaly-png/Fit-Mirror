@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Palette, Ruler } from "lucide-react";
+import { Camera, Palette, Ruler, UsersRound } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
@@ -19,18 +19,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ImageUploadField } from "@/shared/components/image-upload-field";
-import { useStylePreferences } from "@/features/shopper/hooks/use-style-preferences";
+import { ResolvedImage } from "@/shared/components/resolved-image";
 import { useUpload } from "@/features/shopper/hooks/use-upload";
+import { useUpdateBodyProfile } from "@/features/shopper/hooks/use-body-profiles";
 import { useUpsertBodyProfile } from "@/features/shopper/hooks/use-upsert-body-profile";
+import { findBodyCategory } from "@/features/shopper/body-shapes";
+import { BodyShapePicker } from "@/features/shopper/components/body-shape/body-shape-picker";
 import {
-  BODY_SHAPES,
   type BodyProfileFormValues,
   bodyProfileFormSchema,
   COLOR_PALETTE,
   PREFERRED_FITS,
   STYLE_TAGS,
+  withBodyShapeRule,
 } from "@/features/shopper/schemas";
-import type { BodyProfile } from "@/types/domain";
+import type { BodyCategory, BodyProfile } from "@/types/domain";
+import type { BodyProfileUpsertRequest } from "@/types/shopper";
 
 const MEASUREMENT_FIELDS = [
   { name: "height_cm", label: "Height (cm)" },
@@ -60,16 +64,18 @@ export interface BodyProfileFormProps {
 }
 
 /**
- * Full Body Profile form — measurements + body shape go to
- * `PUT /users/me/body-profile`; preferred fit / favorite colors / style
- * tags are frontend-only (see features/shopper/hooks/use-style-
- * preferences.ts for the documented backend contract mismatch); the
- * reference photo uploads to storage via features/shopper/hooks/use-
- * upload.ts but — same mismatch — has no backend field to be saved to yet.
+ * Full Body Profile form — measurements, body shape, style preferences
+ * and the reference photo (uploaded to storage first via
+ * features/shopper/hooks/use-upload.ts) all save with one
+ * `PUT /users/me/body-profile`.
  */
 function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
-  const { preferences, savePreferences, isHydrated } = useStylePreferences();
   const upsertMutation = useUpsertBodyProfile();
+  const updateMutation = useUpdateBodyProfile();
+  // A family member's profile saves by id; the shopper's own (or a first,
+  // not-yet-created one) through the primary-profile endpoint.
+  const familyProfile = existingProfile && !existingProfile.is_primary ? existingProfile : null;
+  const saveMutation = familyProfile ? updateMutation : upsertMutation;
   const upload = useUpload();
 
   const {
@@ -80,7 +86,7 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
     setValue,
     formState: { errors },
   } = useForm<BodyProfileFormValues>({
-    resolver: zodResolver(bodyProfileFormSchema),
+    resolver: zodResolver(withBodyShapeRule(bodyProfileFormSchema)),
     defaultValues: {
       favorite_colors: [],
       style_preferences: [],
@@ -88,22 +94,25 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
   });
 
   useEffect(() => {
-    if (!existingProfile && !isHydrated) return;
+    if (!existingProfile) return;
     reset({
-      height_cm: existingProfile?.height_cm ?? undefined,
-      weight_kg: existingProfile?.weight_kg ?? undefined,
-      chest_cm: existingProfile?.chest_cm ?? undefined,
-      waist_cm: existingProfile?.waist_cm ?? undefined,
-      hip_cm: existingProfile?.hip_cm ?? undefined,
-      body_shape: (existingProfile?.body_shape as BodyProfileFormValues["body_shape"]) ?? "",
-      preferred_fit: (preferences.preferred_fit as BodyProfileFormValues["preferred_fit"]) ?? "",
-      favorite_colors: preferences.favorite_colors as BodyProfileFormValues["favorite_colors"],
+      height_cm: existingProfile.height_cm ?? undefined,
+      weight_kg: existingProfile.weight_kg ?? undefined,
+      chest_cm: existingProfile.chest_cm ?? undefined,
+      waist_cm: existingProfile.waist_cm ?? undefined,
+      hip_cm: existingProfile.hip_cm ?? undefined,
+      body_category: existingProfile.body_category ?? "",
+      body_shape: existingProfile.body_shape ?? "",
+      preferred_fit:
+        (existingProfile.preferred_fit as BodyProfileFormValues["preferred_fit"]) ?? "",
+      favorite_colors: existingProfile.favorite_colors as BodyProfileFormValues["favorite_colors"],
       style_preferences:
-        preferences.style_preferences as BodyProfileFormValues["style_preferences"],
+        existingProfile.style_preferences as BodyProfileFormValues["style_preferences"],
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run once both sources have loaded
-  }, [existingProfile, isHydrated]);
+  }, [existingProfile, reset]);
 
+  const bodyCategory = watch("body_category") || "";
+  const isKids = findBodyCategory(bodyCategory)?.isKids ?? false;
   const favoriteColors = watch("favorite_colors") ?? [];
   const styleTags = watch("style_preferences") ?? [];
 
@@ -111,23 +120,58 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
     current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
 
   const onSubmit = handleSubmit(async (values) => {
-    await upsertMutation.mutateAsync({
+    const payload: BodyProfileUpsertRequest = {
       height_cm: values.height_cm ?? null,
       weight_kg: values.weight_kg ?? null,
       chest_cm: values.chest_cm ?? null,
       waist_cm: values.waist_cm ?? null,
       hip_cm: values.hip_cm ?? null,
+      body_category: (values.body_category || null) as BodyCategory | null,
       body_shape: values.body_shape || null,
-    });
-    savePreferences({
       preferred_fit: values.preferred_fit || null,
       favorite_colors: values.favorite_colors,
       style_preferences: values.style_preferences,
-    });
+      ...(upload.objectKey ? { reference_image_key: upload.objectKey } : {}),
+    };
+    try {
+      if (familyProfile) {
+        await updateMutation.mutateAsync({ id: familyProfile.id, payload });
+      } else {
+        await upsertMutation.mutateAsync(payload);
+      }
+    } catch {
+      // Shown by the alert below.
+    }
   });
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-8">
+      <Card variant="flush">
+        <CardHeader className="flex-row items-center gap-3 px-0">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent">
+            <UsersRound className="size-4 text-accent-foreground" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold">Body type</h2>
+            <p className="text-sm text-muted-foreground">
+              Sets which sizes and fit advice apply — women&apos;s, men&apos;s, or kids&apos; (sized
+              by height).
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent className="px-0">
+          <BodyShapePicker
+            idPrefix="profile"
+            value={{ category: bodyCategory, shape: watch("body_shape") || "" }}
+            onChange={({ category, shape }) => {
+              setValue("body_category", category, { shouldDirty: true });
+              setValue("body_shape", shape, { shouldDirty: true, shouldValidate: !!shape });
+            }}
+            error={errors.body_shape?.message}
+          />
+        </CardContent>
+      </Card>
+
       <Card variant="flush">
         <CardHeader className="flex-row items-center gap-3 px-0">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent">
@@ -136,7 +180,9 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
           <div>
             <h2 className="font-display text-lg font-semibold">Measurements</h2>
             <p className="text-sm text-muted-foreground">
-              Used to fit try-on results and size recommendations to you.
+              {isKids
+                ? "For kids, height is what matters most — the rest is optional."
+                : "Used to fit try-on results and size recommendations to you."}
             </p>
           </div>
         </CardHeader>
@@ -160,26 +206,6 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
               )}
             </div>
           ))}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="body_shape">Body shape</Label>
-            <Select
-              value={watch("body_shape") || undefined}
-              onValueChange={(value) =>
-                setValue("body_shape", value as BodyProfileFormValues["body_shape"])
-              }
-            >
-              <SelectTrigger id="body_shape">
-                <SelectValue placeholder="Select a body shape" />
-              </SelectTrigger>
-              <SelectContent>
-                {BODY_SHAPES.map((shape) => (
-                  <SelectItem key={shape} value={shape}>
-                    {formatOptionLabel(shape)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </CardContent>
       </Card>
 
@@ -266,39 +292,52 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
             </p>
           </div>
         </CardHeader>
-        <CardContent className="px-0">
-          <ImageUploadField
-            label="Drop a reference photo here, or click to browse"
-            hint="PNG or JPG, up to 10MB"
-            status={upload.status}
-            previewUrl={upload.previewUrl}
-            progress={upload.progress}
-            error={upload.error}
-            onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
-            onClear={upload.reset}
-          />
-          <p className="mt-2 text-xs text-muted-foreground">
-            Not connected to try-on results yet — uploading here doesn&apos;t change anything else
-            in the app today.
-          </p>
+        <CardContent className="flex flex-col gap-4 px-0 sm:flex-row sm:items-start">
+          {existingProfile?.reference_image_key && !upload.previewUrl && (
+            <figure className="flex w-32 shrink-0 flex-col gap-1">
+              <ResolvedImage
+                imageKey={existingProfile.reference_image_key}
+                alt="Your saved reference photo"
+                className="aspect-[3/4] w-32 rounded-lg object-cover"
+              />
+              <figcaption className="text-xs text-muted-foreground">Saved photo</figcaption>
+            </figure>
+          )}
+          <div className="flex-1">
+            <ImageUploadField
+              label="Drop a reference photo here, or click to browse"
+              hint="PNG or JPG, up to 10MB"
+              status={upload.status}
+              previewUrl={upload.previewUrl}
+              progress={upload.progress}
+              error={upload.error}
+              onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
+              onClear={upload.reset}
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Saved with this profile and used as the photo for catalog try-ons.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
-      {upsertMutation.isError && (
+      {saveMutation.isError && (
         <p role="alert" className="text-sm text-destructive">
-          {upsertMutation.error instanceof ApiError
-            ? upsertMutation.error.message
+          {saveMutation.error instanceof ApiError
+            ? saveMutation.error.message
             : "Something went wrong. Please try again."}
         </p>
       )}
 
-      {upsertMutation.isSuccess && !upsertMutation.isPending && (
+      {saveMutation.isSuccess && !saveMutation.isPending && (
         <p role="status" className="text-sm text-success">
-          Your body profile has been saved.
+          {familyProfile
+            ? `${familyProfile.name}'s profile has been saved.`
+            : "Your body profile has been saved."}
         </p>
       )}
 
-      <Button type="submit" isLoading={upsertMutation.isPending} className="w-fit">
+      <Button type="submit" isLoading={saveMutation.isPending} className="w-fit">
         Save body profile
       </Button>
     </form>

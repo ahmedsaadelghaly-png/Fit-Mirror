@@ -64,25 +64,30 @@ test.describe("Public marketing pages", () => {
   });
 });
 
+// Generous URL timeouts below: under `next dev` the first visit to a route
+// compiles it on demand, which can take well over 5s.
 test.describe("Navigation", () => {
   test("navigates from landing to login", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("link", { name: "Log in" }).first().click();
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/login$/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
   });
 
   test("navigates from landing to register", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /create your account/i }).first().click();
-    await expect(page).toHaveURL(/\/register$/);
+    await page
+      .getByRole("link", { name: /create your account/i })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/register$/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: /create your account/i })).toBeVisible();
   });
 
   test("navigates from login to forgot-password", async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("link", { name: /forgot password/i }).click();
-    await expect(page).toHaveURL(/\/forgot-password$/);
+    await expect(page).toHaveURL(/\/forgot-password$/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: /reset your password/i })).toBeVisible();
   });
 });

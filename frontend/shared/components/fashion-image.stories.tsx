@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { EditorialImage, FashionImage, ModelImage, ProductImage } from "@/shared/components/fashion-image";
+import {
+  EditorialImage,
+  FashionImage,
+  ModelImage,
+  ProductImage,
+} from "@/shared/components/fashion-image";
 
 const meta: Meta<typeof FashionImage> = {
   title: "Shared/FashionImage",

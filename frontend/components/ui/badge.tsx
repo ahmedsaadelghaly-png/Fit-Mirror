@@ -6,12 +6,16 @@ import { cn } from "@/lib/utils";
 const badgeVariants = cva("inline-flex items-center transition-colors", {
   variants: {
     variant: {
-      default: "gap-1 rounded-full border border-transparent bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground",
+      default:
+        "gap-1 rounded-full border border-transparent bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground",
       secondary:
         "gap-1 rounded-full border border-transparent bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground",
-      outline: "gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-foreground",
-      success: "gap-1 rounded-full border border-transparent bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success",
-      warning: "gap-1 rounded-full border border-transparent bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning",
+      outline:
+        "gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-foreground",
+      success:
+        "gap-1 rounded-full border border-transparent bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success",
+      warning:
+        "gap-1 rounded-full border border-transparent bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning",
       destructive:
         "gap-1 rounded-full border border-transparent bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive",
       /**

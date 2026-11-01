@@ -79,3 +79,15 @@ def test_model_registry_raises_for_unknown_model(monkeypatch):
 
     with pytest.raises(ValueError, match="Unknown TRYON_MODEL_NAME"):
         get_tryon_pipeline()
+
+
+def test_placeholder_result_is_a_portrait_with_the_garment_inset():
+    person = _fake_png_bytes(size=(800, 600), color=(200, 30, 30))  # landscape, red
+    garment = _fake_png_bytes(size=(300, 300), color=(30, 30, 200))  # blue
+    result = PlaceholderTryOnPipeline._generate_placeholder_result(person, garment)
+
+    assert result.size == (900, 1200)
+    # Bottom-right inset shows the garment; the top-middle stays the person.
+    assert result.getpixel((900 - 36 - 140, 1200 - 36 - 140)) == (30, 30, 200)
+    red, _, _ = result.getpixel((450, 400))
+    assert red > 150

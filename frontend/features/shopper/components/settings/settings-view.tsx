@@ -1,9 +1,11 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { AccountSettingsSection } from "@/features/shopper/components/settings/account-settings-section";
+import {
+  ChangePasswordCard,
+  ProfileDetailsCard,
+} from "@/features/auth/components/account-settings";
 import { NotificationPreferencesSection } from "@/features/shopper/components/settings/notification-preferences-section";
-import { ProfileDetailsSection } from "@/features/shopper/components/settings/profile-details-section";
 import { ThemePreferenceShortcut } from "@/features/shopper/components/settings/theme-preference-shortcut";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -19,12 +21,12 @@ function SettingsView() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {currentUser ? (
-          <ProfileDetailsSection user={currentUser} />
+          <ProfileDetailsCard user={currentUser} />
         ) : (
           <Skeleton className="h-48 w-full" />
         )}
         <ThemePreferenceShortcut />
-        <AccountSettingsSection />
+        <ChangePasswordCard />
         <NotificationPreferencesSection />
       </div>
     </div>

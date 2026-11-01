@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { bodyMeasurementsSchema, wardrobeItemSchema } from "@/features/shopper/schemas";
+import {
+  bodyMeasurementsSchema,
+  wardrobeItemSchema,
+  withBodyShapeRule,
+} from "@/features/shopper/schemas";
 
 describe("bodyMeasurementsSchema", () => {
   it("accepts a fully empty payload — every field is optional, matching the backend's BodyProfileUpsert", () => {
@@ -38,9 +42,26 @@ describe("bodyMeasurementsSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects a body_shape outside the known set", () => {
-    const result = bodyMeasurementsSchema.safeParse({ body_shape: "triangle-of-power" });
-    expect(result.success).toBe(false);
+  it("accepts a body shape that belongs to the chosen category", () => {
+    const schema = withBodyShapeRule(bodyMeasurementsSchema);
+    expect(schema.safeParse({ body_category: "men", body_shape: "trapezoid" }).success).toBe(true);
+    expect(schema.safeParse({ body_category: "boys", body_shape: "husky" }).success).toBe(true);
+  });
+
+  it("rejects a shape from another category, or a shape without a category", () => {
+    const schema = withBodyShapeRule(bodyMeasurementsSchema);
+    const wrongCategory = schema.safeParse({ body_category: "girls", body_shape: "hourglass" });
+    const noCategory = schema.safeParse({ body_shape: "pear" });
+
+    expect(wrongCategory.success).toBe(false);
+    expect(noCategory.success).toBe(false);
+    if (!noCategory.success) {
+      expect(noCategory.error.issues[0]?.message).toMatch(/who this profile is for/i);
+    }
+  });
+
+  it("rejects an unknown body category", () => {
+    expect(bodyMeasurementsSchema.safeParse({ body_category: "teens" }).success).toBe(false);
   });
 
   it("coerces a numeric string from a number input into a number", () => {

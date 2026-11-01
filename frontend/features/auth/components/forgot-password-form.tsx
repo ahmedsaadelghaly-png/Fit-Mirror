@@ -12,9 +12,9 @@ import { useForgotPassword } from "@/features/auth/hooks/use-forgot-password";
 import { type ForgotPasswordFormValues, forgotPasswordSchema } from "@/features/auth/schemas";
 
 /**
- * Calls the PLACEHOLDER `forgotPassword` API function (see
- * features/auth/api.ts) — the UI/UX here is real and complete, but no
- * email is actually sent until the backend implements this endpoint.
+ * `POST /auth/forgot-password` emails a single-use link to
+ * `/reset-password` (features/auth/components/reset-password-form.tsx).
+ * In local dev (EMAIL_BACKEND=log) the email is written to the backend log.
  */
 function ForgotPasswordForm() {
   const forgotPasswordMutation = useForgotPassword();

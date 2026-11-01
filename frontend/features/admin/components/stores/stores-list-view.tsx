@@ -6,7 +6,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminGuard } from "@/features/admin/components/admin-guard";
-import { MockedBadge } from "@/features/admin/components/mocked-badge";
 import { StoreFiltersBar } from "@/features/admin/components/stores/store-filters-bar";
 import { StoresTable } from "@/features/admin/components/stores/stores-table";
 import { useAdminStores } from "@/features/admin/hooks/use-admin-stores";
@@ -30,7 +29,6 @@ function StoresListContent() {
           <h1 className="font-display text-2xl font-semibold">Stores</h1>
           <p className="text-sm text-muted-foreground">Every brand storefront on the platform.</p>
         </div>
-        <MockedBadge />
       </div>
 
       {isLoading && (

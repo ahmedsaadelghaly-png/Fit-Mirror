@@ -30,8 +30,7 @@ function formatOptionLabel(value: string): string {
 }
 
 /**
- * Editable business info — everything here is frontend-only (see
- * types/brand.ts `StoreBusinessInfo`), persisted to localStorage via
+ * Editable business info, saved with `PATCH /store/me` via
  * features/brand/hooks/use-store-business-info.ts. Consolidates the three
  * onboarding steps (logo/details/social) into one form for post-onboarding
  * editing.

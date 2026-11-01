@@ -5,6 +5,7 @@ import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/ui/status-chip";
 import { cn } from "@/lib/utils";
+import { tryOnJobMeta, tryOnJobTitle } from "@/features/tryon/lib/job-display";
 import { ResolvedImage } from "@/shared/components/resolved-image";
 import type { TryOnJob } from "@/types/domain";
 
@@ -35,13 +36,12 @@ function TryOnJobCard({ job, isActive, onSelect, onRetry }: TryOnJobCardProps) {
     >
       <ResolvedImage
         imageKey={job.result_image_key ?? job.garment_image_key}
-        alt={`Try-on job ${job.id.slice(0, 8)}`}
+        alt={`Try-on: ${tryOnJobTitle(job)}`}
         className="size-14 shrink-0 rounded-md"
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="truncate font-mono text-xs text-muted-foreground">
-          Job {job.id.slice(0, 8)}
-        </span>
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+        <span className="truncate text-sm font-medium">{tryOnJobTitle(job)}</span>
+        <span className="truncate text-xs text-muted-foreground">{tryOnJobMeta(job)}</span>
         <StatusChip status={job.status} />
       </div>
       {job.status === "failed" && onRetry && (

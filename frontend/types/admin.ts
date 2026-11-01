@@ -2,16 +2,12 @@ import type { TryOnJobStatus, UserRole } from "@/types/domain";
 
 /**
  * Request/response and mock-data shapes for the Platform Admin feature
- * area. See docs/frontend/ADMIN_APP.md "API contract mismatches" for the
- * full audit: as of Phase 2.5 the backend has NO `/admin` router, no
- * cross-tenant listing of any resource, no queue/worker monitoring, no
- * audit log, and no feature-flag model at all (confirmed by reading
- * backend/app/api/v1/router.py and docs/RBAC.md, not assumed). The only
- * real, callable endpoint is `GET /health` at the backend root (see
- * api/admin/health.ts). Every type below marked "mock" backs data that is
- * generated client-side in api/admin/mock-data.ts, not fetched from a real
- * endpoint — every hook/component consuming it surfaces a visible
- * "Mocked data" label per the Phase 2.5 UX requirement.
+ * area. Since Phase 3.1, users, stores, and try-on jobs come from the real
+ * `/admin/*` API (see api/admin/{users,stores,tryon-jobs}.ts and
+ * docs/API_CONTRACTS.md "Platform Admin"). Everything else — product
+ * moderation, queue/workers, audit log, feature flags, reports, alerts —
+ * still has no backend and is generated in api/admin/mock-data.ts; every
+ * view of it shows a visible "Mocked data" label.
  */
 
 // ---------------------------------------------------------------------------
@@ -34,13 +30,6 @@ export interface AdminUserFilters {
   search: string;
 }
 
-/** Local-only overlay — no `/admin/users/{id}` endpoint exists to activate/deactivate or change a role. */
-export interface UserOverlay {
-  userId: string;
-  isActiveOverride: boolean | null;
-  roleOverride: UserRole | null;
-}
-
 // ---------------------------------------------------------------------------
 // Stores
 // ---------------------------------------------------------------------------
@@ -59,13 +48,6 @@ export interface AdminStoreRow {
 export interface AdminStoreFilters {
   verification: "all" | "verified" | "unverified";
   search: string;
-}
-
-/** Local-only overlay — no `/admin/stores/{id}` verify/suspend endpoint exists. */
-export interface StoreOverlay {
-  storeId: string;
-  isVerifiedOverride: boolean | null;
-  isSuspendedOverride: boolean | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -108,7 +90,8 @@ export interface AdminTryOnJobRow {
   id: string;
   status: TryOnJobStatus;
   user_email: string;
-  store_name: string;
+  /** Only set for catalog-garment jobs; uploaded garments have no store. */
+  store_name: string | null;
   user_image_key: string;
   garment_image_key: string;
   result_image_key: string | null;
@@ -120,12 +103,6 @@ export interface AdminTryOnJobRow {
 export interface AdminTryOnJobFilters {
   status: TryOnJobStatus | "all";
   search: string;
-}
-
-/** Local-only overlay — no retry endpoint exists for an admin to resubmit someone else's job. */
-export interface TryOnJobRetryOverlay {
-  jobId: string;
-  retryRequestedAt: string;
 }
 
 // ---------------------------------------------------------------------------

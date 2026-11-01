@@ -1,4 +1,5 @@
 import { Shirt } from "lucide-react";
+import { useState } from "react";
 
 import { useResolvedImageUrl } from "@/hooks/use-resolved-image-url";
 import { cn } from "@/lib/utils";
@@ -36,8 +37,13 @@ function ResolvedImage({ imageKey, alt, className }: ResolvedImageProps) {
   const directUrl = resolveImageUrl(imageKey);
   const resolvedQuery = useResolvedImageUrl(directUrl ? null : imageKey);
   const url = directUrl ?? resolvedQuery.data?.download_url;
+  // A presigned URL is issued even for an object that doesn't exist (e.g. a
+  // failed try-on's missing input), so a 404 only shows up when the <img>
+  // loads — fall back to the placeholder instead of a broken-image icon.
+  // Keyed by URL so a new key for the same tile is tried again.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
-  if (!url) {
+  if (!url || url === failedUrl) {
     // Same rule as shared/components/fashion-image.tsx: an empty `alt`
     // means decorative, so use `aria-hidden` instead of `role="img"
     // aria-label=""`, which is a WCAG violation.
@@ -52,7 +58,11 @@ function ResolvedImage({ imageKey, alt, className }: ResolvedImageProps) {
         aria-label={isDecorative ? undefined : alt}
         aria-hidden={isDecorative || undefined}
       >
-        <Shirt className="size-1/4 min-h-6 min-w-6 text-background/15" strokeWidth={1} aria-hidden="true" />
+        <Shirt
+          className="size-1/4 min-h-6 min-w-6 text-background/15"
+          strokeWidth={1}
+          aria-hidden="true"
+        />
       </div>
     );
   }
@@ -60,7 +70,12 @@ function ResolvedImage({ imageKey, alt, className }: ResolvedImageProps) {
   return (
     <div className={cn("overflow-hidden bg-muted", className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt={alt} className="size-full animate-fade-in object-cover" />
+      <img
+        src={url}
+        alt={alt}
+        onError={() => setFailedUrl(url)}
+        className="size-full animate-fade-in object-cover"
+      />
     </div>
   );
 }

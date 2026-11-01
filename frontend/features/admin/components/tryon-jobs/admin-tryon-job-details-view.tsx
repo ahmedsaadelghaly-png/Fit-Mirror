@@ -3,7 +3,6 @@
 import { RotateCcw } from "lucide-react";
 import Link from "next/link";
 
-import { readRetryOverlaySync } from "@/api/admin/tryon-jobs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -57,8 +56,6 @@ function AdminTryOnJobDetailsContent({ jobId }: { jobId: string }) {
     );
   }
 
-  const retryOverlay = readRetryOverlaySync(job.id);
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -68,7 +65,7 @@ function AdminTryOnJobDetailsContent({ jobId }: { jobId: string }) {
             <StatusChip status={job.status} />
           </div>
           <p className="text-sm text-muted-foreground">
-            {job.user_email} · {job.store_name}
+            {job.store_name ? `${job.user_email} · ${job.store_name}` : job.user_email}
           </p>
         </div>
         {job.status === "failed" && (
@@ -76,9 +73,8 @@ function AdminTryOnJobDetailsContent({ jobId }: { jobId: string }) {
             variant="outline"
             onClick={() => retryMutation.mutate(job.id)}
             isLoading={retryMutation.isPending}
-            disabled={!!retryOverlay}
           >
-            <RotateCcw className="size-3.5" /> {retryOverlay ? "Retry requested" : "Retry job"}
+            <RotateCcw className="size-3.5" /> Retry job
           </Button>
         )}
       </div>

@@ -1,57 +1,28 @@
-import { MOCK_USERS } from "@/api/admin/mock-data";
-import { delay } from "@/api/admin/shared";
-import type { AdminUserRow, UserOverlay } from "@/types/admin";
+import { apiClient } from "@/api/client";
+import type { AdminUserRow } from "@/types/admin";
 import type { UserRole } from "@/types/domain";
 
+/** Backend `AdminUserRead` — see docs/API_CONTRACTS.md "Platform Admin". */
+type AdminUserResponse = Omit<AdminUserRow, "last_login_at">;
+
 /**
- * PLACEHOLDER — no `/admin/users` (or any cross-tenant user listing)
- * endpoint exists on the backend (confirmed absent — see
- * docs/frontend/ADMIN_APP.md "API contract mismatches"). Returns the fixed
- * mock roster from api/admin/mock-data.ts. Activate/deactivate and role
- * change are captured in a localStorage overlay per user, same pattern as
- * Phase 2.4's `api/brand/product-overlay.ts`.
+ * The list views filter/search client-side (see features/admin/hooks/
+ * use-users.ts), so this fetches up to the backend's page-size cap in one
+ * call. Last-login isn't tracked server-side yet, so `last_login_at` is
+ * always null ("Never" in the UI).
  */
 export async function listUsers(): Promise<AdminUserRow[]> {
-  await delay();
-  return MOCK_USERS;
+  const { data } = await apiClient.get<AdminUserResponse[]>("/admin/users", {
+    params: { limit: 200 },
+  });
+  return data.map((user) => ({ ...user, last_login_at: null }));
 }
 
-function storageKey(userId: string): string {
-  return `fitmirror.admin.user-overlay.${userId}`;
-}
-
-function emptyOverlay(userId: string): UserOverlay {
-  return { userId, isActiveOverride: null, roleOverride: null };
-}
-
-export function readUserOverlaySync(userId: string): UserOverlay {
-  if (typeof window === "undefined") return emptyOverlay(userId);
-  try {
-    const raw = window.localStorage.getItem(storageKey(userId));
-    return raw ? (JSON.parse(raw) as UserOverlay) : emptyOverlay(userId);
-  } catch {
-    return emptyOverlay(userId);
-  }
-}
-
-function writeOverlay(overlay: UserOverlay): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(storageKey(overlay.userId), JSON.stringify(overlay));
-}
-
-export async function setUserActiveOverride(
+/** Takes effect on the user's next request — role checks read the DB, not the token. */
+export async function updateUser(
   userId: string,
-  isActive: boolean,
-): Promise<UserOverlay> {
-  await delay();
-  const overlay = { ...readUserOverlaySync(userId), isActiveOverride: isActive };
-  writeOverlay(overlay);
-  return overlay;
-}
-
-export async function setUserRoleOverride(userId: string, role: UserRole): Promise<UserOverlay> {
-  await delay();
-  const overlay = { ...readUserOverlaySync(userId), roleOverride: role };
-  writeOverlay(overlay);
-  return overlay;
+  changes: { role?: UserRole; is_active?: boolean },
+): Promise<AdminUserRow> {
+  const { data } = await apiClient.patch<AdminUserResponse>(`/admin/users/${userId}`, changes);
+  return { ...data, last_login_at: null };
 }

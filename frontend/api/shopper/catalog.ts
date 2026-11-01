@@ -1,0 +1,30 @@
+import { apiClient } from "@/api/client";
+import type { Product, ProductAudience } from "@/types/domain";
+
+/**
+ * `GET /catalog/products?ids=...` — shopper-visible products only (active,
+ * not archived, store not suspended), returned in the order of `ids`
+ * (e.g. the Shopping Assistant's relevance rank).
+ */
+export async function listCatalogProductsByIds(ids: string[]): Promise<Product[]> {
+  const { data } = await apiClient.get<Product[]>("/catalog/products", {
+    params: { ids },
+    // FastAPI reads repeated keys (ids=a&ids=b), not Axios' default ids[]=a.
+    paramsSerializer: { indexes: null },
+  });
+  return data;
+}
+
+export interface CatalogFilters {
+  audience?: ProductAudience;
+  category?: string;
+  q?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/** `GET /catalog/products` — browse with optional audience/category/search filters. */
+export async function listCatalogProducts(filters: CatalogFilters): Promise<Product[]> {
+  const { data } = await apiClient.get<Product[]>("/catalog/products", { params: filters });
+  return data;
+}

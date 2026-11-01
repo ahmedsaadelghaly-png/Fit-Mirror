@@ -30,7 +30,16 @@ export interface LookCardProps {
  * so it composes equally for saved looks (Stage 5) and stylist
  * suggestions (Stage 6) — callers map their own data into these props.
  */
-function LookCard({ imageKey, alt, title, meta, badge, actions, onClick, className }: LookCardProps) {
+function LookCard({
+  imageKey,
+  alt,
+  title,
+  meta,
+  badge,
+  actions,
+  onClick,
+  className,
+}: LookCardProps) {
   const interactive = Boolean(onClick);
 
   return (
@@ -63,7 +72,12 @@ function LookCard({ imageKey, alt, title, meta, badge, actions, onClick, classNa
         )}
       />
 
-      {badge && <div className="absolute right-2.5 top-2.5">{badge}</div>}
+      {/* Solid backing: translucent chips are unreadable over light photos. */}
+      {badge && (
+        <div className="absolute right-2.5 top-2.5 rounded-full bg-background/90 shadow-sm backdrop-blur">
+          {badge}
+        </div>
+      )}
 
       {(title || meta) && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/85 via-foreground/25 to-transparent p-4 pt-10">
@@ -75,7 +89,7 @@ function LookCard({ imageKey, alt, title, meta, badge, actions, onClick, classNa
       )}
 
       {actions && (
-        <div className="absolute bottom-3 right-3 flex gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="absolute bottom-3 right-3 flex gap-1.5 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100">
           {actions}
         </div>
       )}

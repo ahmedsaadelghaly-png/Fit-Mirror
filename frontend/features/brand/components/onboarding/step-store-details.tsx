@@ -29,11 +29,7 @@ function formatOptionLabel(value: string): string {
   return value.replace(/[_-]/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-/**
- * KNOWN CONTRACT MISMATCH — `category` and `description` don't exist on
- * the `Store` model at all (see types/brand.ts `StoreBusinessInfo`).
- * Persisted to the localStorage overlay, same as the logo step.
- */
+/** Saves the store's category and description with `PATCH /store/me`. */
 function StepStoreDetails({ onContinue, onSkip }: StepStoreDetailsProps) {
   const { data: businessInfo, save } = useStoreBusinessInfo();
 

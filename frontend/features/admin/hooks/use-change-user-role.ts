@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { setUserRoleOverride } from "@/api/admin/users";
+import { updateUser } from "@/api/admin/users";
 import type { UserRole } from "@/types/domain";
 
 export function useChangeUserRole() {
@@ -8,7 +8,7 @@ export function useChangeUserRole() {
 
   return useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: UserRole }) =>
-      setUserRoleOverride(userId, role),
+      updateUser(userId, { role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },

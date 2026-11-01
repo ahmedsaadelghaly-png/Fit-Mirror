@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isShapeInCategory } from "@/features/shopper/body-shapes";
+
 /**
  * The backend's `BodyProfileUpsert` enforces no numeric bounds at all (see
  * backend app/schemas/user.py — plain `float | None`). These ranges are a
@@ -21,13 +23,7 @@ function optionalMeasurement(min: number, max: number, label: string) {
   );
 }
 
-export const BODY_SHAPES = [
-  "hourglass",
-  "pear",
-  "apple",
-  "rectangle",
-  "inverted_triangle",
-] as const;
+export const BODY_CATEGORY_VALUES = ["women", "men", "girls", "boys"] as const;
 
 export const PREFERRED_FITS = ["slim", "regular", "relaxed", "oversized"] as const;
 
@@ -58,16 +54,36 @@ export const bodyMeasurementsSchema = z.object({
   chest_cm: optionalMeasurement(30, 200, "Chest"),
   waist_cm: optionalMeasurement(30, 200, "Waist"),
   hip_cm: optionalMeasurement(30, 200, "Hips"),
-  body_shape: z.enum(BODY_SHAPES).optional().or(z.literal("")),
+  body_category: z.enum(BODY_CATEGORY_VALUES).optional().or(z.literal("")),
+  body_shape: z.string().optional(),
 });
+
+/**
+ * A body shape only makes sense within its category (see
+ * features/shopper/body-shapes.ts) — the same rule the backend enforces.
+ * Applied at the resolver (`zodResolver(withBodyShapeRule(schema))`)
+ * rather than on the object schema itself, so the object schemas can
+ * still be `.merge()`d.
+ */
+export function withBodyShapeRule<
+  T extends z.ZodType<{ body_category?: string; body_shape?: string }>,
+>(schema: T) {
+  return schema.superRefine((values, ctx) => {
+    if (values.body_shape && !isShapeInCategory(values.body_category, values.body_shape)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["body_shape"],
+        message: values.body_category
+          ? "Pick a body shape for the selected profile."
+          : "Choose who this profile is for first.",
+      });
+    }
+  });
+}
 
 export type BodyMeasurementsFormValues = z.infer<typeof bodyMeasurementsSchema>;
 
-/**
- * Frontend-only fields (see types/shopper.ts `StylePreferences` for the
- * documented backend contract mismatch) — persisted to localStorage, not
- * sent to `PUT /users/me/body-profile`.
- */
+/** Style preferences — saved on the body profile (`PUT /users/me/body-profile`). */
 export const stylePreferencesSchema = z.object({
   preferred_fit: z.enum(PREFERRED_FITS).optional().or(z.literal("")),
   favorite_colors: z.array(z.enum(COLOR_PALETTE)).default([]),

@@ -24,10 +24,8 @@ const STEP_LABELS: Record<StoreOnboardingStepId, string> = {
 /**
  * Multi-step store setup stepper — mirrors
  * features/shopper/components/onboarding/onboarding-flow.tsx from Phase
- * 2.3. Only the "basics" step (name + slug) persists to a real backend
- * call; every other step writes to the localStorage-backed
- * StoreBusinessInfo overlay (see docs/frontend/BRAND_APP.md "API contract
- * mismatches").
+ * 2.3. "basics" creates the store (`POST /store`); logo, details and
+ * social links each save with `PATCH /store/me`.
  */
 function OnboardingFlow() {
   const onboarding = useStoreOnboarding();

@@ -1,4 +1,4 @@
-import type { Product, ProductVariant } from "@/types/domain";
+import type { Product, ProductAudience, StoreSocialLinks } from "@/types/domain";
 
 /**
  * Request/response shapes for the Brand/Store feature area — see backend
@@ -21,28 +21,13 @@ export interface StoreCreateRequest {
 }
 
 /**
- * KNOWN CONTRACT MISMATCH: there is no `PUT/PATCH /store` or `/store/me` —
- * store updates of any kind are unsupported server-side. `description`,
- * `category`, and `social_links` also don't exist on the `Store` model at
- * all (not even read-only). Captured here as frontend-only state,
- * persisted to localStorage via
- * features/brand/hooks/use-store-business-info.ts.
+ * The editable business info on a store — `PATCH /store/me`. The logo
+ * must be an image this account uploaded (backend checks the object key).
  */
 export interface StoreBusinessInfo {
   category: string | null;
   description: string | null;
-  social_links: {
-    website: string | null;
-    instagram: string | null;
-    tiktok: string | null;
-  };
-  /**
-   * An uploaded logo's storage key. `StoreRead.logo_image_key` exists as a
-   * read-only field, but nothing can ever set it (no store-update
-   * endpoint) — this is a local shadow of "the logo this brand admin
-   * uploaded," not the server's `logo_image_key` (which stays `null`
-   * forever via the API today).
-   */
+  social_links: StoreSocialLinks;
   logo_image_key: string | null;
 }
 
@@ -55,6 +40,7 @@ export interface ProductCreateRequest {
   title: string;
   description?: string | null;
   category: string;
+  audience?: ProductAudience;
   price: string;
   currency: string;
   primary_image_key?: string | null;
@@ -67,24 +53,21 @@ export interface ProductFilters {
   search: string;
 }
 
-/**
- * KNOWN CONTRACT MISMATCH: no `GET/PUT/PATCH/DELETE /store/products/{id}`
- * exists — products can only be created and listed. Edits, archiving, the
- * active/inactive toggle, and ALL variant management are captured as a
- * local "overlay" per product, persisted to localStorage and merged over
- * the server's `ProductRead` for display (see
- * api/brand/product-overlay.ts). None of this is synced back to the
- * backend — there is nothing to sync it to yet.
- */
-export interface ProductOverlay {
-  productId: string;
-  overrides: Partial<
-    Pick<Product, "title" | "description" | "category" | "price" | "currency" | "primary_image_key">
-  >;
-  isActiveOverride: boolean | null;
-  isArchived: boolean;
-  variants: ProductVariant[];
-}
+/** `PATCH /store/products/{id}` body — only the fields present change. */
+export type ProductUpdateRequest = Partial<
+  Pick<
+    Product,
+    | "title"
+    | "description"
+    | "category"
+    | "audience"
+    | "price"
+    | "currency"
+    | "primary_image_key"
+    | "is_active"
+    | "is_archived"
+  >
+>;
 
 export interface VariantFormInput {
   size_label: string;
@@ -94,8 +77,7 @@ export interface VariantFormInput {
   garment_image_key?: string | null;
 }
 
-/** A `ProductRead` with any local overlay already merged in — what every product-list/detail view actually renders. */
+/** What every product-list/detail view renders — see features/brand/lib/resolve-product.ts. */
 export interface ResolvedProduct extends Product {
   isArchived: boolean;
-  hasLocalEdits: boolean;
 }

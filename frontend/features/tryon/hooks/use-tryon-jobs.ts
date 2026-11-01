@@ -2,17 +2,15 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { listTryOnJobs } from "@/api/shopper/tryon";
+import { newestFirst } from "@/features/tryon/lib/job-display";
 import type { TryOnHistoryFilters } from "@/types/shopper";
 
 const DEFAULT_FILTERS: TryOnHistoryFilters = { status: "all", search: "" };
 
 /**
- * `GET /tryon` returns every job for the user with no pagination or
- * filters (see api/shopper/tryon.ts) — status filtering and the search
- * placeholder both apply client-side. `search` currently has nothing
- * text-based to match against (jobs carry only storage keys, no garment
- * name/title yet — see docs/frontend/SHOPPER_APP.md), so it's wired as an
- * inert UI placeholder per the Phase 2.3 spec ("Search placeholder").
+ * `GET /tryon` returns the user's jobs with no server-side filters (see
+ * api/shopper/tryon.ts) — status filtering and search (by catalog product
+ * name) apply client-side. Jobs are newest first.
  */
 export function useTryOnJobs() {
   const [filters, setFilters] = useState<TryOnHistoryFilters>(DEFAULT_FILTERS);
@@ -29,11 +27,16 @@ export function useTryOnJobs() {
     },
   });
 
-  const filteredJobs = useMemo(() => {
-    const jobs = query.data ?? [];
-    if (filters.status === "all") return jobs;
-    return jobs.filter((job) => job.status === filters.status);
-  }, [query.data, filters]);
+  const jobs = useMemo(() => newestFirst(query.data ?? []), [query.data]);
 
-  return { ...query, jobs: query.data ?? [], filteredJobs, filters, setFilters };
+  const filteredJobs = useMemo(() => {
+    const search = filters.search.trim().toLowerCase();
+    return jobs.filter(
+      (job) =>
+        (filters.status === "all" || job.status === filters.status) &&
+        (!search || (job.product_title ?? "").toLowerCase().includes(search)),
+    );
+  }, [jobs, filters]);
+
+  return { ...query, jobs, filteredJobs, filters, setFilters };
 }

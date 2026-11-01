@@ -48,7 +48,7 @@ function ProductsGrid({ products }: ProductsGridProps) {
           imageKey={product.primary_image_key}
           alt={product.title}
           name={product.title}
-          subtitle={product.hasLocalEdits ? `${product.category} · Edited` : product.category}
+          subtitle={product.category}
           price={`${product.currency} ${product.price}`}
           onClick={() => router.push(`/brand/products/${product.id}`)}
           badge={

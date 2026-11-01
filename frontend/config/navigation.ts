@@ -6,6 +6,7 @@ import {
   Cpu,
   Heart,
   History,
+  Inbox,
   Info,
   LayoutDashboard,
   ListTree,
@@ -43,6 +44,7 @@ export interface NavItem {
  */
 export const shopperNav: NavItem[] = [
   { label: "Overview", href: "/shopper", icon: LayoutDashboard },
+  { label: "Shop", href: "/shopper/shop", icon: Store },
   { label: "Wardrobe", href: "/shopper/wardrobe", icon: Shirt },
   { label: "Try-On", href: "/shopper/tryon", icon: Sparkles },
   { label: "Try-On History", href: "/shopper/tryon/history", icon: History },
@@ -70,6 +72,7 @@ export const adminNav: NavItem[] = [
   { label: "Stores", href: "/admin/stores", icon: Store },
   { label: "Products", href: "/admin/products", icon: Shirt },
   { label: "Try-On Jobs", href: "/admin/tryon-jobs", icon: Sparkles },
+  { label: "Support Inbox", href: "/admin/support", icon: Inbox },
   { label: "Queue & Workers", href: "/admin/queue", icon: ListTree },
   { label: "AI Services", href: "/admin/ai-services", icon: Cpu },
   { label: "System Health", href: "/admin/system-health", icon: Activity },

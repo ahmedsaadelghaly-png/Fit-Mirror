@@ -56,17 +56,9 @@ function EditorialHero({
       )}
     >
       <div className="container grid items-center gap-10 py-16 md:py-24 lg:grid-cols-2 lg:gap-16">
-        <div
-          className={cn(
-            "flex flex-col items-start gap-5 text-left",
-            reverse && "lg:order-2",
-          )}
-        >
+        <div className={cn("flex flex-col items-start gap-5 text-left", reverse && "lg:order-2")}>
           {eyebrow && (
-            <Badge
-              variant="eyebrow"
-              className={tone === "dark" ? "text-background/60" : undefined}
-            >
+            <Badge variant="eyebrow" className={tone === "dark" ? "text-background/60" : undefined}>
               {eyebrow}
             </Badge>
           )}

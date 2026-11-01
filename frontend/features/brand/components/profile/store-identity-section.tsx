@@ -5,12 +5,7 @@ export interface StoreIdentitySectionProps {
   store: Store;
 }
 
-/**
- * Read-only — there is no `PUT/PATCH /store` or `/store/me` (confirmed
- * absent server-side, not just unimplemented). Name/slug can only be set
- * once, at creation (see docs/frontend/BRAND_APP.md "API contract
- * mismatches").
- */
+/** The store's name and public URL. The slug is permanent once created. */
 function StoreIdentitySection({ store }: StoreIdentitySectionProps) {
   const rows: { label: string; value: string }[] = [
     { label: "Store name", value: store.name },
@@ -22,7 +17,7 @@ function StoreIdentitySection({ store }: StoreIdentitySectionProps) {
       <CardHeader>
         <CardTitle className="text-base">Store identity</CardTitle>
         <CardDescription>
-          Read-only for now — there&apos;s no backend endpoint to edit these fields yet.
+          Your store&apos;s public address is permanent once created.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

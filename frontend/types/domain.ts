@@ -15,8 +15,17 @@ export interface User {
   is_active: boolean;
 }
 
+export type BodyCategory = "women" | "men" | "girls" | "boys";
+
+export type ProductAudience = BodyCategory | "unisex";
+
 export interface BodyProfile {
   id: string;
+  /** "Me" for the shopper's own profile, or a family member's name. */
+  name: string;
+  /** The shopper's own profile — exactly one per account. */
+  is_primary: boolean;
+  body_category: BodyCategory | null;
   height_cm: number | null;
   weight_kg: number | null;
   chest_cm: number | null;
@@ -24,6 +33,9 @@ export interface BodyProfile {
   hip_cm: number | null;
   body_shape: string | null;
   reference_image_key: string | null;
+  preferred_fit: string | null;
+  favorite_colors: string[];
+  style_preferences: string[];
 }
 
 export type WardrobeItemSource = "uploaded" | "catalog";
@@ -46,6 +58,11 @@ export interface TryOnJob {
   result_image_key: string | null;
   ai_model_name: string | null;
   error_message: string | null;
+  created_at: string;
+  product_variant_id: string | null;
+  /** Catalog try-ons only: the product tried on and the chosen size. */
+  product_title: string | null;
+  size_label: string | null;
 }
 
 export interface ProductVariant {
@@ -62,10 +79,12 @@ export interface Product {
   title: string;
   description: string | null;
   category: string;
+  audience: ProductAudience;
   price: string;
   currency: string;
   primary_image_key: string | null;
   is_active: boolean;
+  is_archived: boolean;
   variants: ProductVariant[];
 }
 
@@ -75,6 +94,15 @@ export interface Store {
   slug: string;
   logo_image_key: string | null;
   is_verified: boolean;
+  category: string | null;
+  description: string | null;
+  social_links: StoreSocialLinks;
+}
+
+export interface StoreSocialLinks {
+  website: string | null;
+  instagram: string | null;
+  tiktok: string | null;
 }
 
 export interface StoreDashboardSummary {

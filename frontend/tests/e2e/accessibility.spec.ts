@@ -16,7 +16,12 @@ import { expect, test } from "@playwright/test";
  */
 
 const PUBLIC_PAGES = ["/", "/features", "/pricing", "/about", "/contact", "/privacy", "/terms"];
-const AUTH_PAGES = ["/login", "/register", "/forgot-password"];
+const AUTH_PAGES = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password?token=example-token",
+];
 
 for (const path of [...PUBLIC_PAGES, ...AUTH_PAGES]) {
   test(`${path} has no detectable WCAG 2.1 AA violations`, async ({ page }) => {

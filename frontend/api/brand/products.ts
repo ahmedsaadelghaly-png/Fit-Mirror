@@ -1,14 +1,12 @@
 import { apiClient } from "@/api/client";
-import type { Product } from "@/types/domain";
-import type { ProductCreateRequest } from "@/types/brand";
+import type { Product, ProductVariant } from "@/types/domain";
+import type { ProductCreateRequest, ProductUpdateRequest, VariantFormInput } from "@/types/brand";
 
 /**
- * See backend docs/API_CONTRACTS.md "Store Dashboard". Only create + list
- * exist — no single-product GET, no PUT/PATCH, no DELETE (confirmed by
- * reading backend/app/api/v1/endpoints/store_dashboard.py; see
- * docs/frontend/BRAND_APP.md "API contract mismatches"). Product detail,
- * editing, archiving, and the active/inactive toggle are all handled via
- * the local overlay in api/brand/product-overlay.ts instead.
+ * See backend docs/API_CONTRACTS.md "Store Dashboard". Every call is scoped
+ * server-side to the caller's own store (another store's product answers
+ * 404). Archiving is `is_archived` and the on/off-sale toggle is
+ * `is_active` — both plain PATCH fields, independent of each other.
  */
 export async function listProducts(): Promise<Product[]> {
   const { data } = await apiClient.get<Product[]>("/store/products");
@@ -18,4 +16,39 @@ export async function listProducts(): Promise<Product[]> {
 export async function createProduct(payload: ProductCreateRequest): Promise<Product> {
   const { data } = await apiClient.post<Product>("/store/products", payload);
   return data;
+}
+
+export async function updateProduct(
+  productId: string,
+  payload: ProductUpdateRequest,
+): Promise<Product> {
+  const { data } = await apiClient.patch<Product>(`/store/products/${productId}`, payload);
+  return data;
+}
+
+export async function addVariant(
+  productId: string,
+  variant: VariantFormInput,
+): Promise<ProductVariant> {
+  const { data } = await apiClient.post<ProductVariant>(
+    `/store/products/${productId}/variants`,
+    variant,
+  );
+  return data;
+}
+
+export async function updateVariant(
+  productId: string,
+  variantId: string,
+  variant: VariantFormInput,
+): Promise<ProductVariant> {
+  const { data } = await apiClient.patch<ProductVariant>(
+    `/store/products/${productId}/variants/${variantId}`,
+    variant,
+  );
+  return data;
+}
+
+export async function deleteVariant(productId: string, variantId: string): Promise<void> {
+  await apiClient.delete(`/store/products/${productId}/variants/${variantId}`);
 }

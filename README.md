@@ -21,7 +21,9 @@ and **validated end-to-end against a real running stack**.
 | Phase 2.5 | ✅ complete | Platform Admin web app: dashboard, user/store/product/try-on-job monitoring, queue/worker + AI service + system health, audit logs, feature flags, reports, settings — mostly realistic mocked data (only `GET /health` is a real backend call), clearly labeled throughout — see `docs/frontend/ADMIN_APP.md` |
 | Phase 2.6 | ✅ complete | Production readiness: performance (cache tuning, debouncing, pagination, bundle analysis, web vitals), accessibility (axe-core scans, table semantics), SEO (sitemap/robots/OG/structured data), error monitoring (error boundary, vendor-agnostic logging), analytics (adapter pattern), security hardening (CSP, headers, env validation), global UX (toasts, notification center, command palette, confirm dialogs, offline detection), production Docker/deploy, expanded CI — see `docs/frontend/PERFORMANCE.md`, `ACCESSIBILITY_AUDIT.md`, `SEO.md`, `OBSERVABILITY.md`, `ANALYTICS.md`, `SECURITY_FRONTEND.md`, `UX_SYSTEM.md`, and `docs/DEPLOYMENT_FRONTEND.md` |
 | **Phase 2.7** | ✅ **complete (this delivery)** | Full system validation: ran the entire stack for real (Docker Compose, all 7 services), found and fixed 8 critical/high-severity bugs invisible to prior phases' static-only audits (the Celery worker couldn't process any try-on job at all; no database migration existed; presigned upload URLs were unreachable from a real browser; the frontend's own CSP blocked its own API calls; a missing `"use client"` broke the production build; an infinite loading loop on the body profile page; a real WCAG contrast failure; a broken CI validation step) — see `docs/VALIDATION_REPORT.md`, `docs/KNOWN_ISSUES.md`, `docs/LOCAL_RUNBOOK.md`, `docs/SMOKE_TESTS.md` |
-| Phase 3 | ⏭️ next | Real AI model integration (see `ROADMAP.md`) |
+| **Phase 3.0** | ✅ **complete** | Backend catch-up: RBAC enforcement (`require_role`), product update/delete + variant CRUD, Platform Admin API (`/admin/*`), catalog browse, rule-based AI Stylist / Size Recommendation / Shopping Assistant (previously `501`), plus worker-retry, rate-limiter, upload-validation and performance fixes — see `ROADMAP.md` |
+| **Phase 3.1** | ✅ **complete** | Frontend swap-over: Brand product edit/archive/variants and Admin users/stores/try-on jobs now use the real API (localStorage overlays removed); store suspension + failed-job retry; Shopping Assistant shows matched products with size recommendations |
+| Phase 3.2 | ⏭️ next | Catalog try-on, Saved Looks / style preferences / store info persistence, password reset — see `ROADMAP.md` |
 
 No mobile app, no real AI model yet — see `ROADMAP.md` for the full phase
 sequence.
@@ -164,6 +166,7 @@ API, a Celery worker, and the frontend (all with hot reload enabled).
 
 ```bash
 # One-time bootstrap (every time you start from a fresh volume):
+# Optional since the photo seed: `make seed` creates the bucket if it is missing.
 docker compose exec minio mc alias set local http://localhost:9000 fitmirror fitmirror123
 docker compose exec minio mc mb local/fitmirror-media
 

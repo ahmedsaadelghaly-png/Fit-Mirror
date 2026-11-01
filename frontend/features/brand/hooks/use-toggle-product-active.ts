@@ -1,15 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { setProductActiveOverride } from "@/api/brand/product-overlay";
+import { updateProduct } from "@/api/brand/products";
 
 export function useToggleProductActive() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ productId, isActive }: { productId: string; isActive: boolean }) =>
-      setProductActiveOverride(productId, isActive),
-    onSuccess: (_overlay, { productId }) => {
-      queryClient.invalidateQueries({ queryKey: ["brand", "product-overlay", productId] });
+      updateProduct(productId, { is_active: isActive }),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["brand", "products"] });
     },
   });

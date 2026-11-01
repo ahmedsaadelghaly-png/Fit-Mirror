@@ -1,7 +1,7 @@
 # Authentication
 
 Covers the real (not placeholder) authentication system built in Phase
-2.2: login, register, forgot password (backend adapter placeholder),
+2.2: login, register (shopper or brand account), forgot/reset password,
 session persistence, logout, and role-based route protection.
 
 ## Session lifecycle
@@ -156,19 +156,26 @@ calls (XHR/fetch), which is where it matters most (a full page navigation
 hitting an expired token is a rarer edge case, and simply asking the user
 to log in again there is an acceptable trade-off).
 
-## Forgot password — a documented placeholder
+## Password reset and account self-service (Phase 3.2)
 
-`features/auth/api.ts::forgotPassword` does **not** call the backend —
-there is no `POST /auth/forgot-password` endpoint (see backend
-`docs/API_CONTRACTS.md`, which lists only `register`/`login`/`refresh`
-under Auth). Per Phase 2.2's rule ("if a backend endpoint is missing,
-create a clearly marked frontend placeholder adapter, not a backend
-rewrite"), this function simulates a network delay and always resolves
-successfully. The `ForgotPasswordForm` UI (loading state, success state,
-error handling) is fully real and ready — only the backend call itself is
-mocked. Swapping in a real call is a one-function change with no other
-code needing to change, since every caller depends only on this
-function's signature.
+- `/forgot-password` calls `POST /auth/forgot-password`, which emails a
+  single-use link to `/reset-password?token=…` (valid 30 minutes; the
+  answer never reveals whether the email is registered). In local dev
+  (`EMAIL_BACKEND=log`) the email — link included — is written to the
+  backend log.
+- `/reset-password` (`features/auth/components/reset-password-form.tsx`)
+  sets the new password; an unknown, used or expired link shows the
+  server's message plus a "send a new one" link. The route is public (not
+  guest-only), so the link works even while signed in.
+- A reset or a password change sets `users.password_changed_at`; refresh
+  tokens issued before it are rejected, so other sessions end at their
+  next refresh. Changing your password in Settings returns fresh tokens,
+  so the current session carries on.
+- Settings (Shopper and Brand) share `features/auth/components/account-settings.tsx`:
+  edit your name (`PATCH /users/me`) and change your password.
+- Register asks "I'm shopping" / "I'm a brand"; `/register?type=brand`
+  (the landing page's "Open your store") preselects a brand account,
+  which lands on store setup after logging in.
 
 ## Logout
 

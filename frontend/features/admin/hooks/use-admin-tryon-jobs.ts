@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { listAllTryOnJobs, readRetryOverlaySync } from "@/api/admin/tryon-jobs";
+import { listAllTryOnJobs } from "@/api/admin/tryon-jobs";
 import type { AdminTryOnJobFilters } from "@/types/admin";
 
 const DEFAULT_FILTERS: AdminTryOnJobFilters = { status: "all", search: "" };
@@ -17,7 +17,7 @@ export function useAdminTryOnJobs() {
     return jobs.filter((job) => {
       if (filters.status !== "all" && job.status !== filters.status) return false;
       if (filters.search) {
-        const haystack = `${job.user_email} ${job.store_name}`.toLowerCase();
+        const haystack = `${job.user_email} ${job.store_name ?? ""}`.toLowerCase();
         if (!haystack.includes(filters.search.toLowerCase())) return false;
       }
       return true;
@@ -30,6 +30,5 @@ export function useAdminTryOnJobs() {
     filteredJobs,
     filters,
     setFilters,
-    getRetryOverlay: readRetryOverlaySync,
   };
 }

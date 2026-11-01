@@ -18,19 +18,27 @@ export default function FeaturesPage() {
       align="center"
       eyebrow="Features"
       heading="Everything you need to shop with confidence"
-      description="Some of this is live today. Some of it is still being built — we'd rather tell you honestly than oversell it."
+      description="Try-on, sizing and styling for women, men and kids — and the tools brands need to sell with confidence."
     >
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {capabilities.map((capability) => (
           <Card key={capability.title} variant="media" className="relative">
-            <FashionImage alt={capability.title} aspect="landscape" />
+            <FashionImage
+              src={capability.image}
+              alt={capability.imageAlt}
+              aspect="landscape"
+              className="transition-transform duration-700 ease-signature hover:scale-[1.03]"
+            />
             {capability.status === "coming-soon" && (
               <Badge variant="secondary" className="absolute right-3 top-3">
                 Coming soon
               </Badge>
             )}
             <CardHeader>
-              <CardTitle className="text-lg">{capability.eyebrow}</CardTitle>
+              <div className="flex items-center gap-2">
+                <capability.icon className="size-4 text-primary-text" aria-hidden="true" />
+                <CardTitle className="text-lg">{capability.eyebrow}</CardTitle>
+              </div>
               <CardDescription>{capability.description}</CardDescription>
             </CardHeader>
           </Card>

@@ -12,7 +12,7 @@ Responsibility boundary (Clean Architecture):
 import uuid
 
 from app.core.exceptions import NotFoundError, ValidationAppError
-from app.models.product import ProductVariant
+from app.models.product import Product, ProductVariant
 from app.models.tryon_job import TryOnJob, TryOnJobStatus
 from app.repositories.tryon_repository import TryOnJobRepository
 from app.schemas.tryon import TryOnJobCreate
@@ -26,11 +26,22 @@ class TryOnService:
     def create_job(self, user_id: uuid.UUID, payload: TryOnJobCreate) -> TryOnJob:
         garment_image_key = payload.garment_image_key
 
-        if not garment_image_key and payload.product_variant_id:
-            variant = self.repository.db.get(ProductVariant, payload.product_variant_id)
+        if payload.product_variant_id:
+            variant = (
+                self.repository.db.query(ProductVariant)
+                .join(ProductVariant.product)
+                .filter(
+                    ProductVariant.id == payload.product_variant_id,
+                    Product.visible_to_shoppers(),
+                )
+                .first()
+            )
             if not variant:
                 raise NotFoundError("Product variant not found.")
-            garment_image_key = variant.garment_image_key
+            # A variant without its own garment shot uses the product photo.
+            garment_image_key = garment_image_key or (
+                variant.garment_image_key or variant.product.primary_image_key
+            )
 
         if not garment_image_key:
             raise ValidationAppError(

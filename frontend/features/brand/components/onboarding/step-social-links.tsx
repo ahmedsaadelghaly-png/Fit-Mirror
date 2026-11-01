@@ -17,10 +17,7 @@ export interface StepSocialLinksProps {
   onSkip: () => void;
 }
 
-/**
- * PLACEHOLDER — `Store` has no `social_links` field or endpoint at all
- * (see types/brand.ts). Persisted to the localStorage overlay only.
- */
+/** Saves the store's website / Instagram / TikTok with `PATCH /store/me`. */
 function StepSocialLinks({ onContinue, onSkip }: StepSocialLinksProps) {
   const { data: businessInfo, save } = useStoreBusinessInfo();
 

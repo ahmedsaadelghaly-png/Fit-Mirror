@@ -32,7 +32,7 @@ export const BRAND_CATEGORIES = [
   "activewear",
 ] as const;
 
-/** Frontend-only — see types/brand.ts `StoreBusinessInfo` for the documented backend contract mismatch. */
+/** Business info form — saved with `PATCH /store/me` (see types/brand.ts `StoreBusinessInfo`). */
 export const storeBusinessInfoSchema = z.object({
   category: z.enum(BRAND_CATEGORIES).optional().or(z.literal("")),
   description: z.string().max(2000, "Keep it under 2000 characters").optional().or(z.literal("")),
@@ -58,6 +58,9 @@ export const PRODUCT_CATEGORIES = [
 
 export const CURRENCIES = ["USD", "EUR", "GBP"] as const;
 
+/** Who a product is cut for — girls'/boys' items are sized by height (see backend sizing). */
+export const PRODUCT_AUDIENCES = ["unisex", "women", "men", "girls", "boys"] as const;
+
 const PRICE_PATTERN = /^\d+(\.\d{1,2})?$/;
 
 /** Mirrors the backend's `ProductCreate` — `is_active`/`variants` aren't create-time fields (see api/brand/products.ts). */
@@ -65,6 +68,7 @@ export const productSchema = z.object({
   title: z.string().min(1, "Title is required").max(255, "Title is too long"),
   description: z.string().max(2000, "Keep it under 2000 characters").optional().or(z.literal("")),
   category: z.enum(PRODUCT_CATEGORIES, { errorMap: () => ({ message: "Choose a category" }) }),
+  audience: z.enum(PRODUCT_AUDIENCES).default("unisex"),
   price: z
     .string()
     .min(1, "Price is required")
@@ -74,7 +78,7 @@ export const productSchema = z.object({
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
-/** No backend variant schema exists — see api/brand/product-overlay.ts. */
+/** Mirrors the backend `ProductVariantCreate` limits (see api/brand/products.ts). */
 export const variantSchema = z.object({
   size_label: z.string().min(1, "Size is required").max(20, "Size is too long"),
   color: z.string().max(50, "Color is too long").optional().or(z.literal("")),

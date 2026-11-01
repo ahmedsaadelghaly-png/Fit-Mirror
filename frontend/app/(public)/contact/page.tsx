@@ -24,7 +24,11 @@ export default function ContactPage() {
             <Mail className="size-4" aria-hidden="true" />
             <span>hello@fitmirror.ai</span>
           </div>
-          <ModelImage alt="" className="hidden md:block" />
+          <ModelImage
+            src="/images/models/woman-street.jpg"
+            alt=""
+            className="hidden rounded-xl md:block"
+          />
         </div>
         <ContactForm />
       </div>

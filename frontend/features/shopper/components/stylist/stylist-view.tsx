@@ -26,13 +26,11 @@ const SUGGESTED_SCENARIOS: { label: string; occasion: string; weather: string }[
 ];
 
 /**
- * PLACEHOLDER page, clearly marked as planned — `POST /stylist/suggestions`
- * returns `501` on the backend today (see docs/API_CONTRACTS.md "AI
- * Stylist, Size Recommendation, Shopping Assistant"). The chat-like UI and
- * request form are fully wired to features/shopper/hooks/use-stylist-
- * suggestion.ts, which calls the documented placeholder in
- * api/shopper/stylist.ts — swapping in the real backend call later
- * requires no changes here.
+ * AI Stylist chat UI, wired to features/shopper/hooks/use-stylist-
+ * suggestion.ts -> api/shopper/stylist.ts -> the backend's rule-based
+ * `POST /stylist/suggestions` (outfits built from the shopper's own
+ * wardrobe). Badged "Beta" until a model-backed stylist replaces the
+ * rules behind the same contract.
  */
 function StylistView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -65,7 +63,7 @@ function StylistView() {
             Outfit suggestions built from your wardrobe and style profile.
           </p>
         </div>
-        <Badge variant="secondary">Planned feature</Badge>
+        <Badge variant="secondary">Beta</Badge>
       </div>
 
       <Card>
@@ -117,7 +115,7 @@ function StylistView() {
           </AiChatPanel>
 
           <p className="text-xs text-muted-foreground">
-            Suggestions are simulated while this feature is in development.
+            Outfits are built from items in your wardrobe — add more pieces for more variety.
           </p>
         </CardContent>
       </Card>

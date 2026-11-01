@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,9 +32,9 @@ export interface VariantFormDialogProps {
 }
 
 /**
- * No backend endpoint exists to create/edit a variant at all (see
- * api/brand/product-overlay.ts) — both add and "edit variant placeholder"
- * from the Phase 2.4 spec write to the same localStorage overlay.
+ * Add/edit dialog backed by `POST`/`PATCH /store/products/{id}/variants`
+ * (see api/brand/products.ts). A duplicate SKU (409) is shown on the SKU
+ * field; any other failure under the form.
  */
 function VariantFormDialog({ productId, variant, trigger }: VariantFormDialogProps) {
   const [open, setOpen] = useState(false);
@@ -46,6 +47,7 @@ function VariantFormDialog({ productId, variant, trigger }: VariantFormDialogPro
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useForm<VariantFormValues>({
     resolver: zodResolver(variantSchema),
@@ -74,10 +76,22 @@ function VariantFormDialog({ productId, variant, trigger }: VariantFormDialogPro
       garment_image_key: upload.objectKey ?? variant?.garment_image_key ?? null,
     };
 
-    if (isEditMode && variant) {
-      await updateMutation.mutateAsync({ variantId: variant.id, variant: payload });
-    } else {
-      await addMutation.mutateAsync(payload);
+    try {
+      if (isEditMode && variant) {
+        await updateMutation.mutateAsync({ variantId: variant.id, variant: payload });
+      } else {
+        await addMutation.mutateAsync(payload);
+      }
+    } catch (error) {
+      // SKUs are unique platform-wide; the backend answers 409 on a clash.
+      if (error instanceof ApiError && error.errorCode === "conflict") {
+        setError("sku", { message: error.message });
+      } else {
+        setError("root", {
+          message: error instanceof ApiError ? error.message : "Could not save the variant.",
+        });
+      }
+      return;
     }
     closeAndReset();
   });
@@ -142,6 +156,12 @@ function VariantFormDialog({ productId, variant, trigger }: VariantFormDialogPro
               onClear={upload.reset}
             />
           </div>
+
+          {errors.root && (
+            <p role="alert" className="text-sm text-destructive">
+              {errors.root.message}
+            </p>
+          )}
 
           <DialogFooter>
             <Button type="submit" isLoading={mutation.isPending}>

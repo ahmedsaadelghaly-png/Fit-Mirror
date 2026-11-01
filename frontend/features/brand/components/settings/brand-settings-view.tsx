@@ -6,7 +6,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AccountSettingsSection } from "@/features/brand/components/settings/account-settings-section";
+import {
+  ChangePasswordCard,
+  ProfileDetailsCard,
+} from "@/features/auth/components/account-settings";
 import { PlannedSectionCard } from "@/features/brand/components/settings/planned-section-card";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -24,10 +27,11 @@ function BrandSettingsView() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {currentUser ? (
-          <AccountSettingsSection user={currentUser} />
+          <ProfileDetailsCard user={currentUser} />
         ) : (
           <Skeleton className="h-48 w-full" />
         )}
+        <ChangePasswordCard />
 
         <Card>
           <CardHeader>
