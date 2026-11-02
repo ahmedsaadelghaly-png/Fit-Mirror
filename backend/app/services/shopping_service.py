@@ -1,11 +1,16 @@
 """
-Shopping Assistant engine (rule-based v1).
+Shopping Assistant engine.
 
-Turns a natural-language query ("black jacket under $100 in size M") into
-structured catalog filters — category, price bounds, size — plus free-text
-terms, then ranks active products by how many terms they match. An LLM or
-embedding search can replace the parsing/ranking later without changing
-the endpoint contract (ROADMAP Phase 5).
+1. Understand: a natural-language query ("black jacket under $100 in size
+   M") becomes structured filters — category, audience, price bounds, size —
+   plus search terms. Claude does this when ANTHROPIC_API_KEY is set
+   (app/ai/query_understanding.py, adding synonyms for recall); otherwise,
+   or if that call fails, the rule-based parse_query below does.
+2. Retrieve: shopper-visible products matching the filters.
+3. Rank: keyword hits plus the embedding similarity between the query and
+   each product (app/ai/embeddings.py — local hashing, or Voyage AI).
+
+The endpoint contract is unchanged whichever path ran.
 """
 
 import re
@@ -16,10 +21,15 @@ from decimal import Decimal
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, selectinload
 
+from app.ai.embeddings import cosine, embed_texts
+from app.ai.query_understanding import ShoppingIntent, to_decimal, understand
 from app.models.product import Product, ProductAudience
 
 MAX_RESULTS = 10
 MAX_SCANNED = 500
+# How much the query/product embedding similarity (-1..1) counts against
+# one keyword hit when ranking.
+SEMANTIC_WEIGHT = 2.0
 
 CATEGORY_SYNONYMS: dict[str, set[str]] = {
     "tops": {"top", "shirt", "tshirt", "t-shirt", "tee", "blouse", "sweater", "polo", "tank"},
@@ -62,6 +72,9 @@ class ParsedQuery:
     size: str | None = None
     audiences: list[ProductAudience] = field(default_factory=list)
     terms: list[str] = field(default_factory=list)
+    # What to embed for semantic ranking (the LLM's rewrite, else the query).
+    search_text: str = ""
+    understood_by: str = "rules"
 
 
 @dataclass
@@ -117,12 +130,39 @@ def parse_query(query: str) -> ParsedQuery:
     return parsed
 
 
+def from_intent(intent: ShoppingIntent, query: str) -> ParsedQuery:
+    """The LLM's structured reading of a query, as the engine's ParsedQuery."""
+    terms: list[str] = []
+    for raw in [*intent.keywords, *intent.colors]:
+        for word in re.findall(r"[a-z][a-z-]*", raw.lower()):
+            word = singularize(word)
+            if word not in STOPWORDS and word not in terms:
+                terms.append(word)
+    return ParsedQuery(
+        category=intent.category,
+        min_price=to_decimal(intent.min_price),
+        max_price=to_decimal(intent.max_price),
+        size=intent.size.strip().upper() if intent.size and intent.size.strip() else None,
+        audiences=[ProductAudience(audience) for audience in dict.fromkeys(intent.audiences)],
+        terms=terms[:12],
+        search_text=intent.search_text or query,
+        understood_by="llm",
+    )
+
+
+def _product_text(product: Product) -> str:
+    colors = " ".join(dict.fromkeys(v.color for v in product.variants if v.color))
+    return f"{product.title} {product.description or ''} {product.category} {colors}"
+
+
 class ShoppingService:
     def __init__(self, db: Session):
         self.db = db
 
     def ask(self, query: str) -> ShoppingAnswer:
-        parsed = parse_query(query)
+        intent = understand(query)
+        parsed = from_intent(intent, query) if intent else parse_query(query)
+        parsed.search_text = parsed.search_text or query
 
         q = (
             self.db.query(Product)
@@ -156,7 +196,10 @@ class ShoppingService:
             )
         candidates = q.order_by(Product.created_at.desc()).limit(MAX_SCANNED).all()
 
-        ranked: list[tuple[int, Product]] = []
+        vectors = embed_texts([parsed.search_text, *(_product_text(p) for p in candidates)])
+        query_vector, product_vectors = vectors[0], dict(zip(candidates, vectors[1:], strict=True))
+
+        ranked: list[tuple[int, float, Product]] = []
         for product in candidates:
             if parsed.size and not any(
                 v.size_label.upper() == parsed.size and v.stock_quantity > 0
@@ -171,12 +214,13 @@ class ShoppingService:
             # With a category, terms only rank; without one, they must match.
             if parsed.terms and hits == 0 and not parsed.category:
                 continue
-            ranked.append((hits, product))
+            score = hits + SEMANTIC_WEIGHT * cosine(query_vector, product_vectors[product])
+            ranked.append((hits, score, product))
 
-        ranked.sort(key=lambda pair: pair[0], reverse=True)
-        if parsed.category and parsed.terms and any(hits for hits, _ in ranked):
-            ranked = [pair for pair in ranked if pair[0] > 0]
-        matches = [product for _, product in ranked[:MAX_RESULTS]]
+        ranked.sort(key=lambda entry: entry[1], reverse=True)
+        if parsed.category and parsed.terms and any(hits for hits, _, _ in ranked):
+            ranked = [entry for entry in ranked if entry[0] > 0]
+        matches = [product for _, _, product in ranked[:MAX_RESULTS]]
 
         return ShoppingAnswer([p.id for p in matches], self._reply(query, parsed, matches))
 

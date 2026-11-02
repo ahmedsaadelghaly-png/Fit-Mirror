@@ -61,6 +61,12 @@ class Settings(BaseSettings):
     VOYAGE_API_KEY: str = ""
     VOYAGE_EMBED_MODEL: str = "voyage-3.5-lite"
 
+    # --- Shopping Assistant query understanding (Claude) ---
+    # Empty: rule-based parsing only. Set to let Claude read shopper queries.
+    ANTHROPIC_API_KEY: str = ""
+    SHOPPING_LLM_MODEL: str = "claude-opus-5-5"
+    SHOPPING_LLM_TIMEOUT_SECONDS: float = 20.0
+
     # --- Email (password reset, contact form) ---
     # "log" writes each email to the application log instead of sending it
     # (local dev / CI); "smtp" delivers through the SMTP_* server below.

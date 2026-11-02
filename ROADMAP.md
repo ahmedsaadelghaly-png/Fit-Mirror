@@ -62,7 +62,11 @@ Admin product moderation, queue/worker monitoring, AI telemetry, feature
 flags, audit log and reports; Brand analytics, customers and orders;
 notification preferences; account deletion.
 
-## Phase 4 — Real AI models (same contracts)
+## Done — Phase 4: Real AI models (same contracts)
+
+Each model switches on with configuration (`REPLICATE_*`, `VOYAGE_API_KEY`,
+`ANTHROPIC_API_KEY` — see `docs/AI_INTERFACES.md`); without keys every
+feature still works on its built-in fallback.
 
 - ✅ Virtual try-on: IDM-VTON diffusion try-on on Replicate's GPUs behind the
   same contract (`TRYON_MODEL_ROUTES`), pinned model versions recorded per
@@ -77,7 +81,9 @@ notification preferences; account deletion.
   "Size Charts" page) used whenever their labels match; shopper "runs
   small / true to size / runs large" feedback shifts recommendations one
   size once ≥3 reports agree ≥60%, and brands see the summary per product
-- Shopping: LLM query understanding / embedding search over the catalog
+- ✅ Shopping: Claude query understanding (structured outputs, synonyms for
+  recall, refusal fallbacks; rules when unavailable) and embedding-ranked
+  catalog search
 
 ## Phase 5 — Store Dashboard expansion
 

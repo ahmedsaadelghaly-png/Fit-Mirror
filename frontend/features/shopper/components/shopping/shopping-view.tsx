@@ -27,10 +27,10 @@ const SUGGESTED_QUESTIONS = [
 
 /**
  * Shopping Assistant chat UI, wired to features/shopper/hooks/use-
- * shopping-ask.ts -> api/shopper/shopping.ts -> the backend's rule-based
- * `POST /shopping/ask` (natural-language catalog search). Badged "Beta"
- * until a model-backed assistant replaces the rules behind the same
- * contract.
+ * shopping-ask.ts -> api/shopper/shopping.ts -> `POST /shopping/ask`
+ * (natural-language catalog search: Claude reads the query when the
+ * backend has an Anthropic key, rules otherwise; results ranked with
+ * embeddings). Badged "Beta".
  */
 function ShoppingView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);

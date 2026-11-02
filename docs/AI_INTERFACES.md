@@ -163,5 +163,20 @@ Embeddings are computed per request (memoized in-process), never stored.
   pieces never rated themselves.
 - **Sizing** (`sizing_service.py`): brand size charts, then shopper fit
   feedback — see `API_CONTRACTS.md` "Size charts & fit feedback".
-- **Shopping Assistant**: see the shopping section below once Phase 4.4
-  lands.
+- **Shopping Assistant** (`shopping_service.py`): query understanding by
+  Claude when `ANTHROPIC_API_KEY` is set (`app/ai/query_understanding.py`:
+  structured outputs into a validated `ShoppingIntent` — category,
+  audiences, price bounds, size, colors, keywords with synonyms, a
+  rewrite for semantic search; `SHOPPING_LLM_MODEL`, default
+  `claude-opus-5-5`, at low effort, with server-side refusal fallbacks,
+  a 20s timeout and one retry). If the key is unset, or the call fails or
+  is refused, the rule-based parser runs instead. Candidates are ranked by
+  keyword hits plus `2 x` the embedding similarity between the query and
+  each product.
+
+| Setting | Default | Effect |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | empty | Enables Claude query understanding |
+| `SHOPPING_LLM_MODEL` | `claude-opus-5-5` | Model for query understanding |
+| `SHOPPING_LLM_TIMEOUT_SECONDS` | `20` | Per-request timeout before falling back to rules |
+| `VOYAGE_API_KEY` / `VOYAGE_EMBED_MODEL` | empty / `voyage-3.5-lite` | Hosted embeddings for stylist + shopping ranking |
