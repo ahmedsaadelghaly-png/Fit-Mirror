@@ -20,6 +20,8 @@ from app.schemas.product import ProductRead
 
 router = APIRouter()
 
+ADULT_AUDIENCES = frozenset({ProductAudience.WOMEN, ProductAudience.MEN})
+
 
 @router.get("/products", response_model=list[ProductRead])
 def browse_products(
@@ -41,7 +43,10 @@ def browse_products(
         query = query.filter(Product.id.in_(ids))
     if category:
         query = query.filter(Product.category == category)
-    if audience:
+    if audience in ADULT_AUDIENCES:
+        # Unisex items are cut for adults, so they belong under both.
+        query = query.filter(Product.audience.in_((audience, ProductAudience.UNISEX)))
+    elif audience:
         query = query.filter(Product.audience == audience)
     if q:
         escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
