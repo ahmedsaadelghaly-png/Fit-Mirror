@@ -47,11 +47,7 @@ previously its counters never reset) keeps counts in memory, so with N
 API replicas a client effectively gets N× the limit. Needs a Redis-backed
 implementation before it's relied on in a multi-instance deployment.
 
-### `GET /tryon/download-url` and `POST /storage/download-urls` don't check key ownership
-
-Documented design choice (see the endpoint docstring and `docs/STORAGE.md`
-"Planned hardening"): keys are unguessable, but any signed-in user who
-obtains one can resolve it. Should be scoped by key namespace/owner.
+### ~~File download endpoints don't check ownership~~ — resolved (`app/services/storage_access.py`)
 
 ### e2e smoke tests are timing-sensitive under parallel `next dev`
 

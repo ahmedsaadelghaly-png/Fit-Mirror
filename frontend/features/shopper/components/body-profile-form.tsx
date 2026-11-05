@@ -131,7 +131,7 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
       preferred_fit: values.preferred_fit || null,
       favorite_colors: values.favorite_colors,
       style_preferences: values.style_preferences,
-      ...(upload.objectKey ? { reference_image_key: upload.objectKey } : {}),
+      ...(upload.objectKey && !isKids ? { reference_image_key: upload.objectKey } : {}),
     };
     try {
       if (familyProfile) {
@@ -280,46 +280,48 @@ function BodyProfileForm({ existingProfile }: BodyProfileFormProps) {
         </CardContent>
       </Card>
 
-      <Card variant="flush">
-        <CardHeader className="flex-row items-center gap-3 px-0">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent">
-            <Camera className="size-4 text-accent-foreground" aria-hidden="true" />
-          </div>
-          <div>
-            <h2 className="font-display text-lg font-semibold">Reference photo</h2>
-            <p className="text-sm text-muted-foreground">
-              A well-lit, front-facing photo helps try-on results line up correctly.
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 px-0 sm:flex-row sm:items-start">
-          {existingProfile?.reference_image_key && !upload.previewUrl && (
-            <figure className="flex w-32 shrink-0 flex-col gap-1">
-              <ResolvedImage
-                imageKey={existingProfile.reference_image_key}
-                alt="Your saved reference photo"
-                className="aspect-[3/4] w-32 rounded-lg object-cover"
+      {!isKids && (
+        <Card variant="flush">
+          <CardHeader className="flex-row items-center gap-3 px-0">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent">
+              <Camera className="size-4 text-accent-foreground" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 className="font-display text-lg font-semibold">Reference photo</h2>
+              <p className="text-sm text-muted-foreground">
+                A well-lit, front-facing photo helps try-on results line up correctly.
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 px-0 sm:flex-row sm:items-start">
+            {existingProfile?.reference_image_key && !upload.previewUrl && (
+              <figure className="flex w-32 shrink-0 flex-col gap-1">
+                <ResolvedImage
+                  imageKey={existingProfile.reference_image_key}
+                  alt="Your saved reference photo"
+                  className="aspect-[3/4] w-32 rounded-lg object-cover"
+                />
+                <figcaption className="text-xs text-muted-foreground">Saved photo</figcaption>
+              </figure>
+            )}
+            <div className="flex-1">
+              <ImageUploadField
+                label="Drop a reference photo here, or click to browse"
+                hint="PNG or JPG, up to 10MB"
+                status={upload.status}
+                previewUrl={upload.previewUrl}
+                progress={upload.progress}
+                error={upload.error}
+                onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
+                onClear={upload.reset}
               />
-              <figcaption className="text-xs text-muted-foreground">Saved photo</figcaption>
-            </figure>
-          )}
-          <div className="flex-1">
-            <ImageUploadField
-              label="Drop a reference photo here, or click to browse"
-              hint="PNG or JPG, up to 10MB"
-              status={upload.status}
-              previewUrl={upload.previewUrl}
-              progress={upload.progress}
-              error={upload.error}
-              onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
-              onClear={upload.reset}
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Saved with this profile and used as the photo for catalog try-ons.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Saved with this profile and used as the photo for catalog try-ons.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {saveMutation.isError && (
         <p role="alert" className="text-sm text-destructive">

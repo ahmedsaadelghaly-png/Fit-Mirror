@@ -5,24 +5,35 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/api/client";
-import { ChangePasswordCard } from "@/features/auth/components/account-settings";
+import { ChangePasswordCard, DeleteAccountCard } from "@/features/auth/components/account-settings";
 import { RegisterForm } from "@/features/auth/components/register-form";
 import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
 
-const { resetPasswordMock, registerMock, changePasswordMock, searchParams, setTokensMock } =
-  vi.hoisted(() => ({
-    resetPasswordMock: vi.fn(),
-    registerMock: vi.fn(),
-    changePasswordMock: vi.fn(),
-    searchParams: { current: new URLSearchParams() },
-    setTokensMock: vi.fn(),
-  }));
+const {
+  resetPasswordMock,
+  registerMock,
+  changePasswordMock,
+  requestAccountDeletionMock,
+  logoutMock,
+  searchParams,
+  setTokensMock,
+} = vi.hoisted(() => ({
+  resetPasswordMock: vi.fn(),
+  registerMock: vi.fn(),
+  changePasswordMock: vi.fn(),
+  requestAccountDeletionMock: vi.fn(),
+  logoutMock: vi.fn(),
+  searchParams: { current: new URLSearchParams() },
+  setTokensMock: vi.fn(),
+}));
 
 vi.mock("@/features/auth/api", () => ({
   resetPassword: resetPasswordMock,
   register: registerMock,
   changePassword: changePasswordMock,
+  requestAccountDeletion: requestAccountDeletionMock,
 }));
+vi.mock("@/hooks/use-auth", () => ({ useAuth: () => ({ logout: logoutMock }) }));
 vi.mock("@/lib/auth-token", () => ({ setTokens: setTokensMock }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -137,5 +148,39 @@ describe("ChangePasswordCard", () => {
 
     expect(await screen.findByText(/your password has been changed/i)).toBeInTheDocument();
     expect(setTokensMock).toHaveBeenCalledWith("new-access", "new-refresh");
+  });
+});
+
+describe("DeleteAccountCard", () => {
+  it("needs the password, then signs out", async () => {
+    const user = userEvent.setup();
+    requestAccountDeletionMock.mockResolvedValueOnce({
+      deletion_scheduled_for: "2026-12-06T00:00:00Z",
+    });
+    renderWithClient(<DeleteAccountCard />);
+
+    await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    expect(await screen.findByText("Enter your password")).toBeInTheDocument();
+    expect(requestAccountDeletionMock).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText("Your password"), "CorrectHorse1!");
+    await user.click(screen.getByRole("button", { name: /delete my account/i }));
+
+    await vi.waitFor(() => expect(logoutMock).toHaveBeenCalled());
+    expect(requestAccountDeletionMock.mock.calls[0]?.[0]).toBe("CorrectHorse1!");
+  });
+
+  it("stays signed in when the password is wrong", async () => {
+    const user = userEvent.setup();
+    requestAccountDeletionMock.mockRejectedValueOnce(
+      new ApiError("Your password is incorrect.", 422, "validation_error"),
+    );
+    renderWithClient(<DeleteAccountCard />);
+
+    await user.type(screen.getByLabelText("Your password"), "wrong");
+    await user.click(screen.getByRole("button", { name: /delete my account/i }));
+
+    expect(await screen.findByText(/password is incorrect/i)).toBeInTheDocument();
+    expect(logoutMock).not.toHaveBeenCalled();
   });
 });

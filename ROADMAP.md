@@ -85,6 +85,18 @@ feature still works on its built-in fallback.
   recall, refusal fallbacks; rules when unavailable) and embedding-ranked
   catalog search
 
+## Done — Privacy and data protection
+
+- ✅ File access checks: a stored file can only be read by its uploader, the
+  owner of the try-on it belongs to, a platform admin, or anyone if it's
+  published on the catalog (`app/services/storage_access.py`)
+- ✅ Account deletion with a 30-day grace period; logging in cancels
+- ✅ Try-ons and their photos deleted after 90 days unless saved
+- ✅ Failed try-ons show an honest error; no placeholder fallback by default
+- ✅ Children's profiles are size-only: no photos, no photo try-on
+- Before launch: legal review of `docs/legal/PRIVACY_POLICY_DRAFT.md`, then
+  publish the policy and terms; data export
+
 ## Phase 5 — Store Dashboard expansion
 
 - Analytics: try-on conversion, popular products, size-fit reports
@@ -95,11 +107,10 @@ feature still works on its built-in fallback.
 ## Phase 6 — Platform hardening
 
 - Redis-backed rate limiter (the in-process one is per-instance)
-- Object-key ownership checks on `GET /tryon/download-url` (`docs/STORAGE.md`)
 - Real audit log + feature flag backends (`docs/AUDIT_LOGGING.md`, `docs/FEATURE_FLAGS.md`)
 - Metrics (Prometheus), tracing, log aggregation; staging environment
 - Load testing the try-on pipeline; queue autoscaling
-- JWT rotation / refresh-token revocation; PII and image retention policy
+- JWT rotation / refresh-token revocation
 - Replace `passlib` (Python 3.13 `crypt` removal — see `docs/KNOWN_ISSUES.md`)
 
 Each phase extends, not restructures, the existing architecture: features

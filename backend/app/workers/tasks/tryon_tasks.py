@@ -34,6 +34,11 @@ GARMENT_CATEGORIES = {
 }
 
 
+# Shown to shoppers. The real cause stays in the logs: it can be a raw HTTP
+# error, and a shopper can't act on it anyway.
+GENERATION_FAILED = "We couldn't generate this try-on. Please try again."
+
+
 class TryOnRejected(Exception):
     """The AI service refused the inputs (4xx): permanent, not retried. The
     message is shopper-facing (e.g. "The photo is too small ...")."""
@@ -139,6 +144,7 @@ def process_tryon_job(self, job_id: str) -> None:
 
         logger.exception("TryOnJob %s failed permanently.", job_id)
         if job:
-            repository.set_status(job, TryOnJobStatus.FAILED, error_message=str(exc))
+            message = str(exc) if isinstance(exc, TryOnRejected) else GENERATION_FAILED
+            repository.set_status(job, TryOnJobStatus.FAILED, error_message=message)
     finally:
         db.close()

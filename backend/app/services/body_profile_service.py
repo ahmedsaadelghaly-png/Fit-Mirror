@@ -11,7 +11,12 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError, ValidationAppError
-from app.models.user import BODY_SHAPES_BY_CATEGORY, MAX_BODY_PROFILES_PER_USER, BodyProfile
+from app.models.user import (
+    BODY_SHAPES_BY_CATEGORY,
+    KIDS_CATEGORIES,
+    MAX_BODY_PROFILES_PER_USER,
+    BodyProfile,
+)
 from app.schemas.user import BodyProfileCreate, BodyProfileUpsert
 
 
@@ -99,6 +104,11 @@ class BodyProfileService:
             setattr(profile, field, value)
 
         category = profile.body_category
+        if category in KIDS_CATEGORIES:
+            if reference_key:
+                self.db.rollback()
+                raise ValidationAppError("Children's profiles can't hold a photo.")
+            profile.reference_image_key = None
         if profile.body_shape:
             if category is None:
                 self.db.rollback()

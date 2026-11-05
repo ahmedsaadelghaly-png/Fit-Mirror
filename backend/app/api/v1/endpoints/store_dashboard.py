@@ -34,6 +34,7 @@ from app.schemas.sizing import FitSummaryRead, SizeChartRead, SizeChartUpsert
 from app.schemas.store import StoreCreate, StoreDashboardSummary, StoreRead, StoreUpdate
 from app.services.fit_feedback_service import FitFeedbackService
 from app.services.size_chart_service import SizeChartService, parse_csv
+from app.services.storage_access import PUBLIC_PREFIXES, is_owned_by
 
 router = APIRouter()
 
@@ -68,6 +69,15 @@ def _get_owned_variant(db: Session, product: Product, variant_id: uuid.UUID) -> 
     if not variant:
         raise NotFoundError("Variant not found.")
     return variant
+
+
+def _ensure_own_image(user: User, object_key: str | None) -> None:
+    """Catalog images are readable by everyone (storage_access.py), so a
+    store may only publish images it uploaded itself."""
+    if object_key and not (
+        object_key.startswith(PUBLIC_PREFIXES) or is_owned_by(object_key, user.id)
+    ):
+        raise ValidationAppError("Upload the image from this account before using it.")
 
 
 def _ensure_sku_available(db: Session, sku: str, *, exclude_variant_id: uuid.UUID | None = None):
@@ -117,7 +127,7 @@ def update_my_store(
         del changes["name"]  # a store always has a name
 
     logo_key = changes.get("logo_image_key")
-    if logo_key and logo_key.split("/")[1:2] != [str(user.id)]:
+    if logo_key and not is_owned_by(logo_key, user.id):
         raise ValidationAppError("Upload the logo from this account before using it.")
     for field, value in changes.items():
         setattr(store, field, value)
@@ -172,6 +182,7 @@ def create_product(
     user: User = Depends(require_store_manager),
 ):
     store = _get_owned_store(db, user)
+    _ensure_own_image(user, payload.primary_image_key)
     product = Product(store_id=store.id, **payload.model_dump())
     db.add(product)
     db.commit()
@@ -210,6 +221,7 @@ def update_product(
     user: User = Depends(require_store_manager),
 ):
     product = _get_owned_product(db, _get_owned_store(db, user), product_id)
+    _ensure_own_image(user, payload.primary_image_key)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(product, field, value)
     db.commit()
@@ -240,6 +252,7 @@ def create_variant(
     user: User = Depends(require_store_manager),
 ):
     product = _get_owned_product(db, _get_owned_store(db, user), product_id)
+    _ensure_own_image(user, payload.garment_image_key)
     _ensure_sku_available(db, payload.sku)
     variant = ProductVariant(product_id=product.id, **payload.model_dump())
     db.add(variant)
@@ -258,6 +271,7 @@ def update_variant(
 ):
     product = _get_owned_product(db, _get_owned_store(db, user), product_id)
     variant = _get_owned_variant(db, product, variant_id)
+    _ensure_own_image(user, payload.garment_image_key)
     changes = payload.model_dump(exclude_unset=True)
     if changes.get("sku"):
         _ensure_sku_available(db, changes["sku"], exclude_variant_id=variant.id)

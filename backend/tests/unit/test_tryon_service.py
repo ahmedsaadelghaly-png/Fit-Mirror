@@ -58,7 +58,8 @@ def test_create_job_starts_pending_and_enqueues_task(mock_celery_delay):
     job = service.create_job(
         user_id,
         TryOnJobCreate(
-            user_image_key="user-photos/u1/photo.jpg", garment_image_key="garments/g1.jpg"
+            user_image_key=f"user-photos/{user_id}/photo.jpg",
+            garment_image_key=f"user-photos/{user_id}/garment.jpg",
         ),
     )
 
@@ -71,35 +72,42 @@ def test_create_job_requires_garment_image_or_variant(mock_celery_delay):
     repository = FakeTryOnJobRepository()
     service = TryOnService(repository)
 
+    user_id = uuid.uuid4()
     with pytest.raises(ValidationAppError):
-        service.create_job(uuid.uuid4(), TryOnJobCreate(user_image_key="user-photos/u1/photo.jpg"))
+        service.create_job(
+            user_id, TryOnJobCreate(user_image_key=f"user-photos/{user_id}/photo.jpg")
+        )
 
     mock_celery_delay.assert_not_called()
 
 
 def test_create_job_resolves_garment_image_from_product_variant(mock_celery_delay):
     fake_variant = MagicMock()
-    fake_variant.garment_image_key = "catalog/variant-1.jpg"
+    fake_variant.garment_image_key = "seed-data/variant-1.jpg"
     repository = FakeTryOnJobRepository(product_variant=fake_variant)
     service = TryOnService(repository)
 
+    user_id = uuid.uuid4()
     job = service.create_job(
-        uuid.uuid4(),
-        TryOnJobCreate(user_image_key="user-photos/u1/photo.jpg", product_variant_id=uuid.uuid4()),
+        user_id,
+        TryOnJobCreate(
+            user_image_key=f"user-photos/{user_id}/photo.jpg", product_variant_id=uuid.uuid4()
+        ),
     )
 
-    assert job.garment_image_key == "catalog/variant-1.jpg"
+    assert job.garment_image_key == "seed-data/variant-1.jpg"
 
 
 def test_create_job_raises_not_found_for_missing_variant(mock_celery_delay):
     repository = FakeTryOnJobRepository(product_variant=None)
     service = TryOnService(repository)
 
+    user_id = uuid.uuid4()
     with pytest.raises(NotFoundError):
         service.create_job(
-            uuid.uuid4(),
+            user_id,
             TryOnJobCreate(
-                user_image_key="user-photos/u1/photo.jpg", product_variant_id=uuid.uuid4()
+                user_image_key=f"user-photos/{user_id}/photo.jpg", product_variant_id=uuid.uuid4()
             ),
         )
 
@@ -111,7 +119,10 @@ def test_get_job_raises_not_found_for_other_users_job(mock_celery_delay):
 
     job = service.create_job(
         owner_id,
-        TryOnJobCreate(user_image_key="user-photos/u1/photo.jpg", garment_image_key="g.jpg"),
+        TryOnJobCreate(
+            user_image_key=f"user-photos/{owner_id}/photo.jpg",
+            garment_image_key="seed-data/g.jpg",
+        ),
     )
 
     with pytest.raises(NotFoundError):

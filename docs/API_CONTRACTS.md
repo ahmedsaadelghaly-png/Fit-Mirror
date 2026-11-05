@@ -31,6 +31,7 @@ note at the bottom of this file).
 | `/users/me` | GET | bearer | — | `200` `UserRead` | `401`, `404 USER_NOT_FOUND` |
 | `/users/me` | PATCH | bearer | `{full_name}` | `200` `UserRead` | `401`, `422` |
 | `/users/me/password` | POST | bearer | `{current_password, new_password}` | `200` `TokenResponse` (fresh tokens for this session; other sessions end at their next refresh) | `401`, `422` (wrong current password) |
+| `/users/me/delete` | POST | bearer | `{password}` | `202` `{deletion_scheduled_for}`; signed out now, erased after 30 days, logging in cancels | `401`, `422` (wrong password; platform admin) |
 | `/users/me/body-profile` | GET | bearer | — | `200` `BodyProfileRead` | `401`, `404 BODY_PROFILE_MISSING` |
 | `/users/me/body-profile` | PUT | bearer | `BodyProfileUpsert` (all fields optional; omitted fields kept) | `200` `BodyProfileRead` | `401`, `422 VALIDATION_ERROR` |
 

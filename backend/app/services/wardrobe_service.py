@@ -2,9 +2,10 @@ import uuid
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError, ValidationAppError
 from app.models.wardrobe import WardrobeItem
 from app.schemas.wardrobe import WardrobeItemCreate
+from app.services.storage_access import StorageAccess
 
 
 class WardrobeService:
@@ -12,6 +13,8 @@ class WardrobeService:
         self.db = db
 
     def add_item(self, user_id: uuid.UUID, payload: WardrobeItemCreate) -> WardrobeItem:
+        if not StorageAccess(self.db).can_read(user_id, payload.image_key):
+            raise ValidationAppError("Upload the image from this account first.")
         item = WardrobeItem(user_id=user_id, **payload.model_dump())
         self.db.add(item)
         self.db.commit()

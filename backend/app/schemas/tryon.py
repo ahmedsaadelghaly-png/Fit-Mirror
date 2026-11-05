@@ -16,6 +16,8 @@ class TryOnJobCreate(BaseModel):
     user_image_key: str
     garment_image_key: str | None = None
     product_variant_id: uuid.UUID | None = None
+    # Who the try-on is for, when a family profile was chosen.
+    body_profile_id: uuid.UUID | None = None
 
 
 class TryOnJobRead(BaseModel):

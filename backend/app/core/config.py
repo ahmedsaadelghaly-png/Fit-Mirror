@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     # Leave unset to fall back to S3_ENDPOINT_URL (no behavior change).
     S3_PUBLIC_ENDPOINT_URL: str = ""
 
+    # --- Data retention (docs/SECURITY.md) ---
+    TRYON_RETENTION_DAYS: int = 90
+    ACCOUNT_DELETION_GRACE_DAYS: int = 30
+
     # --- Embeddings (AI Stylist, Shopping Assistant) ---
     # Empty: a local hashing embedder (no network). Set to use Voyage AI.
     VOYAGE_API_KEY: str = ""

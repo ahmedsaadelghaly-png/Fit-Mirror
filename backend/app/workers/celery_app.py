@@ -6,6 +6,7 @@ Run a worker with:
 """
 
 from celery import Celery
+from celery.schedules import crontab
 
 from app.core.config import settings
 
@@ -22,7 +23,7 @@ celery_app = Celery(
     "fitmirror_worker",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.workers.tasks.tryon_tasks"],
+    include=["app.workers.tasks.tryon_tasks", "app.workers.tasks.maintenance_tasks"],
 )
 
 celery_app.conf.update(
@@ -39,4 +40,11 @@ celery_app.conf.update(
     # retryable HTTP timeout, not a killed task.
     task_time_limit=240,
     task_soft_time_limit=210,
+    # Needs a `celery beat` process: the `beat` service in docker-compose.
+    beat_schedule={
+        "apply-data-retention": {
+            "task": "maintenance.apply_data_retention",
+            "schedule": crontab(hour=3, minute=0),
+        },
+    },
 )

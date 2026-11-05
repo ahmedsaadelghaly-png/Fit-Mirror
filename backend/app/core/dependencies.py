@@ -71,7 +71,7 @@ def get_current_user(
     sees role changes and deactivations immediately rather than waiting for
     the access token to expire."""
     user = db.get(User, uuid.UUID(user_id))
-    if not user or not user.is_active:
+    if not user or not user.is_active or user.deletion_requested_at:
         raise UnauthorizedError("Account not found or deactivated.")
     return user
 

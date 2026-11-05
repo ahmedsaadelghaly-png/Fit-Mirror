@@ -3,9 +3,12 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user_id, get_db, get_storage
+from app.core.dependencies import get_current_user, get_current_user_id, get_db, get_storage
+from app.core.exceptions import NotFoundError
+from app.models.user import User, UserRole
 from app.repositories.tryon_repository import TryOnJobRepository
 from app.schemas.tryon import TryOnJobAccepted, TryOnJobCreate, TryOnJobRead
+from app.services.storage_access import StorageAccess
 from app.services.storage_service import StorageService
 from app.services.tryon_service import TryOnService
 from app.storage.base import ObjectStorage
@@ -35,7 +38,8 @@ def create_upload_url(
 @router.get("/download-url")
 def create_download_url(
     object_key: str,
-    user_id: str = Depends(get_current_user_id),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
     storage: ObjectStorage = Depends(get_storage),
 ):
     """Resolves any storage object key to a downloadable URL — the read-side
@@ -46,13 +50,12 @@ def create_download_url(
     get_tryon_job below — both are GET on this router, and a literal path
     must be matched before a dynamic `/{job_id}` one.
 
-    No per-key ownership check: object keys are namespaced by owner_id but
-    not access-controlled by it (see docs/STORAGE.md "Planned hardening"),
-    matching every other endpoint that already trusts a client-supplied
-    key (e.g. TryOnJobCreate.garment_image_key). A caller who already has
-    a key (from their own scoped list/detail response) can resolve it;
-    this endpoint doesn't grant a caller a key they didn't already have.
+    404 unless the caller may read the key (see storage_access.py); 404
+    rather than 403, so it can't be used to test whether a key exists.
     """
+    is_admin = user.role == UserRole.PLATFORM_ADMIN
+    if not StorageAccess(db).can_read(user.id, object_key, is_admin=is_admin):
+        raise NotFoundError("File not found.")
     service = StorageService(storage)
     return {"download_url": service.get_download_url(object_key)}
 

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChangePasswordCard,
+  DeleteAccountCard,
   ProfileDetailsCard,
 } from "@/features/auth/components/account-settings";
 import { PlannedSectionCard } from "@/features/brand/components/settings/planned-section-card";
@@ -32,6 +33,7 @@ function BrandSettingsView() {
           <Skeleton className="h-48 w-full" />
         )}
         <ChangePasswordCard />
+        <DeleteAccountCard extraWarning="Your store and products are deleted too." />
 
         <Card>
           <CardHeader>

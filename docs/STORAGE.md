@@ -80,6 +80,18 @@ client-supplied object key (see "Planned hardening" below). The frontend's
 `shared/components/resolved-image.tsx` calls this for every wardrobe/
 try-on/product image it renders, via `hooks/use-resolved-image-url.ts`.
 
+## Read access
+
+`GET /tryon/download-url` and `POST /storage/download-urls` only resolve keys
+the caller may read (`app/services/storage_access.py`): their own uploads,
+`seed-data/`, anything published on the catalog, and keys on their own try-on
+jobs. Platform admins can read everything. Every endpoint that stores a
+client-supplied key checks it the same way first, so a private photo can't
+become readable by being attached to a job, wardrobe item or product.
+
+Leave `S3_PUBLIC_BASE_URL` empty for this bucket: it returns unsigned URLs,
+which only works on a public bucket, and that would bypass these checks.
+
 ## Planned hardening
 
 - **Namespace-scoped upload permissions:** today, a client could
@@ -96,10 +108,6 @@ try-on/product image it renders, via `hooks/use-resolved-image-url.ts`.
   credentials have full bucket access. Acceptable for the current
   single-tenant-bucket design; revisit if per-brand bucket isolation is
   ever needed.
-- **Lifecycle policies:** no automatic expiry/archival of old
-  `tryon-results/` images exists yet. Planned: a lifecycle rule (S3
-  Intelligent-Tiering or a scheduled cleanup job) once storage costs
-  warrant it, respecting `SECURITY.md`'s data retention policy.
 - **Content-type/size validation:** pre-signed URLs constrain
   `Content-Type` but not file size or actual image validity. Planned:
   either enforce `Content-Length` via the pre-signed URL's policy

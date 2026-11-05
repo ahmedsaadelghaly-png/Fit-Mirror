@@ -26,15 +26,15 @@ def storage():
 def test_resolves_each_distinct_key_once(api, make_user, auth_headers, storage):
     r = api.post(
         "/api/v1/storage/download-urls",
-        json={"object_keys": ["a/1.jpg", "b/2.jpg", "a/1.jpg"]},
+        json={"object_keys": ["seed-data/1.jpg", "seed-data/2.jpg", "seed-data/1.jpg"]},
         headers=auth_headers(make_user()),
     )
     assert r.status_code == 200, r.text
     assert r.json()["download_urls"] == {
-        "a/1.jpg": "https://bucket.test/a/1.jpg?sig=1",
-        "b/2.jpg": "https://bucket.test/b/2.jpg?sig=1",
+        "seed-data/1.jpg": "https://bucket.test/seed-data/1.jpg?sig=1",
+        "seed-data/2.jpg": "https://bucket.test/seed-data/2.jpg?sig=1",
     }
-    assert storage.calls == ["a/1.jpg", "b/2.jpg"]
+    assert sorted(storage.calls) == ["seed-data/1.jpg", "seed-data/2.jpg"]
 
 
 @pytest.mark.parametrize("keys", [[], [f"k/{i}.jpg" for i in range(101)], [""]])

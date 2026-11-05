@@ -28,7 +28,9 @@ function TryOnHistoryView() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold">Try-on history</h1>
-          <p className="text-sm text-muted-foreground">Every try-on job you&apos;ve created.</p>
+          <p className="text-sm text-muted-foreground">
+            Try-ons are deleted after 90 days, along with their photos, unless you save the look.
+          </p>
         </div>
         <Button asChild size="sm">
           <Link href="/shopper/tryon">

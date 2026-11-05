@@ -26,6 +26,9 @@ class ProductAudience(str, enum.Enum):
     UNISEX = "unisex"
 
 
+KIDS_AUDIENCES = frozenset({ProductAudience.GIRLS, ProductAudience.BOYS})
+
+
 class Product(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "products"
 

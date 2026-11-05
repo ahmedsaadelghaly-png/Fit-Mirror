@@ -34,6 +34,10 @@ class InMemoryObjectStorage(ObjectStorage):
     def delete_object(self, object_key: str) -> None:
         self._objects.pop(object_key, None)
 
+    def delete_prefix(self, prefix: str) -> None:
+        for key in [k for k in self._objects if k.startswith(prefix)]:
+            del self._objects[key]
+
     def build_object_key(self, *, namespace: str, owner_id: str, filename: str) -> str:
         return f"{namespace}/{owner_id}/{filename}"
 

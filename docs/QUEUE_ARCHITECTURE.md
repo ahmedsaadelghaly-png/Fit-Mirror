@@ -10,6 +10,10 @@ Virtual Try-On today, and the design rules any future async job type
 |---|---|---|
 | `tryon` | Try-on job processing (`process_tryon_job`) | The `worker` container/service |
 
+Scheduled work (`maintenance.apply_data_retention`, daily) also runs on this
+queue. It's triggered by the `beat` service, which must run as exactly one
+replica.
+
 Configuration (`app/workers/celery_app.py`):
 ```python
 task_default_queue = "tryon"

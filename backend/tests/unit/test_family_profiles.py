@@ -117,7 +117,10 @@ def test_catalog_tryon_records_product_and_falls_back_to_product_photo(
     with patch("app.services.tryon_service.process_tryon_job.delay"):
         r = api.post(
             "/api/v1/tryon",
-            json={"user_image_key": "user-photos/x/me.jpg", "product_variant_id": str(variant.id)},
+            json={
+                "user_image_key": f"user-photos/{shopper.id}/me.jpg",
+                "product_variant_id": str(variant.id),
+            },
             headers=headers,
         )
     assert r.status_code == 202, r.text
@@ -133,13 +136,14 @@ def test_catalog_tryon_rejects_hidden_product(
     api, db, make_user, make_store, make_product, auth_headers
 ):
     product = make_product(make_store(make_user(UserRole.BRAND_ADMIN)), is_active=False)
+    shopper = make_user()
     with patch("app.services.tryon_service.process_tryon_job.delay"):
         r = api.post(
             "/api/v1/tryon",
             json={
-                "user_image_key": "user-photos/x/me.jpg",
+                "user_image_key": f"user-photos/{shopper.id}/me.jpg",
                 "product_variant_id": str(product.variants[0].id),
             },
-            headers=auth_headers(make_user()),
+            headers=auth_headers(shopper),
         )
     assert r.status_code == 404

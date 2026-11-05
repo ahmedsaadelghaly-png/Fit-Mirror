@@ -90,6 +90,7 @@ export interface TryOnCreateRequest {
   user_image_key: string;
   garment_image_key?: string | null;
   product_variant_id?: string | null;
+  body_profile_id?: string | null;
 }
 
 export interface TryOnJobAccepted {

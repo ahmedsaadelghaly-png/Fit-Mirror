@@ -42,6 +42,11 @@ function ProductTryOnDialog({ product, onOpenChange }: ProductTryOnDialogProps) 
   );
 }
 
+/** Children's photos aren't sent to the try-on model; their size checks still work. */
+function isChildCategory(category: string | null): boolean {
+  return category === "girls" || category === "boys";
+}
+
 /** Kids' items default to a matching child's profile; everything else to the shopper's own. */
 export function pickDefaultProfile(
   profiles: BodyProfile[],
@@ -80,6 +85,8 @@ function ProductTryOnPanel({ product }: { product: Product }) {
   const photoKey = upload.objectKey ?? savedPhotoKey;
   const sizingError = sizing.error instanceof ApiError ? sizing.error : null;
   const whose = profile && !profile.is_primary ? `${profile.name}'s` : "your";
+  const isForChild =
+    isChildCategory(product.audience) || isChildCategory(profile?.body_category ?? null);
 
   const chooseProfile = (next: BodyProfile) => {
     setProfileId(next.id);
@@ -92,7 +99,11 @@ function ProductTryOnPanel({ product }: { product: Product }) {
   const startTryOn = () => {
     if (!selectedVariant || !photoKey) return;
     createJob.mutate(
-      { user_image_key: photoKey, product_variant_id: selectedVariant.id },
+      {
+        user_image_key: photoKey,
+        product_variant_id: selectedVariant.id,
+        body_profile_id: profile?.id ?? null,
+      },
       { onSuccess: (accepted) => router.push(`/shopper/tryon?job=${accepted.job_id}`) },
     );
   };
@@ -230,67 +241,75 @@ function ProductTryOnPanel({ product }: { product: Product }) {
           )}
         </section>
 
-        <section aria-labelledby="tryon-photo" className="flex flex-col gap-2">
-          <h3 id="tryon-photo" className="text-sm font-medium">
-            Photo
-          </h3>
-          {savedPhotoKey && !upload.objectKey ? (
-            <div className="flex items-center gap-3">
-              <ResolvedImage
-                imageKey={savedPhotoKey}
-                alt={`${profile?.is_primary ? "Your" : `${profile?.name}'s`} profile photo`}
-                className="aspect-[3/4] w-16 rounded-md object-cover"
-              />
-              <div className="flex flex-col items-start gap-1">
-                <span className="text-sm">Using the saved profile photo</span>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0"
-                  onClick={() => setIsReplacingPhoto(true)}
-                >
-                  Use a different photo
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <ImageUploadField
-              label="Drop a full-length photo here, or click to browse"
-              hint="PNG, JPG or WebP, up to 10MB"
-              status={upload.status}
-              previewUrl={upload.previewUrl}
-              progress={upload.progress}
-              error={upload.error}
-              onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
-              onClear={upload.reset}
-            />
-          )}
-        </section>
-
-        {createJob.isError && (
-          <p role="alert" className="text-sm text-destructive">
-            {createJob.error instanceof ApiError
-              ? createJob.error.message
-              : "Couldn't start the try-on. Please try again."}
+        {isForChild ? (
+          <p className="text-sm text-muted-foreground">
+            Photo try-on isn&apos;t available for children. The size check above still works.
           </p>
-        )}
+        ) : (
+          <>
+            <section aria-labelledby="tryon-photo" className="flex flex-col gap-2">
+              <h3 id="tryon-photo" className="text-sm font-medium">
+                Photo
+              </h3>
+              {savedPhotoKey && !upload.objectKey ? (
+                <div className="flex items-center gap-3">
+                  <ResolvedImage
+                    imageKey={savedPhotoKey}
+                    alt={`${profile?.is_primary ? "Your" : `${profile?.name}'s`} profile photo`}
+                    className="aspect-[3/4] w-16 rounded-md object-cover"
+                  />
+                  <div className="flex flex-col items-start gap-1">
+                    <span className="text-sm">Using the saved profile photo</span>
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0"
+                      onClick={() => setIsReplacingPhoto(true)}
+                    >
+                      Use a different photo
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <ImageUploadField
+                  label="Drop a full-length photo here, or click to browse"
+                  hint="PNG, JPG or WebP, up to 10MB"
+                  status={upload.status}
+                  previewUrl={upload.previewUrl}
+                  progress={upload.progress}
+                  error={upload.error}
+                  onFileSelected={(file) => upload.upload(file).catch(() => undefined)}
+                  onClear={upload.reset}
+                />
+              )}
+            </section>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            type="button"
-            onClick={startTryOn}
-            disabled={!selectedVariant || !photoKey}
-            isLoading={createJob.isPending}
-          >
-            <Sparkles className="size-4" /> Try it on
-          </Button>
-          {(!selectedVariant || !photoKey) && (
-            <span className="text-xs text-muted-foreground">
-              {!selectedVariant ? "Choose a size" : "Add a photo"} to continue.
-            </span>
-          )}
-        </div>
+            {createJob.isError && (
+              <p role="alert" className="text-sm text-destructive">
+                {createJob.error instanceof ApiError
+                  ? createJob.error.message
+                  : "Couldn't start the try-on. Please try again."}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                onClick={startTryOn}
+                disabled={!selectedVariant || !photoKey}
+                isLoading={createJob.isPending}
+              >
+                <Sparkles className="size-4" /> Try it on
+              </Button>
+              {(!selectedVariant || !photoKey) && (
+                <span className="text-xs text-muted-foreground">
+                  {!selectedVariant ? "Choose a size" : "Add a photo"} to continue.
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
