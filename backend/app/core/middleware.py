@@ -3,21 +3,24 @@ Cross-cutting HTTP middleware.
 
 Each middleware is intentionally small and independently toggleable via
 settings, so behavior can change per-environment (dev/test/prod) without
-code changes. Rate limiting and security headers are Phase-1.5 PLACEHOLDERS:
-they establish the wiring and interface but use conservative/no-op defaults
-until a real backing store (e.g. Redis-based token bucket) and a finalized
-security-header policy are implemented in a later phase.
+code changes. Security headers are still a Phase-1.5 PLACEHOLDER, until a
+finalized security-header policy lands in a later phase.
 """
 
 import time
 import uuid
+from functools import lru_cache
 
+from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 
 from app.core.config import settings
-from app.core.logging_config import set_request_id
+from app.core.logging_config import get_logger, set_request_id
+
+logger = get_logger(__name__)
 
 REQUEST_ID_HEADER = "X-Request-ID"
 
@@ -40,43 +43,58 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
+@lru_cache
+def get_rate_limit_redis() -> Redis:
+    # Short timeouts: a struggling Redis must not hold up every request.
+    return Redis.from_url(settings.REDIS_URL, socket_timeout=0.25, socket_connect_timeout=0.25)
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
-    PLACEHOLDER rate limiter.
+    Fixed one-minute windows counted in Redis, so the limit holds across
+    every API process. Off unless RATE_LIMIT_ENABLED=true.
 
-    Currently a no-op unless RATE_LIMIT_ENABLED=true, in which case it
-    applies a naive in-process counter — NOT suitable for multi-instance
-    production use (it doesn't share state across processes/pods). This
-    exists to establish the middleware slot and response contract
-    (429 + Retry-After) ahead of a real implementation (e.g. a Redis-backed
-    sliding-window limiter) in a later phase.
+    Sign-in routes get their own stricter budget, to slow password guessing.
+    If Redis is unavailable requests are let through: an outage of the
+    limiter shouldn't become an outage of the API.
+
+    Clients are told apart by request.client, which behind a proxy is only
+    the real client if uvicorn trusts that proxy (FORWARDED_ALLOW_IPS).
+    Otherwise all traffic looks like one client and shares one budget.
     """
 
     WINDOW_SECONDS = 60
-
-    def __init__(self, app):
-        super().__init__(app)
-        # Fixed one-minute windows: counts are only kept for the current
-        # window, so a client is never blocked longer than the window it
-        # exceeded the limit in (and memory doesn't grow without bound).
-        self._window_start = 0
-        self._request_counts: dict[str, int] = {}
+    EXEMPT_PATHS = frozenset({"/health"})
+    AUTH_PATH_SUFFIXES = (
+        "/auth/login",
+        "/auth/register",
+        "/auth/forgot-password",
+        "/auth/reset-password",
+    )
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if not settings.RATE_LIMIT_ENABLED:
+        if not settings.RATE_LIMIT_ENABLED or request.url.path in self.EXEMPT_PATHS:
             return await call_next(request)
 
-        now = int(time.monotonic())
-        window_start = now - now % self.WINDOW_SECONDS
-        if window_start != self._window_start:
-            self._window_start = window_start
-            self._request_counts.clear()
+        is_auth = request.url.path.endswith(self.AUTH_PATH_SUFFIXES)
+        limit = (
+            settings.RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE
+            if is_auth
+            else settings.RATE_LIMIT_REQUESTS_PER_MINUTE
+        )
+        client = request.client.host if request.client else "unknown"
+        now = int(time.time())
+        window = now // self.WINDOW_SECONDS
+        key = f"ratelimit:{'auth' if is_auth else 'api'}:{client}:{window}"
 
-        client_key = request.client.host if request.client else "unknown"
-        self._request_counts[client_key] = self._request_counts.get(client_key, 0) + 1
+        try:
+            count = await self._count_request(key)
+        except RedisError:
+            logger.warning("Rate limiter unavailable; letting the request through.")
+            return await call_next(request)
 
-        if self._request_counts[client_key] > settings.RATE_LIMIT_REQUESTS_PER_MINUTE:
-            retry_after = window_start + self.WINDOW_SECONDS - now
+        if count > limit:
+            retry_after = (window + 1) * self.WINDOW_SECONDS - now
             return Response(
                 content='{"error_code":"rate_limited","message":"Too many requests."}',
                 status_code=429,
@@ -85,6 +103,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
         return await call_next(request)
+
+    async def _count_request(self, key: str) -> int:
+        async with get_rate_limit_redis().pipeline(transaction=True) as pipeline:
+            pipeline.incr(key)
+            pipeline.expire(key, self.WINDOW_SECONDS * 2)
+            count, _ = await pipeline.execute()
+        return count
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

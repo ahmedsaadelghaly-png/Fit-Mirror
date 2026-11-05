@@ -6,15 +6,11 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.core.exceptions import UnauthorizedError
-
-pwd_context = CryptContext(
-    schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=settings.BCRYPT_ROUNDS
-)
 
 
 class TokenType(str, Enum):
@@ -23,11 +19,15 @@ class TokenType(str, Enum):
 
 
 def hash_password(plain_password: str) -> str:
-    return pwd_context.hash(plain_password)
+    salt = bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS)
+    return bcrypt.hashpw(plain_password.encode(), salt).decode()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    except ValueError:  # not a bcrypt hash
+        return False
 
 
 def create_token(

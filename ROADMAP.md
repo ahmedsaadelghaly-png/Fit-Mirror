@@ -107,12 +107,12 @@ feature still works on its built-in fallback.
 
 ## Phase 6 — Platform hardening
 
-- Redis-backed rate limiter (the in-process one is per-instance)
+- ✅ Redis-backed rate limiter, with a stricter budget for sign-in routes
 - Real audit log + feature flag backends (`docs/AUDIT_LOGGING.md`, `docs/FEATURE_FLAGS.md`)
 - Metrics (Prometheus), tracing, log aggregation; staging environment
 - Load testing the try-on pipeline; queue autoscaling
 - JWT rotation / refresh-token revocation
-- Replace `passlib` (Python 3.13 `crypt` removal — see `docs/KNOWN_ISSUES.md`)
+- ✅ `passlib` replaced by `bcrypt` directly; existing password hashes keep working
 
 Each phase extends, not restructures, the existing architecture: features
 plug into `api → services → repositories → models`, and AI capabilities

@@ -36,16 +36,9 @@ audit log, and reports still have no backend and stay mocked (badged
 
 ### ~~Shopper "style preferences" have no backend field~~ — resolved in Phase 3.2
 
-### `passlib`'s `crypt` module deprecation warning
+### ~~`passlib`'s `crypt` module deprecation warning~~ — resolved (uses `bcrypt` directly)
 
-`backend/.venv/lib/.../passlib/utils/__init__.py` imports the standard-library `crypt` module, which is deprecated since Python 3.12 and scheduled for removal in 3.13. Shows up as a `DeprecationWarning` in every backend pytest run. Not a bug today (Python 3.12 still has the module), but will break outright on a future Python 3.13 upgrade. Tracked here rather than fixed now since `passlib`'s bcrypt backend (what this project actually uses via `app/core/security.py`) doesn't need `crypt` at all — the warning fires from an unrelated code path `passlib` imports eagerly. A `passlib` version bump or a switch to `bcrypt` directly (already a pinned dependency) would resolve it; deferred as a dependency-upgrade task, not a validation-blocking issue.
-
-### Rate limiter is per-process
-
-The fixed-window limiter in `app/core/middleware.py` (fixed in Phase 3.0 —
-previously its counters never reset) keeps counts in memory, so with N
-API replicas a client effectively gets N× the limit. Needs a Redis-backed
-implementation before it's relied on in a multi-instance deployment.
+### ~~Rate limiter is per-process~~ — resolved (Redis-backed; set `FORWARDED_ALLOW_IPS` behind a proxy)
 
 ### ~~File download endpoints don't check ownership~~ — resolved (`app/services/storage_access.py`)
 
