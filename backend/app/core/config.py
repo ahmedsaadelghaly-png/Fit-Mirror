@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     # --- Security hardening (Phase 1.5 placeholders — see DEVELOPMENT.md) ---
     RATE_LIMIT_ENABLED: bool = False
     RATE_LIMIT_REQUESTS_PER_MINUTE: int = 120
+    RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE: int = 10
     SECURE_HEADERS_ENABLED: bool = False
     BCRYPT_ROUNDS: int = 12
 

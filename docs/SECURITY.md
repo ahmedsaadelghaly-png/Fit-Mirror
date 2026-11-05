@@ -42,25 +42,15 @@ pre-launch secrets checklist, which operationalizes several items below.
 
 ## Rate limiting
 
-- **Implemented as a placeholder**, not production-ready:
-  `RateLimitMiddleware` (`app/core/middleware.py`), gated by
-  `RATE_LIMIT_ENABLED` (default `false`), with a per-client (by IP)
-  in-process counter and `RATE_LIMIT_REQUESTS_PER_MINUTE` threshold. On
-  exceeding the threshold: `429` with `error_code: "rate_limited"` and a
-  `Retry-After: 60` header.
-- **Known limitation, explicitly documented:** the counter is per-process
-  memory — it does **not** share state across multiple backend
-  replicas/workers. Running `docker-compose.prod.yml`'s `backend`
-  service with `replicas: 2` means each replica enforces its own
-  independent limit, effectively multiplying the real ceiling. This is
-  acceptable for Phase 1.75 (single-instance dev/staging), **not**
-  acceptable once horizontal scaling is real — see `DEPLOYMENT.md`'s
-  secrets checklist and `ROADMAP.md` Phase 8.
-- **Planned:** a Redis-backed sliding-window or token-bucket limiter
-  (shared state across replicas), likely keyed by user id for
-  authenticated endpoints (fairer than IP-based, which penalizes shared
-  NAT/corporate networks) and by IP for unauthenticated endpoints
-  (`/auth/login`, `/auth/register`, where there's no user id yet).
+`RateLimitMiddleware` (`app/core/middleware.py`) counts requests per client in
+one-minute windows in Redis, so the limit holds across every API process.
+Sign-in routes have their own stricter budget
+(`RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE`). Over the limit: `429` with
+`Retry-After`. If Redis is down, requests are let through and a warning is
+logged. `/health` is exempt.
+
+Behind a reverse proxy, set `FORWARDED_ALLOW_IPS` to the proxy's address.
+Otherwise every user appears to share the proxy's IP, and one budget.
 
 ## Image privacy
 
