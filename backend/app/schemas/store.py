@@ -50,3 +50,35 @@ class StoreDashboardSummary(BaseModel):
     total_tryon_jobs: int
     completed_tryon_jobs: int
     failed_tryon_jobs: int
+
+
+class ProductDemandRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    product_id: uuid.UUID
+    title: str
+    tryons: int
+    shoppers: int
+
+
+class SizeDemandRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    size_label: str
+    tryons: int
+
+
+class StoreAnalyticsRead(BaseModel):
+    """Totals only: shoppers are counted, never identified."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    days: int
+    tryons: int
+    shoppers: int
+    completed: int
+    saved_looks: int
+    top_products: list[ProductDemandRead]
+    size_demand: list[SizeDemandRead]
+    # Fit reports across the catalog, all time, by verdict.
+    fit_counts: dict[str, int]

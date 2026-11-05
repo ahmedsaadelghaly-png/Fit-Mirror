@@ -2,7 +2,7 @@
 
 The full Brand/Store experience: dashboard, store onboarding, store
 profile/settings, product management (list/create/edit/details),
-variants, inventory, analytics (placeholder), customers (placeholder),
+variants, inventory, analytics, customers (placeholder),
 orders (placeholder), and brand-level settings. Everything under
 `app/(brand)/brand/*` is now real — no more static placeholder page.
 Admin dashboard and mobile app remain out of scope, per the Phase 2.4
@@ -24,12 +24,13 @@ frontend/
     hooks/                                One TanStack Query hook per file (store, products, overlays, business info, onboarding)
     components/
       require-store.tsx                  Shared loading/needs-setup/error/success gate every store-scoped page renders through
-      dashboard/                          Store summary, product count, try-on activity, setup checklist, recent products, quick actions, inventory/analytics placeholder cards
+      dashboard/                          Store summary, product count, try-on activity, setup checklist, recent products, quick actions, inventory placeholder card, analytics card
       onboarding/                        5-step stepper (basics, logo, details, social, completion)
       profile/                           Store identity (read-only), business info form, verification status, notification placeholder
       products/                          Filters, table, status badge, create/edit form, details view, variant list + form dialog
       inventory/                         Real stock-quantity table across all variants + bulk-update placeholder
-      analytics/, customers/, orders/    Placeholder views, clearly badged "Planned"
+      analytics/                         Try-on totals, most tried products, size demand, fit feedback
+      customers/, orders/                Placeholder views, clearly badged "Planned"
       settings/                          Account (name + password, shared with Shopper), store-settings link, billing/team/API placeholders
   app/(brand)/brand/
     page.tsx                              Dashboard
@@ -62,7 +63,7 @@ renders one client `*View`/`*Flow` component, same pattern as Phase 2.3.
 | Product variants (add/edit/delete) | `POST/PATCH/DELETE /store/products/{id}/variants[/{variant_id}]` | Real (Phase 3.1) — duplicate SKU (409) shown on the SKU field |
 | Single product detail | `GET /store/products/{id}` exists | Still derived from the list query cache (one fewer request when arriving from the list) |
 | Inventory stock levels | derived from `GET /store/products` | Real (read), no bulk-update endpoint |
-| Analytics | none | Placeholder, clearly badged "Planned" |
+| Analytics | `GET /store/analytics` | Real totals for 7/30/90 days; no purchase or view metrics, because neither is tracked |
 | Customers | none | Placeholder |
 | Orders | none | Placeholder |
 | Store verification | `is_verified` readable via `StoreRead` | Read-only, no request/trigger endpoint |
@@ -204,7 +205,7 @@ npm run dev                 # http://localhost:3000/brand — needs backend + Po
 ## What's still a placeholder after Phase 2.4
 
 - Store verification workflow (mismatch #7)
-- Analytics, Customers, Orders — no backend data model (mismatch #8)
+- Customers, Orders — no backend data model (mismatch #8)
 - Billing, team management, API integration (Brand Settings) — no backend at all
 - Bulk inventory stock update
 

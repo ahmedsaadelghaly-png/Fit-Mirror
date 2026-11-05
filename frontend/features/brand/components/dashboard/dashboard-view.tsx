@@ -4,7 +4,7 @@ import { Package, Percent, Sparkles } from "lucide-react";
 
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AnalyticsPlaceholderCard } from "@/features/brand/components/dashboard/analytics-placeholder-card";
+import { AnalyticsCard } from "@/features/brand/components/dashboard/analytics-card";
 import { InventoryPlaceholderCard } from "@/features/brand/components/dashboard/inventory-placeholder-card";
 import { QuickActionsCard } from "@/features/brand/components/dashboard/quick-actions-card";
 import { RecentProductsCard } from "@/features/brand/components/dashboard/recent-products-card";
@@ -93,7 +93,7 @@ function DashboardContent({ store }: { store: Store }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <QuickActionsCard />
         <InventoryPlaceholderCard />
-        <AnalyticsPlaceholderCard />
+        <AnalyticsCard />
       </div>
     </div>
   );

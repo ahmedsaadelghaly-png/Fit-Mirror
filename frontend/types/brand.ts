@@ -100,3 +100,14 @@ export interface SizeChart {
   rows: SizeChartRow[];
   updated_at: string;
 }
+
+export interface StoreAnalytics {
+  days: number;
+  tryons: number;
+  shoppers: number;
+  completed: number;
+  saved_looks: number;
+  top_products: { product_id: string; title: string; tryons: number; shoppers: number }[];
+  size_demand: { size_label: string; tryons: number }[];
+  fit_counts: Record<"small" | "true_to_size" | "large", number>;
+}
