@@ -189,6 +189,8 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
         NEXT_PUBLIC_APP_ENV: production
         NEXT_PUBLIC_S3_PUBLIC_BASE_URL: ${NEXT_PUBLIC_S3_PUBLIC_BASE_URL:-}
+        # Storage origin browsers upload to; the CSP blocks photo uploads without it.
+        NEXT_PUBLIC_S3_PUBLIC_ENDPOINT_URL: ${NEXT_PUBLIC_S3_PUBLIC_ENDPOINT_URL:-}
     restart: always
     depends_on:
       backend:

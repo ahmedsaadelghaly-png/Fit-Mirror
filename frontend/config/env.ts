@@ -6,6 +6,12 @@ import { z } from "zod";
  * error deep inside a component. Only NEXT_PUBLIC_* variables are safe to
  * read on the client — see docs/frontend/FRONTEND_ARCHITECTURE.md.
  */
+/** Unset and empty are the same: Docker build args default to an empty string. */
+const optionalUrl = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().url().optional(),
+);
+
 const envSchema = z.object({
   NEXT_PUBLIC_API_BASE_URL: z.string().url().default("http://localhost:8000/api/v1"),
   NEXT_PUBLIC_APP_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -18,7 +24,7 @@ const envSchema = z.object({
    * shared/utils/resolve-image-url.ts can build `${base}/${key}` directly;
    * otherwise wardrobe/try-on images fall back to a placeholder icon.
    */
-  NEXT_PUBLIC_S3_PUBLIC_BASE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_S3_PUBLIC_BASE_URL: optionalUrl,
   /**
    * Optional. Browser-reachable storage origin, used ONLY to widen the CSP
    * connect-src so the browser is allowed to PUT directly to a pre-signed
@@ -28,7 +34,7 @@ const envSchema = z.object({
    * resolve-image-url.ts tries to load images from (requires a public-read
    * bucket); this one only affects what the browser's CSP permits.
    */
-  NEXT_PUBLIC_S3_PUBLIC_ENDPOINT_URL: z.string().url().optional(),
+  NEXT_PUBLIC_S3_PUBLIC_ENDPOINT_URL: optionalUrl,
 });
 
 const parsed = envSchema.safeParse({
