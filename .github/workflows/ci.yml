@@ -181,7 +181,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: Build (output: standalone — see docs/DEPLOYMENT_FRONTEND.md)
+      - name: "Build (output: standalone — see docs/DEPLOYMENT_FRONTEND.md)"
         run: npm run build
       - name: Upload standalone build
         uses: actions/upload-artifact@v4
@@ -276,7 +276,10 @@ jobs:
             --target runner \
             ./frontend
       - name: Validate docker-compose config
-        run: docker compose -f docker-compose.yml config -q
+        # Same as below: env_file: .env must exist on disk.
+        run: |
+          cp .env.example .env
+          docker compose -f docker-compose.yml config -q
       - name: Validate production docker-compose config
         # docker-compose.prod.yml's env_file: .env.production must exist on
         # disk — process env vars alone (the `env:` block below) aren't
