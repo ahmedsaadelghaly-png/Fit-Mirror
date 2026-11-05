@@ -30,6 +30,11 @@ class ObjectStorage(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def delete_prefix(self, prefix: str) -> None:
+        """Deletes every object whose key starts with `prefix`."""
+        raise NotImplementedError
+
+    @abstractmethod
     def build_object_key(self, *, namespace: str, owner_id: str, filename: str) -> str:
         """Builds a consistent, collision-resistant storage key."""
         raise NotImplementedError

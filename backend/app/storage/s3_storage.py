@@ -88,6 +88,19 @@ class S3ObjectStorage(ObjectStorage):
             logger.exception("Failed to delete object key=%s", object_key)
             raise ExternalServiceError("Could not delete object.") from exc
 
+    def delete_prefix(self, prefix: str) -> None:
+        try:
+            pages = self._client.get_paginator("list_objects_v2").paginate(
+                Bucket=self._bucket, Prefix=prefix
+            )
+            for page in pages:
+                objects = [{"Key": item["Key"]} for item in page.get("Contents", [])]
+                if objects:
+                    self._client.delete_objects(Bucket=self._bucket, Delete={"Objects": objects})
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Failed to delete objects under prefix=%s", prefix)
+            raise ExternalServiceError("Could not delete objects.") from exc
+
     # --- Provisioning helpers (seed/dev tooling only) -------------------------
     # Deliberately not on the ObjectStorage interface: request-path code never
     # writes objects itself (clients upload via presigned URLs, the AI service

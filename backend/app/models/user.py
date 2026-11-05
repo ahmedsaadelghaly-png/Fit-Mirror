@@ -65,6 +65,12 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         DateTime(timezone=True), nullable=True
     )
 
+    # Set while the account waits out its deletion grace period; logging in
+    # clears it (see data_retention_service.py).
+    deletion_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Family profiles: one account can hold several body profiles (the
     # shopper plus e.g. each child). Exactly one is primary — the shopper's
     # own, used wherever no profile is chosen explicitly.
@@ -113,7 +119,7 @@ class BodyProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Enum(BodyCategory, name="body_category"), nullable=True
     )
     body_shape: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    reference_image_key: Mapped[str] = mapped_column(String(512), nullable=True)
+    reference_image_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     # Style preferences: free-form tag lists, used by the AI Stylist.
     preferred_fit: Mapped[str | None] = mapped_column(String(20), nullable=True)

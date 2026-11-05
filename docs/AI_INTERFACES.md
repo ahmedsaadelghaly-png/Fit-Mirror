@@ -68,13 +68,13 @@ the router's job.
 
 | Model name | Class | Needs |
 |---|---|---|
-| `placeholder` | `PlaceholderTryOnPipeline` (`placeholder-v0`) | nothing — composes a labelled preview; always-available fallback |
+| `placeholder` | `PlaceholderTryOnPipeline` (`placeholder-v0`) | nothing — composes a labelled preview, for development |
 | `idm-vton` | `ReplicateTryOnModel` (`idm-vton@<version[:8]>`) | `REPLICATE_API_TOKEN`, `REPLICATE_TRYON_VERSION` — IDM-VTON diffusion try-on on Replicate's GPUs |
 
 | Setting | Meaning |
 |---|---|
 | `TRYON_MODEL_ROUTES` | Weighted A/B split, e.g. `idm-vton=90,placeholder=10`. The bucket is a hash of the job id, so a retried job hits the same model. Empty → all traffic to `TRYON_MODEL_NAME`. |
-| `TRYON_FALLBACK_MODELS` | Tried in order if the routed model errors or its output is rejected (default `placeholder`). |
+| `TRYON_FALLBACK_MODELS` | Tried in order if the routed model errors or its output is rejected (default: none, so the job fails with an honest error). Keep `placeholder` out of production: shoppers would get a fake result. |
 
 Unknown model names fail loudly at first request (`ValueError`), never
 silently. `GET /api/v1/health` reports the routing in effect.

@@ -52,6 +52,12 @@ export const changePasswordSchema = z
 
 export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
 
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, "Enter your password"),
+});
+
+export type DeleteAccountFormValues = z.infer<typeof deleteAccountSchema>;
+
 export const profileNameSchema = z.object({
   full_name: z.string().trim().min(1, "Name is required").max(255),
 });

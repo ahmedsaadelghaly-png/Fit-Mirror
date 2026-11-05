@@ -12,11 +12,18 @@ Responsibility boundary (Clean Architecture):
 import uuid
 
 from app.core.exceptions import NotFoundError, ValidationAppError
-from app.models.product import Product, ProductVariant
+from app.models.product import KIDS_AUDIENCES, Product, ProductVariant
 from app.models.tryon_job import TryOnJob, TryOnJobStatus
+from app.models.user import KIDS_CATEGORIES
 from app.repositories.tryon_repository import TryOnJobRepository
 from app.schemas.tryon import TryOnJobCreate
+from app.services.body_profile_service import BodyProfileService
+from app.services.storage_access import StorageAccess, is_owned_by
 from app.workers.tasks.tryon_tasks import process_tryon_job
+
+# Children's photos aren't sent to the try-on model. Their profiles keep size
+# recommendations; see docs/SECURITY.md "Children's data".
+KIDS_TRYON_UNAVAILABLE = "Photo try-on isn't available for children. Size checks still work."
 
 
 class TryOnService:
@@ -25,6 +32,15 @@ class TryOnService:
 
     def create_job(self, user_id: uuid.UUID, payload: TryOnJobCreate) -> TryOnJob:
         garment_image_key = payload.garment_image_key
+
+        if not is_owned_by(payload.user_image_key, user_id):
+            raise ValidationAppError("Upload the photo from this account first.")
+        if payload.body_profile_id:
+            profile = BodyProfileService(self.repository.db).get_owned(
+                user_id, payload.body_profile_id
+            )
+            if profile.body_category in KIDS_CATEGORIES:
+                raise ValidationAppError(KIDS_TRYON_UNAVAILABLE)
 
         if payload.product_variant_id:
             variant = (
@@ -38,6 +54,8 @@ class TryOnService:
             )
             if not variant:
                 raise NotFoundError("Product variant not found.")
+            if variant.product.audience in KIDS_AUDIENCES:
+                raise ValidationAppError(KIDS_TRYON_UNAVAILABLE)
             # A variant without its own garment shot uses the product photo.
             garment_image_key = garment_image_key or (
                 variant.garment_image_key or variant.product.primary_image_key
@@ -47,6 +65,9 @@ class TryOnService:
             raise ValidationAppError(
                 "Either garment_image_key or product_variant_id must be provided."
             )
+
+        if not StorageAccess(self.repository.db).can_read(user_id, garment_image_key):
+            raise ValidationAppError("That garment image isn't available.")
 
         job = TryOnJob(
             user_id=user_id,

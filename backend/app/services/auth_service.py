@@ -42,6 +42,10 @@ class AuthService:
             raise UnauthorizedError("Invalid email or password.")
         if not user.is_active:
             raise UnauthorizedError("This account has been deactivated.")
+        if user.deletion_requested_at:
+            # Logging in during the grace period cancels the deletion.
+            user.deletion_requested_at = None
+            self.user_repository.update(user)
         return user
 
     @staticmethod
@@ -53,11 +57,15 @@ class AuthService:
     def refresh(self, refresh_token: str) -> TokenResponse:
         payload = decode_token(refresh_token, expected_type=TokenType.REFRESH)
         user = self.user_repository.get(uuid.UUID(payload["sub"]))
-        if not user or not user.is_active:
+        if not user or not user.is_active or user.deletion_requested_at:
             raise UnauthorizedError("Invalid refresh token.")
         if _issued_before_password_change(payload, user):
             raise UnauthorizedError("Your password was changed. Please log in again.")
         return self.issue_tokens(user)
+
+    @staticmethod
+    def password_matches(user: User, password: str) -> bool:
+        return verify_password(password, user.hashed_password)
 
     def change_password(
         self, user: User, current_password: str, new_password: str

@@ -137,15 +137,28 @@ are built.
 
 | Data category | Current retention | Planned |
 |---|---|---|
-| User accounts | Indefinite until the user/account is deleted (no deletion endpoint exists today — **planned**: account deletion, cascading per the `ON DELETE CASCADE` rules in `ERD.md`) | Same, plus a defined grace period before hard-delete (e.g. 30-day soft delete) — not yet decided |
-| Try-on job images (`user-photos/`, `tryon-results/`) | Indefinite — no lifecycle policy configured (see `STORAGE.md` "Planned hardening") | A lifecycle/archival policy once storage cost or privacy expectations warrant it |
+| User accounts | Until deleted. `POST /users/me/delete` starts a 30-day grace period (`ACCOUNT_DELETION_GRACE_DAYS`); logging in cancels it. Then the account's images and row are erased, cascading per `ERD.md`. A brand's store stays visible during the grace period. | — |
+| Try-on jobs and their images (`user-photos/`, `tryon-results/`) | 90 days (`TRYON_RETENTION_DAYS`), unless saved as a look. A photo also used by another try-on, a profile or a wardrobe item is kept. | Saved looks have no limit yet; uploads never attached to anything aren't swept |
 | Audit logs [planned] | N/A — not implemented yet | Longer than user data, per `AUDIT_LOGGING.md` — exact duration is an open compliance question, not yet decided |
 | Application logs | Whatever the log aggregator's retention is configured to (infrastructure-level, not application-level) | No change planned — this is intentionally an ops/infra concern, not application code |
+
+Retention runs daily at 03:00 UTC (`maintenance.apply_data_retention`, needs
+the `beat` service; see `app/services/data_retention_service.py`). The 90- and
+30-day periods are product defaults that legal review should confirm; a draft
+policy is in `docs/legal/PRIVACY_POLICY_DRAFT.md`.
 
 This table intentionally states "not yet decided" rather than inventing
 specific retention periods without legal/compliance input — a real
 retention policy should be set by whoever owns that decision for the
 business, not defaulted silently in a technical document.
+
+## Children's data
+
+Children's profiles (`girls`/`boys`) get size recommendations only. They can't
+hold a reference photo, and try-on is refused for those profiles and for
+children's products, so their photos aren't sent to a third-party model. This
+stays until legal review says otherwise. A shopper can still upload a child's
+photo as their own; the software can't detect that.
 
 ## Why 404 instead of 403 for cross-tenant/cross-user access
 

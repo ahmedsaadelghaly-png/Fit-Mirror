@@ -165,6 +165,18 @@ services:
           memory: 2G
     command: celery -A app.workers.celery_app worker --loglevel=info -Q tryon --concurrency=4
 
+  # --- Scheduler: exactly one replica, or scheduled tasks run twice.
+  beat:
+    build: ./backend
+    restart: always
+    env_file: .env.production
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+    command: celery -A app.workers.celery_app beat --loglevel=info -s /tmp/celerybeat-schedule
+
   # --- Frontend: Next.js, built via the `runner` stage in frontend/Dockerfile
   # (standalone output — see that file's comments). See
   # docs/DEPLOYMENT_FRONTEND.md for the full deployment guide, including

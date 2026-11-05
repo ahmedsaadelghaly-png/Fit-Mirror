@@ -3,6 +3,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChangePasswordCard,
+  DeleteAccountCard,
   ProfileDetailsCard,
 } from "@/features/auth/components/account-settings";
 import { NotificationPreferencesSection } from "@/features/shopper/components/settings/notification-preferences-section";
@@ -28,6 +29,7 @@ function SettingsView() {
         <ThemePreferenceShortcut />
         <ChangePasswordCard />
         <NotificationPreferencesSection />
+        <DeleteAccountCard />
       </div>
     </div>
   );

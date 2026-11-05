@@ -39,8 +39,8 @@ def test_create_job_persists_to_real_database(db_session, persisted_user):
     job = service.create_job(
         persisted_user.id,
         TryOnJobCreate(
-            user_image_key="user-photos/integration/photo.jpg",
-            garment_image_key="garments/integration/shirt.jpg",
+            user_image_key=f"user-photos/{persisted_user.id}/photo.jpg",
+            garment_image_key="seed-data/products/shirt.jpg",
         ),
     )
 
@@ -58,11 +58,17 @@ def test_list_jobs_for_user_returns_only_their_jobs(db_session, persisted_user):
 
     service.create_job(
         persisted_user.id,
-        TryOnJobCreate(user_image_key="user-photos/a.jpg", garment_image_key="garments/a.jpg"),
+        TryOnJobCreate(
+            user_image_key=f"user-photos/{persisted_user.id}/a.jpg",
+            garment_image_key="seed-data/products/a.jpg",
+        ),
     )
     service.create_job(
         persisted_user.id,
-        TryOnJobCreate(user_image_key="user-photos/b.jpg", garment_image_key="garments/b.jpg"),
+        TryOnJobCreate(
+            user_image_key=f"user-photos/{persisted_user.id}/b.jpg",
+            garment_image_key="seed-data/products/b.jpg",
+        ),
     )
 
     jobs = service.list_jobs(persisted_user.id)

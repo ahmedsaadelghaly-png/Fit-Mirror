@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # Empty: all traffic goes to TRYON_MODEL_NAME. See app/models/model_registry.py.
     TRYON_MODEL_ROUTES: str = ""
     # Tried in order when the routed model fails or its output is rejected.
-    TRYON_FALLBACK_MODELS: str = "placeholder"
+    TRYON_FALLBACK_MODELS: str = ""
 
     # --- Replicate (hosted diffusion try-on, model "idm-vton") ---
     REPLICATE_API_TOKEN: str = ""

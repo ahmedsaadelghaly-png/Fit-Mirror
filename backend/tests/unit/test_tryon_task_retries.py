@@ -62,7 +62,8 @@ def test_failure_after_last_retry_marks_job_failed(db, job, monkeypatch):
 
     refreshed = _status(db, job)
     assert refreshed.status == TryOnJobStatus.FAILED
-    assert "unreachable" in refreshed.error_message
+    # The cause goes to the logs; shoppers get something they can act on.
+    assert refreshed.error_message == tryon_tasks.GENERATION_FAILED
 
 
 def test_success_marks_job_completed(db, job, monkeypatch):

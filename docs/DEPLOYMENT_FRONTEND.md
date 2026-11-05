@@ -113,9 +113,8 @@ and defaults. In production, `docs/frontend/SECURITY_FRONTEND.md`'s
 - [ ] `NEXT_PUBLIC_API_BASE_URL` set to the real, `https://` backend URL
       for this environment, passed as a **build arg**, not a runtime env var.
 - [ ] `NEXT_PUBLIC_APP_ENV=production` (also a build arg).
-- [ ] `NEXT_PUBLIC_S3_PUBLIC_BASE_URL` set if the storage bucket is
-      publicly readable (see `docs/frontend/SHOPPER_APP.md` "API contract
-      mismatches" for what this does and doesn't unlock).
+- [ ] `NEXT_PUBLIC_S3_PUBLIC_BASE_URL` left empty: the bucket holds private photos
+  and must not be public (`docs/STORAGE.md` "Read access")
 - [ ] A real OG image exists at whatever path `lib/seo/metadata.ts` calls
       are updated to reference (see `docs/frontend/SEO.md` "known gap" —
       none exists as of this phase).

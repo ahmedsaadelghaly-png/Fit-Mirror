@@ -7,10 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthFormError } from "@/features/auth/components/auth-form-error";
 import { AuthFormField } from "@/features/auth/components/auth-form-field";
-import { useChangePassword, useUpdateCurrentUser } from "@/features/auth/hooks/use-account";
+import {
+  useChangePassword,
+  useDeleteAccount,
+  useUpdateCurrentUser,
+} from "@/features/auth/hooks/use-account";
 import {
   type ChangePasswordFormValues,
   changePasswordSchema,
+  type DeleteAccountFormValues,
+  deleteAccountSchema,
   type ProfileNameFormValues,
   profileNameSchema,
 } from "@/features/auth/schemas";
@@ -146,4 +152,49 @@ function ChangePasswordCard() {
   );
 }
 
-export { ChangePasswordCard, ProfileDetailsCard };
+/** `POST /users/me/delete`. The password prompt doubles as the confirmation. */
+function DeleteAccountCard({ extraWarning }: { extraWarning?: string }) {
+  const deleteMutation = useDeleteAccount();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<DeleteAccountFormValues>({ resolver: zodResolver(deleteAccountSchema) });
+
+  const onSubmit = handleSubmit((values) => deleteMutation.mutate(values.password));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Delete account</CardTitle>
+        <CardDescription>
+          We&apos;ll sign you out and permanently delete your account, photos and try-ons after 30
+          days. Log in before then to cancel.{extraWarning ? ` ${extraWarning}` : ""}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+          <AuthFormField
+            id="delete_account_password"
+            label="Your password"
+            type="password"
+            autoComplete="current-password"
+            error={errors.password}
+            registration={register("password")}
+          />
+          {deleteMutation.isError && <AuthFormError error={deleteMutation.error} />}
+          <Button
+            type="submit"
+            variant="destructive"
+            className="w-fit"
+            isLoading={deleteMutation.isPending}
+          >
+            Delete my account
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+export { ChangePasswordCard, DeleteAccountCard, ProfileDetailsCard };

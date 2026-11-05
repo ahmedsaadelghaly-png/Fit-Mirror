@@ -67,6 +67,19 @@ export async function updateCurrentUser(payload: UpdateCurrentUserRequest): Prom
 }
 
 /**
+ * `POST /users/me/delete` — signs the account out and erases it after the
+ * grace period; logging in before then cancels.
+ */
+export async function requestAccountDeletion(password: string): Promise<{
+  deletion_scheduled_for: string;
+}> {
+  const { data } = await apiClient.post<{ deletion_scheduled_for: string }>("/users/me/delete", {
+    password,
+  });
+  return data;
+}
+
+/**
  * `POST /users/me/password` — returns fresh tokens for this session; other
  * sessions end at their next token refresh.
  */

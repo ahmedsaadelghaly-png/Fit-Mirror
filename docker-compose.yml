@@ -139,6 +139,23 @@ services:
       start_period: 15s
     command: celery -A app.workers.celery_app worker --loglevel=info -Q tryon
 
+  # --- Scheduler: exactly one replica, or scheduled tasks run twice.
+  beat:
+    build:
+      context: ./backend
+    container_name: fitmirror-beat
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-fitmirror}:${POSTGRES_PASSWORD:-fitmirror}@postgres:5432/${POSTGRES_DB:-fitmirror}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A app.workers.celery_app beat --loglevel=info -s /tmp/celerybeat-schedule
+
   # --- Frontend: Next.js web app. Target stage overridden per environment
   # (docker-compose.dev.yml uses `dev`; a production compose target would
   # use the `runner` stage — see frontend/Dockerfile).

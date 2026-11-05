@@ -1,13 +1,19 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user, get_current_user_id, get_db
-from app.core.exceptions import NotFoundError
-from app.models.user import User
+from app.core.exceptions import NotFoundError, ValidationAppError
+from app.models.user import User, UserRole
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import ChangePasswordRequest, TokenResponse
+from app.schemas.auth import (
+    AccountDeletionScheduled,
+    ChangePasswordRequest,
+    DeleteAccountRequest,
+    TokenResponse,
+)
 from app.schemas.user import (
     BodyProfileCreate,
     BodyProfileRead,
@@ -17,6 +23,13 @@ from app.schemas.user import (
 )
 from app.services.auth_service import AuthService
 from app.services.body_profile_service import BodyProfileService
+from app.services.data_retention_service import AccountDeletionService
+from app.services.email_service import (
+    EmailMessage,
+    EmailSender,
+    get_email_sender,
+    send_email_safely,
+)
 
 router = APIRouter()
 
@@ -54,6 +67,42 @@ def change_password(
     return AuthService(UserRepository(db)).change_password(
         user, payload.current_password, payload.new_password
     )
+
+
+@router.post("/me/delete", response_model=AccountDeletionScheduled, status_code=202)
+def request_account_deletion(
+    payload: DeleteAccountRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    sender: EmailSender = Depends(get_email_sender),
+):
+    """Signs the account out and erases it after the grace period, along
+    with its photos and, for a brand, its store. Logging in before then
+    cancels. 422 if the password is wrong, or for a platform admin (another
+    admin must remove that role first, so the platform can't lose its last)."""
+    if user.role == UserRole.PLATFORM_ADMIN:
+        raise ValidationAppError("Platform admin accounts can't be deleted from settings.")
+    if not AuthService.password_matches(user, payload.password):
+        raise ValidationAppError("Your password is incorrect.")
+
+    scheduled_for = AccountDeletionService(db).request(user)
+    background_tasks.add_task(
+        send_email_safely,
+        sender,
+        EmailMessage(
+            to=user.email,
+            subject="Your FitMirror account will be deleted",
+            body=(
+                f"Hi {user.full_name or 'there'},\n\n"
+                f"Your account and everything in it, including your photos, will be "
+                f"permanently deleted on {scheduled_for:%B %-d, %Y}.\n\n"
+                f"Changed your mind? Log in within {settings.ACCOUNT_DELETION_GRACE_DAYS} days "
+                "and we'll cancel the deletion.\n\n— FitMirror AI"
+            ),
+        ),
+    )
+    return AccountDeletionScheduled(deletion_scheduled_for=scheduled_for)
 
 
 @router.get("/me/body-profile", response_model=BodyProfileRead)

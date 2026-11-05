@@ -83,6 +83,21 @@ const smockTop: Product = {
   })),
 };
 
+const blazer: Product = {
+  ...smockTop,
+  id: "p-blazer",
+  title: "Linen Blazer",
+  audience: "women",
+  variants: ["S", "M", "L"].map((size) => ({
+    id: `v-${size}`,
+    size_label: size,
+    color: null,
+    sku: size,
+    stock_quantity: 4,
+    garment_image_key: null,
+  })),
+};
+
 function renderWithClient(ui: ReactNode) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
@@ -102,7 +117,7 @@ describe("pickDefaultProfile", () => {
 });
 
 describe("ProductTryOnDialog", () => {
-  it("sizes for the child, preselects the recommended size and starts the try-on", async () => {
+  it("sizes for a child but offers no photo try-on", async () => {
     listBodyProfilesMock.mockResolvedValue([me, lina]);
     recommendSizeMock.mockResolvedValueOnce({
       product_id: "p-smock",
@@ -112,34 +127,52 @@ describe("ProductTryOnDialog", () => {
       body_profile_id: "lina",
       profile_name: "Lina",
     });
-    createTryOnJobMock.mockResolvedValueOnce({ job_id: "job-9", status: "pending" });
 
     renderWithClient(<ProductTryOnDialog product={smockTop} onOpenChange={() => undefined} />);
 
-    // Lina is chosen for a girls' item, so her saved photo is used.
     expect(await screen.findByRole("button", { name: "Lina", pressed: true })).toBeInTheDocument();
-    expect(screen.getByText("Lina's profile photo")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /try it on/i })).toBeDisabled();
+    expect(screen.getByText(/isn't available for children/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /try it on/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /find lina's size/i }));
     expect(await screen.findByText(/Recommended: 8Y/)).toBeInTheDocument();
     expect(recommendSizeMock).toHaveBeenCalledWith("p-smock", "lina");
-    expect(screen.getByRole("radio", { name: /8Y/ })).toHaveAttribute("aria-checked", "true");
+  });
 
+  it("offers no photo try-on when a child is chosen for an adult item", async () => {
+    listBodyProfilesMock.mockResolvedValue([me, lina]);
+    renderWithClient(<ProductTryOnDialog product={blazer} onOpenChange={() => undefined} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Lina" }));
+    expect(screen.queryByRole("button", { name: /try it on/i })).not.toBeInTheDocument();
+  });
+
+  it("starts an adult try-on with the saved photo and chosen profile", async () => {
+    listBodyProfilesMock.mockResolvedValue([me, lina]);
+    createTryOnJobMock.mockResolvedValueOnce({ job_id: "job-9", status: "pending" });
+    renderWithClient(<ProductTryOnDialog product={blazer} onOpenChange={() => undefined} />);
+
+    expect(await screen.findByText("Your profile photo")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: /^M/ }));
     fireEvent.click(screen.getByRole("button", { name: /try it on/i }));
+
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/shopper/tryon?job=job-9"));
     expect(createTryOnJobMock).toHaveBeenCalledWith(
-      { user_image_key: "user-photos/me/lina.jpg", product_variant_id: "v-8Y" },
+      {
+        user_image_key: "user-photos/me/me.jpg",
+        product_variant_id: "v-M",
+        body_profile_id: me.id,
+      },
       expect.anything(),
     );
   });
 
   it("asks for a photo when the chosen profile has none saved", async () => {
     listBodyProfilesMock.mockResolvedValue([profile({})]);
-    renderWithClient(<ProductTryOnDialog product={smockTop} onOpenChange={() => undefined} />);
+    renderWithClient(<ProductTryOnDialog product={blazer} onOpenChange={() => undefined} />);
 
     expect(await screen.findByText(/drop a full-length photo/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("radio", { name: /6-7Y/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^M/ }));
     expect(screen.getByText(/add a photo to continue/i)).toBeInTheDocument();
   });
 });

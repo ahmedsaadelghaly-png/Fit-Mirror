@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { changePassword, updateCurrentUser } from "@/features/auth/api";
+import { changePassword, requestAccountDeletion, updateCurrentUser } from "@/features/auth/api";
+import { useLogout } from "@/features/auth/hooks/use-logout";
 import { setTokens } from "@/lib/auth-token";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
@@ -23,5 +24,15 @@ export function useChangePassword() {
   return useMutation({
     mutationFn: changePassword,
     onSuccess: (tokens) => setTokens(tokens.access_token, tokens.refresh_token),
+  });
+}
+
+/** The account is signed out server-side, so end this session too. */
+export function useDeleteAccount() {
+  const logout = useLogout();
+
+  return useMutation({
+    mutationFn: requestAccountDeletion,
+    onSuccess: () => logout(),
   });
 }
