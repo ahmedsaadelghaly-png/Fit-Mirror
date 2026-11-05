@@ -12,10 +12,11 @@ answers 404, not 403 (docs/SECURITY.md).
 
 import uuid
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.config import settings
 from app.core.dependencies import get_db, require_role
 from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models.product import Product, ProductVariant
@@ -31,10 +32,17 @@ from app.schemas.product import (
     ProductVariantUpdate,
 )
 from app.schemas.sizing import FitSummaryRead, SizeChartRead, SizeChartUpsert
-from app.schemas.store import StoreCreate, StoreDashboardSummary, StoreRead, StoreUpdate
+from app.schemas.store import (
+    StoreAnalyticsRead,
+    StoreCreate,
+    StoreDashboardSummary,
+    StoreRead,
+    StoreUpdate,
+)
 from app.services.fit_feedback_service import FitFeedbackService
 from app.services.size_chart_service import SizeChartService, parse_csv
 from app.services.storage_access import PUBLIC_PREFIXES, is_owned_by
+from app.services.store_analytics_service import StoreAnalyticsService
 
 router = APIRouter()
 
@@ -173,6 +181,18 @@ def get_dashboard_summary(
         completed_tryon_jobs=jobs_by_status.get(TryOnJobStatus.COMPLETED, 0),
         failed_tryon_jobs=jobs_by_status.get(TryOnJobStatus.FAILED, 0),
     )
+
+
+@router.get("/analytics", response_model=StoreAnalyticsRead)
+def get_store_analytics(
+    days: int = Query(default=30, ge=1, le=settings.TRYON_RETENTION_DAYS),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_store_manager),
+):
+    """Catalog try-on demand over the last `days`. Can't reach further back
+    than try-ons are retained."""
+    store = _get_owned_store(db, user)
+    return StoreAnalyticsService(db).summarize(store.id, days)
 
 
 @router.post("/products", response_model=ProductRead, status_code=201)

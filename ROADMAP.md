@@ -59,7 +59,7 @@
 
 Still mocked after Phase 3 (each needs its own backend model, see Phase 5–6):
 Admin product moderation, queue/worker monitoring, AI telemetry, feature
-flags, audit log and reports; Brand analytics, customers and orders;
+flags, audit log and reports; Brand customers and orders;
 notification preferences; account deletion.
 
 ## Done — Phase 4: Real AI models (same contracts)
@@ -99,7 +99,8 @@ feature still works on its built-in fallback.
 
 ## Phase 5 — Store Dashboard expansion
 
-- Analytics: try-on conversion, popular products, size-fit reports
+- ✅ Analytics: try-on totals, most tried products, size demand, fit reports
+  (`/store/analytics`). Purchase conversion needs order or click-out tracking
 - Bulk product/variant import (CSV, catalog API)
 - Team management (multiple brand users per store — see `docs/MULTI_TENANCY.md`)
 - Billing / subscription tiers
