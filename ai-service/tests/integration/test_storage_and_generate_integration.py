@@ -14,8 +14,9 @@ from app.storage.s3_client import ObjectStorageClient
 pytestmark = pytest.mark.integration
 
 
-def _fake_png_bytes() -> bytes:
-    image = Image.new("RGB", (50, 50), color=(200, 50, 50))
+def _fake_png_bytes(color: tuple[int, int, int] = (200, 50, 50)) -> bytes:
+    # Above the input quality gate's 256px minimum (app/pipelines/quality.py).
+    image = Image.new("RGB", (300, 400), color=color)
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()
@@ -34,7 +35,9 @@ def test_object_storage_round_trip():
 def test_generate_endpoint_end_to_end(client):
     storage = ObjectStorageClient()
     user_key = storage.write_object(_fake_png_bytes(), namespace="integration-test")
-    garment_key = storage.write_object(_fake_png_bytes(), namespace="integration-test")
+    garment_key = storage.write_object(
+        _fake_png_bytes(color=(50, 50, 200)), namespace="integration-test"
+    )
 
     response = client.post(
         "/api/v1/tryon/generate",

@@ -32,9 +32,9 @@ from app.models.store import Store
 # this script runs standalone (the app's own router imports pull this in
 # transitively; this script doesn't go through the router at all).
 from app.models.tryon_job import TryOnJob  # noqa: F401
-from app.services.size_chart_service import SizeChartService, parse_csv
 from app.models.user import BodyCategory, BodyProfile, User, UserRole
 from app.models.wardrobe import WardrobeItem, WardrobeItemSource
+from app.services.size_chart_service import SizeChartService, parse_csv
 from app.storage.s3_storage import S3ObjectStorage
 
 configure_logging()

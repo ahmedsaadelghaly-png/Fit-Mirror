@@ -22,8 +22,6 @@ from app.models.product import Product, ProductVariant
 from app.models.store import Store
 from app.models.tryon_job import TryOnJob, TryOnJobStatus
 from app.models.user import User, UserRole
-from app.services.fit_feedback_service import FitFeedbackService
-from app.services.size_chart_service import SizeChartService, parse_csv
 from app.schemas.product import (
     ProductCreate,
     ProductRead,
@@ -34,6 +32,8 @@ from app.schemas.product import (
 )
 from app.schemas.sizing import FitSummaryRead, SizeChartRead, SizeChartUpsert
 from app.schemas.store import StoreCreate, StoreDashboardSummary, StoreRead, StoreUpdate
+from app.services.fit_feedback_service import FitFeedbackService
+from app.services.size_chart_service import SizeChartService, parse_csv
 
 router = APIRouter()
 

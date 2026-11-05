@@ -1,6 +1,6 @@
 # Known Issues
 
-Tracked gaps as of Phase 3.0 (backend catch-up; originally written for Phase 2.7). Distinguishes real, open issues from things that are *intentionally* mocked/deferred and already documented elsewhere — this file doesn't repeat those, it links to them.
+Tracked gaps as of Phase 4 (originally written for Phase 2.7). Distinguishes real, open issues from things that are *intentionally* mocked/deferred and already documented elsewhere — this file doesn't repeat those, it links to them.
 
 ## Open issues
 
@@ -34,9 +34,7 @@ audit log, and reports still have no backend and stay mocked (badged
 
 ### ~~Brand product editing/variants use a localStorage overlay~~ — resolved in Phase 3.1
 
-### Shopper "style preferences" (preferred fit / favorite colors / style tags) has no backend field
-
-Documented in `docs/frontend/SHOPPER_APP.md` and `types/shopper.ts` since Phase 2.3 — these three fields are saved to `localStorage`, namespaced per user, because `BodyProfileUpsert` on the backend has no corresponding columns. Still accurate; `backend/app/schemas/user.py`'s `BodyProfileUpsert` confirmed unchanged.
+### ~~Shopper "style preferences" have no backend field~~ — resolved in Phase 3.2
 
 ### `passlib`'s `crypt` module deprecation warning
 
@@ -49,7 +47,7 @@ previously its counters never reset) keeps counts in memory, so with N
 API replicas a client effectively gets N× the limit. Needs a Redis-backed
 implementation before it's relied on in a multi-instance deployment.
 
-### `GET /tryon/download-url` doesn't check key ownership
+### `GET /tryon/download-url` and `POST /storage/download-urls` don't check key ownership
 
 Documented design choice (see the endpoint docstring and `docs/STORAGE.md`
 "Planned hardening"): keys are unguessable, but any signed-in user who
@@ -71,9 +69,8 @@ These came up during this validation pass but are properties of *this sandbox*, 
 - **Host port conflicts on 5432/6379.** This particular sandbox had a system-level `redis-server` and (apparently) something else already bound to the default Postgres/Redis ports. `docker-compose.yml` intentionally publishes standard ports for local debugging convenience — that's correct behavior, not a bug. If you hit `address already in use` on `docker compose up`, either free the conflicting local service or use a Compose override with the `!override` YAML merge tag (plain list concatenation in Compose means a naive `ports:` override *adds* a mapping rather than replacing it — see `docs/LOCAL_RUNBOOK.md` "Port conflicts").
 - **No sudo in this sandbox** meant `playwright install --with-deps` and `apt install`-based fixes weren't available; worked around via user-local installs (`~/.local/opt`, `~/.docker/cli-plugins`) — see `docs/LOCAL_RUNBOOK.md`.
 
-## Explicitly not fixed (by design, this phase's rules)
+## Explicitly not fixed (by design, Phase 2.7's rules)
 
-- No real AI model — the placeholder try-on pipeline (`ai-service/app/pipelines/placeholder_tryon_pipeline.py`) is unchanged and still produces a synthetic overlay image, not a real virtual try-on.
 - No mobile app.
 - No new product features.
 - No architecture rewrite — e.g. the CSP duplication between `lib/security/*.ts` and `next.config.mjs` (documented as a known cross-module-system limitation since Phase 2.6) is still duplicated; this phase fixed the *bug* in the duplicate (the missing origin-reduction), not the duplication itself. Unifying it would mean converting to `next.config.ts`, a build-tooling change bigger than a validation-and-fix pass should make unreviewed.
