@@ -6,6 +6,8 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Rendered under an assistant reply — e.g. the suggested outfit. */
+  attachment?: React.ReactNode;
 }
 
 export interface AiChatPanelProps {
@@ -71,7 +73,10 @@ function ChatBubble({ message }: { message: ChatMessage }) {
   return (
     <div className="mr-auto flex max-w-[80%] items-start gap-2">
       <AssistantAvatar />
-      <div className="rounded-lg bg-surface px-3 py-2 text-sm shadow-xs">{message.content}</div>
+      <div className="flex flex-col gap-2">
+        <div className="rounded-lg bg-surface px-3 py-2 text-sm shadow-xs">{message.content}</div>
+        {message.attachment}
+      </div>
     </div>
   );
 }

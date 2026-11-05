@@ -13,6 +13,14 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.main import app  # noqa: E402
 
 
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Everything under tests/unit is a unit test. CI selects with `-m unit`,
+    so a file that forgets the marker would otherwise silently never run."""
+    for item in items:
+        if "unit" in item.path.parts:
+            item.add_marker(pytest.mark.unit)
+
+
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)

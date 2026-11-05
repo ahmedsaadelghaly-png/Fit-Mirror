@@ -25,7 +25,7 @@ const { listBodyProfilesMock, recommendSizeMock, createTryOnJobMock, pushMock } 
 );
 
 vi.mock("@/api/shopper/body-profile", () => ({ listBodyProfiles: listBodyProfilesMock }));
-vi.mock("@/api/shopper/sizing", () => ({ recommendSize: recommendSizeMock }));
+vi.mock("@/api/shopper/sizing", () => ({ recommendSize: recommendSizeMock, reportFit: vi.fn() }));
 vi.mock("@/api/shopper/tryon", () => ({ createTryOnJob: createTryOnJobMock }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: pushMock }) }));
 vi.mock("@/shared/components/resolved-image", () => ({

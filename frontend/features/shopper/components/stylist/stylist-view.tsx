@@ -15,6 +15,7 @@ import {
   type ChatMessage,
   SuggestedPrompts,
 } from "@/features/shopper/components/ai-chat-panel";
+import { SuggestedOutfit } from "@/features/shopper/components/stylist/suggested-outfit";
 import { useStylistSuggestion } from "@/features/shopper/hooks/use-stylist-suggestion";
 import { type StylistRequestFormValues, stylistRequestSchema } from "@/features/shopper/schemas";
 
@@ -27,10 +28,10 @@ const SUGGESTED_SCENARIOS: { label: string; occasion: string; weather: string }[
 
 /**
  * AI Stylist chat UI, wired to features/shopper/hooks/use-stylist-
- * suggestion.ts -> api/shopper/stylist.ts -> the backend's rule-based
- * `POST /stylist/suggestions` (outfits built from the shopper's own
- * wardrobe). Badged "Beta" until a model-backed stylist replaces the
- * rules behind the same contract.
+ * suggestion.ts -> api/shopper/stylist.ts -> `POST /stylist/suggestions`
+ * (outfits built from the shopper's own wardrobe). Each reply shows the
+ * suggested pieces with "Love it" / "Not for me", which the stylist
+ * learns the shopper's taste from.
  */
 function StylistView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -50,7 +51,17 @@ function StylistView() {
     const response = await suggestionMutation.mutateAsync(values);
     setMessages((prev) => [
       ...prev,
-      { id: response.suggestion_id, role: "assistant", content: response.rationale },
+      {
+        id: response.suggestion_id,
+        role: "assistant",
+        content: response.rationale,
+        attachment: (
+          <SuggestedOutfit
+            suggestionId={response.suggestion_id}
+            itemIds={response.wardrobe_item_ids}
+          />
+        ),
+      },
     ]);
   });
 

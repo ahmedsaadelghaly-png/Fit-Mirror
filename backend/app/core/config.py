@@ -36,7 +36,8 @@ class Settings(BaseSettings):
 
     # --- AI Service ---
     AI_SERVICE_BASE_URL: AnyHttpUrl
-    AI_SERVICE_TIMEOUT_SECONDS: int = 30
+    # Hosted diffusion try-on takes 30-90s; the AI service gives up at 150s.
+    AI_SERVICE_TIMEOUT_SECONDS: int = 180
 
     # --- Object Storage (S3-compatible) ---
     STORAGE_PROVIDER: str = "s3"
@@ -54,6 +55,17 @@ class Settings(BaseSettings):
     # so upload URLs are signed against a host the client can actually reach.
     # Leave unset to fall back to S3_ENDPOINT_URL (no behavior change).
     S3_PUBLIC_ENDPOINT_URL: str = ""
+
+    # --- Embeddings (AI Stylist, Shopping Assistant) ---
+    # Empty: a local hashing embedder (no network). Set to use Voyage AI.
+    VOYAGE_API_KEY: str = ""
+    VOYAGE_EMBED_MODEL: str = "voyage-3.5-lite"
+
+    # --- Shopping Assistant query understanding (Claude) ---
+    # Empty: rule-based parsing only. Set to let Claude read shopper queries.
+    ANTHROPIC_API_KEY: str = ""
+    SHOPPING_LLM_MODEL: str = "claude-opus-5-5"
+    SHOPPING_LLM_TIMEOUT_SECONDS: float = 20.0
 
     # --- Email (password reset, contact form) ---
     # "log" writes each email to the application log instead of sending it

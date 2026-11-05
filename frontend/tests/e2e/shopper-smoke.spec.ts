@@ -146,7 +146,7 @@ test.describe("Shopper dashboard", () => {
 
     await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
     await expect(page.getByText(/no try-ons yet/i)).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Wardrobe" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Wardrobe", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Saved looks" })).toBeVisible();
   });
 });
@@ -213,7 +213,7 @@ test.describe("Wardrobe page", () => {
 
     await page.goto("/shopper/wardrobe");
 
-    await expect(page.getByRole("heading", { name: "Wardrobe" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Wardrobe", exact: true })).toBeVisible();
     await expect(page.getByText(/your wardrobe is empty/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /add item/i })).toBeVisible();
   });

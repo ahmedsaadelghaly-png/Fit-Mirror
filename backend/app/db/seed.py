@@ -34,6 +34,7 @@ from app.models.store import Store
 from app.models.tryon_job import TryOnJob  # noqa: F401
 from app.models.user import BodyCategory, BodyProfile, User, UserRole
 from app.models.wardrobe import WardrobeItem, WardrobeItemSource
+from app.services.size_chart_service import SizeChartService, parse_csv
 from app.storage.s3_storage import S3ObjectStorage
 
 configure_logging()
@@ -399,6 +400,20 @@ def seed() -> None:
             label="White sneakers",
             image_key=f"{WARDROBE_IMAGE_PREFIX}/white-sneakers.jpg",
         )
+
+        # Demo Fashion Co. runs slim: its own tops chart sits one size under
+        # the standard chart (Phase 4 per-brand size charts).
+        if not SizeChartService(db).get(store.id, "tops"):
+            SizeChartService(db).upsert(
+                store.id,
+                "tops",
+                parse_csv(
+                    "size,chest,waist\n"
+                    "XS,78-84,60-66\nS,84-91,66-73\nM,91-98,73-80\n"
+                    "L,98-106,80-88\nXL,106-114,88-96\n"
+                ),
+            )
+            logger.info("Created demo size chart for tops")
 
         logger.info("Seeding complete.")
         logger.info("Demo accounts (password for all: %s):", DEMO_PASSWORD)

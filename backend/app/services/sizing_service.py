@@ -1,11 +1,16 @@
 """
-Size Recommendation engine (rule-based v1).
+Size Recommendation engine.
 
-Matches the caller's BodyProfile measurements against a standard size
-chart for the product's garment category, restricted to the sizes the
-product actually stocks. Deliberately model-free: per-brand size charts
-(ROADMAP "Size chart ingestion") can replace SIZE_CHART later without
-changing the endpoint contract.
+Matches a body profile's measurements against a size chart for the
+product's garment category, restricted to the sizes the product stocks:
+
+1. The brand's own chart for that category, when it has uploaded one
+   (SizeChartService) and its size labels match the product's.
+2. Otherwise the standard chart below (or, for kids, age/height labels).
+
+Then shopper fit feedback adjusts the result: once enough shoppers agree a
+product runs small (or large), the recommendation moves one stocked size
+up (or down) and the note says why (FitFeedbackService).
 """
 
 import re
@@ -16,8 +21,11 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.exceptions import NotFoundError, ValidationAppError
 from app.models.product import Product, ProductAudience
-from app.services.body_profile_service import BodyProfileService
+from app.models.sizing import SizeChart
 from app.models.user import KIDS_CATEGORIES, BodyProfile
+from app.services.body_profile_service import BodyProfileService
+from app.services.fit_feedback_service import FitFeedbackService, FitSummary
+from app.services.size_chart_service import SizeChartService
 
 CM_PER_INCH = 2.54
 
@@ -88,6 +96,9 @@ class SizeRecommendation:
     # Whose profile the size was computed for (family profiles).
     body_profile_id: uuid.UUID | None = None
     profile_name: str | None = None
+    # "brand" when the brand's own size chart was used, else "standard".
+    size_chart: str = "standard"
+    fit_feedback: FitSummary | None = None
 
 
 def _size_index_for(measurement: str, value: float) -> tuple[int, bool]:
@@ -107,6 +118,20 @@ def _normalize_label(label: str) -> str:
     return {"XXS": "XS", "2XL": "XXL", "XXXL": "XXL", "3XL": "XXL"}.get(normalized, normalized)
 
 
+def _standard_size_key(label: str) -> tuple[int, float, str]:
+    """Orders size labels smallest first: alpha, numeric, then kids' sizes."""
+    normalized = _normalize_label(label)
+    if normalized in SIZE_CHART:
+        return (0, SIZE_ORDER.index(normalized), "")
+    if label.strip().isdigit():
+        return (1, int(label), "")
+    match = KIDS_LABEL.fullmatch(label.strip().lower())
+    if match:
+        upper = int(match.group(2) or match.group(1))
+        return (2, upper if upper >= 80 else KIDS_AGE_MAX_HEIGHT_CM.get(upper, upper), "")
+    return (3, 0, label)
+
+
 class SizingService:
     def __init__(self, db: Session):
         self.db = db
@@ -120,12 +145,6 @@ class SizingService:
         """Sizes `product_id` for one of the caller's body profiles — the
         given family profile, or their own (primary) one by default."""
         profile = BodyProfileService(self.db).resolve(user_id, body_profile_id)
-        result = self._recommend(product_id, profile)
-        if profile is None:
-            return result
-        return replace(result, body_profile_id=profile.id, profile_name=profile.name)
-
-    def _recommend(self, product_id: uuid.UUID, profile: BodyProfile | None) -> SizeRecommendation:
         product = (
             self.db.query(Product)
             .options(selectinload(Product.variants))
@@ -135,6 +154,16 @@ class SizingService:
         if not product:
             raise NotFoundError("Product not found.")
 
+        chart = SizeChartService(self.db).get(product.store_id, product.category)
+        result = self._recommend(product, profile, chart)
+        result = self._apply_fit_feedback(product, chart, result)
+        if profile is None:
+            return result
+        return replace(result, body_profile_id=profile.id, profile_name=profile.name)
+
+    def _recommend(
+        self, product: Product, profile: BodyProfile | None, chart: SizeChart | None
+    ) -> SizeRecommendation:
         is_kids_profile = bool(profile and profile.body_category in KIDS_CATEGORIES)
 
         if product.audience in KIDS_AUDIENCES:
@@ -143,6 +172,16 @@ class SizingService:
                     f"This is a {product.audience.value}' item, sized by height. Choose your "
                     "child's profile (or add one under Body Profile → Family) to get a size."
                 )
+            if (
+                chart
+                and profile.height_cm
+                and (
+                    from_chart := self._recommend_from_chart(
+                        product, chart, {"height_cm": profile.height_cm}
+                    )
+                )
+            ):
+                return from_chart
             return self._recommend_kids(product, profile)
         if profile and is_kids_profile:
             raise ValidationAppError(
@@ -165,6 +204,11 @@ class SizingService:
 
         stocked_labels = [v.size_label for v in product.variants]
         shape = (profile.body_shape if profile else None) or ""
+        if chart and (from_chart := self._recommend_from_chart(product, chart, values)):
+            tip = SHAPE_TIPS.get((shape, product.category.lower()))
+            return (
+                replace(from_chart, fit_note=f"{from_chart.fit_note} {tip}") if tip else from_chart
+            )
         if stocked_labels and all(label.strip().isdigit() for label in stocked_labels):
             result = self._recommend_numeric_waist(product, stocked_labels, values)
             tip = WAIST_SIZED_TIPS.get(shape)
@@ -172,6 +216,87 @@ class SizingService:
             result = self._recommend_alpha(product, stocked_labels, values)
             tip = SHAPE_TIPS.get((shape, product.category.lower()))
         return replace(result, fit_note=f"{result.fit_note} {tip}") if tip else result
+
+    def _recommend_from_chart(
+        self, product: Product, chart: SizeChart, values: dict[str, float]
+    ) -> SizeRecommendation | None:
+        """Sizes against the brand's chart; None when the chart can't be used
+        (none of these measurements in it, or its labels match no stocked size)."""
+        rows = chart.rows
+        usable = [m for m in values if any(m in row for row in rows)]
+        if not usable:
+            return None
+
+        def index_for(measurement: str, value: float) -> tuple[int, bool]:
+            ranges = [(i, row[measurement]) for i, row in enumerate(rows) if measurement in row]
+            for index, (low, high) in ranges:
+                if value <= high:
+                    return index, value >= low
+            return ranges[-1][0], False
+
+        ideal = {m: index_for(m, values[m]) for m in usable}
+        indices = [index for index, _ in ideal.values()]
+        target = max(indices)
+
+        stocked = {v.size_label.strip().upper(): v.size_label for v in product.variants}
+        available = {
+            i: stocked[row["size_label"].upper()]
+            for i, row in enumerate(rows)
+            if row["size_label"].upper() in stocked
+        }
+        if not available:
+            return None
+        chosen = min(available, key=lambda index: (abs(index - target), -index))
+        label = available[chosen]
+
+        confidence = 0.95
+        confidence -= 0.15 * (max(indices) - min(indices))
+        confidence -= 0.2 * abs(chosen - target)
+        confidence -= 0.1 * sum(1 for _, inside in ideal.values() if not inside)
+
+        brand = product.store.name
+        if chosen > target:
+            note = f"Your exact size isn't stocked, so {label} will fit a little loose."
+        elif chosen < target:
+            note = f"Your exact size isn't stocked, so {label} may fit snug."
+        else:
+            note = f"Your measurements match {label} on {brand}'s size chart."
+        return SizeRecommendation(
+            product.id, label, round(max(0.3, confidence), 2), note, size_chart="brand"
+        )
+
+    def _apply_fit_feedback(
+        self, product: Product, chart: SizeChart | None, result: SizeRecommendation
+    ) -> SizeRecommendation:
+        summary = FitFeedbackService(self.db).summarize(product.id)
+        result = replace(result, fit_feedback=summary)
+        runs = summary.runs
+        if runs not in ("small", "large"):
+            return result
+
+        if chart:
+            chart_order = {row["size_label"].upper(): i for i, row in enumerate(chart.rows)}
+            labels = sorted(
+                (v.size_label for v in product.variants),
+                key=lambda label: chart_order.get(label.strip().upper(), len(chart_order)),
+            )
+        else:
+            labels = sorted((v.size_label for v in product.variants), key=_standard_size_key)
+        if result.recommended_size_label not in labels:
+            return result
+
+        agreeing = summary.small if runs == "small" else summary.large
+        said = f"{agreeing} of {summary.reports} shoppers say this runs {runs}"
+        index = labels.index(result.recommended_size_label) + (1 if runs == "small" else -1)
+        if 0 <= index < len(labels):
+            direction = "up" if runs == "small" else "down"
+            return replace(
+                result,
+                recommended_size_label=labels[index],
+                fit_note=f"{result.fit_note} {said}, so we went one size {direction}.",
+            )
+        edge = "largest" if runs == "small" else "smallest"
+        return replace(result, fit_note=f"{result.fit_note} {said} — {edge} size already.")
 
     def _recommend_kids(self, product: Product, profile: BodyProfile) -> SizeRecommendation:
         if product.category.lower() not in CATEGORY_MEASUREMENTS:

@@ -62,14 +62,28 @@ Admin product moderation, queue/worker monitoring, AI telemetry, feature
 flags, audit log and reports; Brand analytics, customers and orders;
 notification preferences; account deletion.
 
-## Phase 4 — Real AI models (same contracts)
+## Done — Phase 4: Real AI models (same contracts)
 
-- Virtual try-on: replace `PlaceholderTryOnPipeline` with a diffusion-based
-  model behind `TryOnPipeline`; GPU deployment; model versioning / A-B via
-  the registry; quality and safety filtering
-- Stylist: embedding-based item compatibility + feedback loop (like/dislike)
-- Sizing: per-brand size chart ingestion; "fits big/small" feedback
-- Shopping: LLM query understanding / embedding search over the catalog
+Each model switches on with configuration (`REPLICATE_*`, `VOYAGE_API_KEY`,
+`ANTHROPIC_API_KEY` — see `docs/AI_INTERFACES.md`); without keys every
+feature still works on its built-in fallback.
+
+- ✅ Virtual try-on: IDM-VTON diffusion try-on on Replicate's GPUs behind the
+  same contract (`TRYON_MODEL_ROUTES`), pinned model versions recorded per
+  job, weighted A/B routing, input/output quality gates, pluggable safety
+  check, automatic fallback to the placeholder; rejected photos fail fast
+  with a reason instead of being retried
+- ✅ Stylist: embeddings (local hashing, or Voyage AI) for occasion fit and
+  item compatibility; like/dislike feedback trains a per-shopper taste
+  vector, item affinity and pairing model that carries over to similar
+  pieces
+- ✅ Sizing: per-brand size charts (CSV or rows, per category; Brand
+  "Size Charts" page) used whenever their labels match; shopper "runs
+  small / true to size / runs large" feedback shifts recommendations one
+  size once ≥3 reports agree ≥60%, and brands see the summary per product
+- ✅ Shopping: Claude query understanding (structured outputs, synonyms for
+  recall, refusal fallbacks; rules when unavailable) and embedding-ranked
+  catalog search
 
 ## Phase 5 — Store Dashboard expansion
 

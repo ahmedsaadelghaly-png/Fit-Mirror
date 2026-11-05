@@ -35,6 +35,8 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
     task_track_started=True,
-    task_time_limit=180,
-    task_soft_time_limit=150,
+    # Above AI_SERVICE_TIMEOUT_SECONDS (180): a hung AI call should end as a
+    # retryable HTTP timeout, not a killed task.
+    task_time_limit=240,
+    task_soft_time_limit=210,
 )

@@ -13,7 +13,9 @@ from app.db.base import Base  # noqa: F401
 from app.models.account_support import ContactMessage, PasswordResetToken  # noqa: F401
 from app.models.product import Product, ProductVariant  # noqa: F401
 from app.models.saved_look import SavedLook  # noqa: F401
+from app.models.sizing import FitFeedback, SizeChart  # noqa: F401
 from app.models.store import Store  # noqa: F401
+from app.models.stylist import OutfitSuggestionRecord  # noqa: F401
 from app.models.tryon_job import TryOnJob  # noqa: F401
 from app.models.user import BodyProfile, User  # noqa: F401
 from app.models.wardrobe import WardrobeItem  # noqa: F401

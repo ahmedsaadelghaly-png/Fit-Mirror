@@ -65,13 +65,13 @@ logic lives in `features/*/hooks`, not in pages or components.
 |---|---|---|
 | Body profile | `GET/PUT /users/me/body-profile` | Real — measurements, body type, style preferences, reference photo |
 | Family profiles | `GET/POST /users/me/body-profiles`, `PUT/DELETE /users/me/body-profiles/{id}` | Real — switcher + "Add family member" on Body Profile (`features/shopper/components/family/`) |
-| Shop + catalog try-on | `GET /catalog/products`, `POST /sizing/recommend` (`body_profile_id`), `POST /tryon` (`product_variant_id`) | Real — `/shopper/shop`; the try-on dialog (`features/shopper/components/shop/product-try-on-dialog.tsx`) picks who it's for (a matching child for kids' items), recommends and preselects their size, uses that profile's saved photo, and opens `/shopper/tryon?job=<id>` |
+| Shop + catalog try-on | `GET /catalog/products`, `POST /sizing/recommend` (`body_profile_id`), `POST /tryon` (`product_variant_id`) | Real — `/shopper/shop`; the try-on dialog (`features/shopper/components/shop/product-try-on-dialog.tsx`) picks who it's for (a matching child for kids' items), recommends and preselects their size, uses that profile's saved photo, and opens `/shopper/tryon?job=<id>`. Shows what shoppers say about the fit and whether the brand's own chart was used; "Already own it?" sends `POST /sizing/feedback` |
 | Wardrobe | `POST/GET /wardrobe`, `DELETE /wardrobe/{id}` | Real |
 | Virtual try-on | `POST /tryon/upload-url`, `POST /tryon`, `GET /tryon/{id}`, `GET /tryon` | Real |
 | Uploads (all surfaces) | `POST /tryon/upload-url` + direct `PUT` to the pre-signed URL | Real — one endpoint reused for body-profile/wardrobe/try-on images, see backend docs/STORAGE.md |
 | Saved looks | `GET/POST /saved-looks`, `DELETE /saved-looks/{id}` | Real — a saved look points at a completed try-on job |
-| AI Stylist | `POST /stylist/suggestions` | Real (rule-based v1) |
-| Shopping Assistant | `POST /shopping/ask` + `GET /catalog/products?ids=` | Real (rule-based v1) — matches render as product cards |
+| AI Stylist | `POST /stylist/suggestions`, `POST /stylist/suggestions/{id}/feedback` | Real — each reply shows the suggested pieces with "Love it" / "Not for me" (`features/shopper/components/stylist/suggested-outfit.tsx`); feedback trains the shopper's taste model |
+| Shopping Assistant | `POST /shopping/ask` + `GET /catalog/products?ids=` | Real — Claude query understanding when the backend has an Anthropic key (rules otherwise), embedding-ranked; matches render as product cards with "Find my size" and "Try on" |
 | Body type (women / men / girls / boys + shape) | `PUT /users/me/body-profile` (`body_category`, `body_shape`) | Real — illustrated picker (`features/shopper/components/body-shape/`), shapes listed in `features/shopper/body-shapes.ts` mirror the backend |
 | Size recommendation | `POST /sizing/recommend` | Real — "Find my size" on each Shopping Assistant match; a 422 (missing measurements) links to Body Profile |
 | Settings → Profile details | `GET/PATCH /users/me` | Real — edit name; email and role read-only |

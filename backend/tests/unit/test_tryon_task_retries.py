@@ -93,3 +93,48 @@ def test_redelivered_completed_job_is_not_regenerated(db, job, monkeypatch):
     process_tryon_job(str(job.id))
 
     assert calls == []
+
+
+def test_rejected_input_fails_immediately_with_the_reason(db, job, monkeypatch):
+    def rejecting_post(*args, **kwargs):
+        return httpx.Response(
+            422,
+            json={"detail": "The photo is too small (120x160)."},
+            request=httpx.Request("POST", "http://ai.test"),
+        )
+
+    monkeypatch.setattr(tryon_tasks.httpx, "post", rejecting_post)
+
+    process_tryon_job(str(job.id))  # no exception: nothing to retry
+
+    refreshed = _status(db, job)
+    assert refreshed.status == TryOnJobStatus.FAILED
+    assert refreshed.error_message == "The photo is too small (120x160)."
+
+
+def test_catalog_job_sends_garment_hints(db, job, make_store, make_product, make_user, monkeypatch):
+    from app.models.user import UserRole
+
+    product = make_product(
+        make_store(make_user(UserRole.BRAND_ADMIN)), title="Red Gown", category="dresses"
+    )
+    job.product_variant_id = product.variants[0].id
+    db.commit()
+    sent = {}
+
+    def ok_post(url, json, timeout):
+        sent.update(json)
+        return httpx.Response(
+            200,
+            json={"result_image_key": "r.png", "model_name": "idm-vton@abc"},
+            request=httpx.Request("POST", url),
+        )
+
+    monkeypatch.setattr(tryon_tasks.httpx, "post", ok_post)
+    process_tryon_job(str(job.id))
+
+    assert sent["garment_category"] == "dresses"
+    assert sent["garment_description"] == "Red Gown"
+    refreshed = _status(db, job)
+    assert refreshed.status == TryOnJobStatus.COMPLETED
+    assert refreshed.ai_model_name == "idm-vton@abc"

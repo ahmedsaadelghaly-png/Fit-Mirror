@@ -14,6 +14,17 @@ class Settings(BaseSettings):
     # This is the whole point of the abstraction: swap "placeholder" for
     # "diffusion_v1", "viton_hd", etc. later without changing calling code.
     TRYON_MODEL_NAME: str = "placeholder"
+    # Weighted A/B split across models, e.g. "idm-vton=90,placeholder=10".
+    # Empty: all traffic goes to TRYON_MODEL_NAME. See app/models/model_registry.py.
+    TRYON_MODEL_ROUTES: str = ""
+    # Tried in order when the routed model fails or its output is rejected.
+    TRYON_FALLBACK_MODELS: str = "placeholder"
+
+    # --- Replicate (hosted diffusion try-on, model "idm-vton") ---
+    REPLICATE_API_TOKEN: str = ""
+    # Exact model version id to run (pinned on purpose — see replicate_tryon_model.py).
+    REPLICATE_TRYON_VERSION: str = ""
+    REPLICATE_TIMEOUT_SECONDS: int = 150
 
     # --- Object Storage (S3-compatible) — same bucket family as the backend ---
     S3_ENDPOINT_URL: str

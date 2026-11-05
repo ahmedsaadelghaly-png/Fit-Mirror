@@ -1,5 +1,5 @@
 import { apiClient } from "@/api/client";
-import type { SizeRecommendation } from "@/types/shopper";
+import type { FitSummary, FitVerdict, SizeRecommendation } from "@/types/shopper";
 
 /**
  * `POST /sizing/recommend` — matches a body profile against the product's
@@ -15,5 +15,15 @@ export async function recommendSize(
     product_id: productId,
     ...(bodyProfileId ? { body_profile_id: bodyProfileId } : {}),
   });
+  return data;
+}
+
+/** `POST /sizing/feedback` — one verdict per shopper per product; returns the updated summary. */
+export async function reportFit(payload: {
+  product_id: string;
+  size_label: string;
+  fit: FitVerdict;
+}): Promise<FitSummary> {
+  const { data } = await apiClient.post<FitSummary>("/sizing/feedback", payload);
   return data;
 }
