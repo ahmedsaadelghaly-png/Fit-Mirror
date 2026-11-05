@@ -1,9 +1,12 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
 from app.models.tryon_job import TryOnJobStatus
+
+GarmentCategory = Literal["upper_body", "lower_body", "dresses"]
 
 
 class TryOnJobCreate(BaseModel):
@@ -15,6 +18,8 @@ class TryOnJobCreate(BaseModel):
 
     user_image_key: str
     garment_image_key: str | None = None
+    # What an uploaded garment is; the model dresses that part of the body.
+    garment_category: GarmentCategory | None = None
     product_variant_id: uuid.UUID | None = None
     # Who the try-on is for, when a family profile was chosen.
     body_profile_id: uuid.UUID | None = None
@@ -27,6 +32,7 @@ class TryOnJobRead(BaseModel):
     status: TryOnJobStatus
     user_image_key: str
     garment_image_key: str
+    garment_category: str | None
     result_image_key: str | None
     ai_model_name: str | None
     error_message: str | None

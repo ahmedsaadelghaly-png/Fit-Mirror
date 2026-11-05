@@ -41,6 +41,10 @@ class TryOnJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     user_image_key: Mapped[str] = mapped_column(String(512), nullable=False)
     garment_image_key: Mapped[str] = mapped_column(String(512), nullable=False)
 
+    # For uploaded garments: "upper_body", "lower_body" or "dresses". Catalog
+    # try-ons take this from the product.
+    garment_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
     status: Mapped[TryOnJobStatus] = mapped_column(
         Enum(TryOnJobStatus, name="tryon_job_status"),
         default=TryOnJobStatus.PENDING,
