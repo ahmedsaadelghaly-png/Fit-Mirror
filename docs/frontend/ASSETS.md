@@ -123,3 +123,11 @@ resolve at `https://unsplash.com/photos/<id>` or
 | products/knit-hanger.jpg | 1434389677669-e08b4cac3105 | (available) |
 | products/kids-flatlay.jpg | 1622290291468-a28f7a7dc6a8 | (available) |
 | products/rail-white.jpg | 1490481651871-ab68de25d43d | (available) |
+
+## Demo catalog photos
+
+`backend/app/db/seed_assets/` holds the seeded product photos. The six women's
+products reuse photos from `frontend/public/images/` (same Unsplash License),
+named after the garment. Tag a product with the audience its photo shows; use
+`unisex` only for items that clearly suit both, since `unisex` appears under
+both Men and Women.

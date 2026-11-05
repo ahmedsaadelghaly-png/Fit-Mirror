@@ -46,6 +46,64 @@ SEED_ASSETS_DIR = Path(__file__).parent / "seed_assets"
 PRODUCT_IMAGE_PREFIX = "seed-data/products"
 WARDROBE_IMAGE_PREFIX = "seed-data/wardrobe"
 
+# title, category, price, image, color, SKU prefix, description
+WOMENS_PRODUCTS = (
+    (
+        "Yellow Fleece Tracksuit",
+        "tops",
+        79.00,
+        "yellow-fleece-tracksuit.jpg",
+        "Yellow",
+        "TRACK-YLW",
+        "Cropped hoodie and matching joggers in soft brushed fleece.",
+    ),
+    (
+        "Powder Blue Wool Coat",
+        "outerwear",
+        169.00,
+        "powder-blue-wool-coat.jpg",
+        "Powder Blue",
+        "COAT-BLU",
+        "Long tailored wool coat in a soft powder blue.",
+    ),
+    (
+        "Navy Plaid Overcoat",
+        "outerwear",
+        159.00,
+        "navy-plaid-overcoat.jpg",
+        "Navy",
+        "OVER-NVY",
+        "Relaxed knee-length overcoat in a navy and green plaid.",
+    ),
+    (
+        "Pink Polka Dot Ruffle Dress",
+        "dresses",
+        119.00,
+        "pink-polka-dot-ruffle-dress.jpg",
+        "Pink",
+        "RUFFLE-PNK",
+        "Off-the-shoulder ruffled dress in sheer polka dot tulle.",
+    ),
+    (
+        "Striped Wide-Leg Trousers",
+        "bottoms",
+        69.00,
+        "striped-wide-leg-trousers.jpg",
+        "Black",
+        "STRIPE-BLK",
+        "High-waisted wide-leg trousers with a bold white pinstripe.",
+    ),
+    (
+        "Crochet Fringe Poncho",
+        "tops",
+        54.00,
+        "crochet-fringe-poncho.jpg",
+        "Cream",
+        "PONCHO-CRM",
+        "Open-knit cotton crochet poncho with a fringed hem.",
+    ),
+)
+
 
 def _upload_seed_images(storage: S3ObjectStorage) -> None:
     """Uploads every seed_assets/*.jpg under both seed prefixes (skipping
@@ -242,6 +300,7 @@ def seed() -> None:
             category="tops",
             price=24.99,
             image="classic-cotton-tshirt.jpg",
+            audience=ProductAudience.MEN,
             description="Heavyweight organic cotton crew neck in a clean, boxy fit.",
             variants=[
                 {"size_label": "M", "color": "White", "sku": "TSHIRT-WHT-M", "stock_quantity": 50},
@@ -278,6 +337,7 @@ def seed() -> None:
             category="outerwear",
             price=89.99,
             image="lightweight-bomber-jacket.jpg",
+            audience=ProductAudience.MEN,
             description="Water-resistant satin bomber in rust, with a ribbed collar and cuffs.",
             variants=[
                 {"size_label": "S", "color": "Rust", "sku": "BOMBER-RST-S", "stock_quantity": 15},
@@ -292,6 +352,7 @@ def seed() -> None:
             category="tops",
             price=19.99,
             image="essential-black-tee.jpg",
+            audience=ProductAudience.MEN,
             description="Everyday black cotton tee with a small chest print.",
             variants=[
                 {"size_label": "S", "color": "Black", "sku": "TEE-BLK-S", "stock_quantity": 40},
@@ -306,6 +367,7 @@ def seed() -> None:
             category="tops",
             price=29.99,
             image="graphic-print-tee.jpg",
+            audience=ProductAudience.MEN,
             description="Sand-colored oversized tee with a bold blue graphic print.",
             variants=[
                 {"size_label": "M", "color": "Sand", "sku": "GRAPHIC-SND-M", "stock_quantity": 25},
@@ -325,6 +387,7 @@ def seed() -> None:
             category="outerwear",
             price=189.00,
             image="leather-biker-jacket.jpg",
+            audience=ProductAudience.MEN,
             description="Black lambskin biker jacket with an asymmetric zip.",
             variants=[
                 {"size_label": "S", "color": "Black", "sku": "BIKER-BLK-S", "stock_quantity": 8},
@@ -347,6 +410,27 @@ def seed() -> None:
                 {"size_label": "M", "color": "Red", "sku": "GOWN-RED-M", "stock_quantity": 6},
             ],
         )
+
+        for title, category, price, image, color, sku, description in WOMENS_PRODUCTS:
+            _get_or_create_product(
+                db,
+                store=store,
+                title=title,
+                category=category,
+                price=price,
+                image=image,
+                audience=ProductAudience.WOMEN,
+                description=description,
+                variants=[
+                    {
+                        "size_label": size,
+                        "color": color,
+                        "sku": f"{sku}-{size}",
+                        "stock_quantity": 10,
+                    }
+                    for size in ("XS", "S", "M", "L")
+                ],
+            )
 
         _get_or_create_product(
             db,
