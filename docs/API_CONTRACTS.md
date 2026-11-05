@@ -149,7 +149,7 @@ failure never fails the request.
 
 | Endpoint | Method | Auth | Query | Success | Error Responses |
 |---|---|---|---|---|---|
-| `/catalog/products` | GET | bearer (any role, shopper-visible = active, not archived, store not suspended) | `ids` (repeatable, ≤50; result keeps this order), `category`, `audience` (`women`/`men`/`girls`/`boys`/`unisex`), `q`, `limit` (≤100, default 24), `offset` | `200` `ProductRead[]` — active products only | `401`, `422` |
+| `/catalog/products` | GET | bearer (any role, shopper-visible = active, not archived, store not suspended) | `ids` (repeatable, ≤50; result keeps this order), `category`, `audience` (`women`/`men`/`girls`/`boys`/`unisex`; `women` and `men` also include `unisex`), `q`, `limit` (≤100, default 24), `offset` | `200` `ProductRead[]` — active products only | `401`, `422` |
 | `/catalog/products/{id}` | GET | bearer (any role) | — | `200` `ProductRead` | `401`, `404` (unknown or inactive) |
 
 ## Store Dashboard
