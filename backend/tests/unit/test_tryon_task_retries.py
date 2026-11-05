@@ -139,3 +139,59 @@ def test_catalog_job_sends_garment_hints(db, job, make_store, make_product, make
     refreshed = _status(db, job)
     assert refreshed.status == TryOnJobStatus.COMPLETED
     assert refreshed.ai_model_name == "idm-vton@abc"
+
+
+def _respond(status):
+    def post(url, json, timeout):
+        return httpx.Response(status, text="boom", request=httpx.Request("POST", url))
+
+    return post
+
+
+def test_model_failure_is_not_retried(db, job, monkeypatch):
+    monkeypatch.setattr(tryon_tasks.httpx, "post", _respond(500))
+
+    process_tryon_job(str(job.id))  # no exception: nothing for Celery to retry
+
+    refreshed = _status(db, job)
+    assert refreshed.status == TryOnJobStatus.FAILED
+    assert refreshed.error_message == tryon_tasks.GENERATION_FAILED
+
+
+def test_ai_service_restarting_is_retried(db, job, monkeypatch):
+    monkeypatch.setattr(tryon_tasks.httpx, "post", _respond(503))
+
+    with pytest.raises(httpx.HTTPStatusError):
+        process_tryon_job(str(job.id))
+
+    assert _status(db, job).status == TryOnJobStatus.PENDING
+
+
+def test_read_timeout_is_not_retried(db, job, monkeypatch):
+    def timing_out(*args, **kwargs):
+        raise httpx.ReadTimeout("still running")
+
+    monkeypatch.setattr(tryon_tasks.httpx, "post", timing_out)
+
+    process_tryon_job(str(job.id))
+
+    assert _status(db, job).status == TryOnJobStatus.FAILED
+
+
+def test_uploaded_garment_sends_its_category(db, job, monkeypatch):
+    job.garment_category = "lower_body"
+    db.commit()
+    sent = {}
+
+    def ok_post(url, json, timeout):
+        sent.update(json)
+        return httpx.Response(
+            200,
+            json={"result_image_key": "r.png", "model_name": "m"},
+            request=httpx.Request("POST", url),
+        )
+
+    monkeypatch.setattr(tryon_tasks.httpx, "post", ok_post)
+    process_tryon_job(str(job.id))
+
+    assert sent["garment_category"] == "lower_body"

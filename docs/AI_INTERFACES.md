@@ -102,10 +102,23 @@ model when a fallback produced the result (the worker logs it).
 version by routing a share of traffic to it, compare results per
 `ai_model_name`, then shift the weights; rolling back is a config change.
 
-**Timeouts:** the AI service gives Replicate `REPLICATE_TIMEOUT_SECONDS`
-(150); the backend waits `AI_SERVICE_TIMEOUT_SECONDS` (180); Celery's
-soft/hard task limits are 210/240, so a hung call ends as a retryable
-HTTP timeout rather than a killed task.
+**Licence:** IDM-VTON is CC BY-NC-SA 4.0, non-commercial. `idm-vton` is for
+private testing only and refuses to start when `ENVIRONMENT=production`. A
+commercially licensed model must replace it before launch.
+
+**Timeouts and retries:** `REPLICATE_TIMEOUT_SECONDS` (150) covers the whole
+call, uploads included; the backend waits `AI_SERVICE_TIMEOUT_SECONDS` (180);
+Celery's soft/hard task limits are 210/240. A try-on that fails in the model
+isn't retried, because each attempt is a new paid run: the job fails and the
+shopper can try again. Only failures before any model ran (the AI service
+unreachable or restarting) are retried. An abandoned prediction is cancelled.
+
+**Shopper photos at the provider:** uploaded files are deleted after each run.
+Replicate removes API prediction inputs and outputs after an hour by default.
+
+**Garment category:** catalog try-ons take it from the product. For uploads the
+shopper picks it (`garment_category`), because the model needs to know which
+part of the body to dress.
 
 ## Future model replacement rules
 

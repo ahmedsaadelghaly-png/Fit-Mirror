@@ -74,6 +74,7 @@ class TryOnService:
             product_variant_id=payload.product_variant_id,
             user_image_key=payload.user_image_key,
             garment_image_key=garment_image_key,
+            garment_category=payload.garment_category,
             status=TryOnJobStatus.PENDING,
         )
         job = self.repository.add(job)

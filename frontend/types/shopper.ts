@@ -86,9 +86,12 @@ export interface WardrobeFilters {
 // Virtual Try-On
 // ---------------------------------------------------------------------------
 
+export type GarmentCategory = "upper_body" | "lower_body" | "dresses";
+
 export interface TryOnCreateRequest {
   user_image_key: string;
   garment_image_key?: string | null;
+  garment_category?: GarmentCategory | null;
   product_variant_id?: string | null;
   body_profile_id?: string | null;
 }

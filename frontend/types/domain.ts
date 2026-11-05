@@ -55,6 +55,7 @@ export interface TryOnJob {
   status: TryOnJobStatus;
   user_image_key: string;
   garment_image_key: string;
+  garment_category?: "upper_body" | "lower_body" | "dresses" | null;
   result_image_key: string | null;
   ai_model_name: string | null;
   error_message: string | null;

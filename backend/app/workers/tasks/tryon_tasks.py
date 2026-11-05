@@ -44,10 +44,15 @@ class TryOnRejected(Exception):
     message is shopper-facing (e.g. "The photo is too small ...")."""
 
 
+class GenerationFailed(Exception):
+    """The AI service tried and every model failed (500). Not retried: each
+    attempt is a new paid model run, and the shopper can simply try again."""
+
+
 def _garment_hints(job) -> dict[str, str]:
     variant = job.product_variant
     if variant is None:
-        return {}
+        return {"garment_category": job.garment_category} if job.garment_category else {}
     product = variant.product
     hints = {"garment_description": product.title}
     if category := GARMENT_CATEGORIES.get(product.category.lower()):
@@ -109,6 +114,8 @@ def process_tryon_job(self, job_id: str) -> None:
         )
         if 400 <= response.status_code < 500:
             raise TryOnRejected(_rejection_message(response))
+        if response.status_code == 500:
+            raise GenerationFailed(response.text[:500])
         response.raise_for_status()
         result = response.json()
 
@@ -130,7 +137,10 @@ def process_tryon_job(self, job_id: str) -> None:
     except Exception as exc:  # noqa: BLE001 - every failure must leave the row consistent
         db.rollback()
         job = repository.get(uuid.UUID(job_id))
-        will_retry = isinstance(exc, httpx.HTTPError) and self.request.retries < self.max_retries
+        # After a read timeout the AI service may still be running the job, so
+        # a retry could pay for a second run.
+        retryable = isinstance(exc, httpx.HTTPError) and not isinstance(exc, httpx.ReadTimeout)
+        will_retry = retryable and self.request.retries < self.max_retries
 
         if will_retry:
             logger.warning(

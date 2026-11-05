@@ -12,7 +12,12 @@ from PIL import Image, ImageDraw
 from app.core.config import settings
 from app.pipelines.base_pipeline import TryOnInput, TryOnModel
 from app.pipelines.quality import InputRejected, check_inputs
-from app.pipelines.replicate_tryon_model import ReplicateError, ReplicateTryOnModel
+from app.pipelines.replicate_tryon_model import (
+    HTTP_TIMEOUT,
+    PREFER_WAIT_SECONDS,
+    ReplicateError,
+    ReplicateTryOnModel,
+)
 from app.pipelines.tryon_router import AllModelsFailed, TryOnRouter, parse_routes, pick_route
 
 pytestmark = pytest.mark.unit
@@ -160,19 +165,29 @@ def replicate_settings(monkeypatch):
     monkeypatch.setattr(settings, "REPLICATE_TIMEOUT_SECONDS", 5)
 
 
-def _replicate_transport(final_status="succeeded"):
-    seen = {"inputs": None, "polls": 0}
+def _replicate_transport(final_status="succeeded", *, stuck=False):
+    seen = {"inputs": None, "polls": 0, "uploads": 0, "deleted": [], "cancelled": 0}
     result_png = _png(_photo(seed=90))
 
     def handler(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
         if url.endswith("/v1/files"):
             assert request.headers["Authorization"] == "Bearer r8_test"
-            return httpx.Response(201, json={"urls": {"get": f"https://files.test/{len(url)}"}})
+            seen["uploads"] += 1
+            file_id = f"file-{seen['uploads']}"
+            return httpx.Response(
+                201, json={"id": file_id, "urls": {"get": f"https://files.test/{file_id}"}}
+            )
+        if request.method == "DELETE":
+            seen["deleted"].append(url.rsplit("/", 1)[-1])
+            return httpx.Response(204)
+        if url == "https://api.test/p/1/c":
+            seen["cancelled"] += 1
+            return httpx.Response(200, json={})
         if url.endswith("/v1/predictions"):
             body = json.loads(request.content)
             seen["inputs"] = body
-            assert request.headers["Prefer"] == "wait=60"
+            assert request.headers["Prefer"] == "wait=30"
             return httpx.Response(
                 201,
                 json={
@@ -185,7 +200,7 @@ def _replicate_transport(final_status="succeeded"):
             return httpx.Response(
                 200,
                 json={
-                    "status": final_status,
+                    "status": "processing" if stuck else final_status,
                     "output": "https://out.test/result.png",
                     "error": "OOM" if final_status == "failed" else None,
                     "urls": {"get": "https://api.test/p/1", "cancel": "https://api.test/p/1/c"},
@@ -224,4 +239,52 @@ def test_replicate_failure_raises(replicate_settings):
 def test_replicate_requires_credentials(monkeypatch):
     monkeypatch.setattr(settings, "REPLICATE_API_TOKEN", "")
     with pytest.raises(ValueError, match="REPLICATE_API_TOKEN"):
+        ReplicateTryOnModel()
+
+
+def test_replicate_deletes_uploads_after_a_run(replicate_settings):
+    transport, seen = _replicate_transport()
+    model = ReplicateTryOnModel(httpx.Client(transport=transport), poll_interval=0)
+    model.generate(_photo(), _photo((400, 400)))
+    assert seen["deleted"] == ["file-1", "file-2"]
+
+
+def test_replicate_deletes_uploads_when_the_run_fails(replicate_settings):
+    transport, seen = _replicate_transport("failed")
+    model = ReplicateTryOnModel(httpx.Client(transport=transport), poll_interval=0)
+    with pytest.raises(ReplicateError):
+        model.generate(_photo(), _photo((400, 400)))
+    assert seen["deleted"] == ["file-1", "file-2"]
+
+
+def test_replicate_timeout_covers_the_whole_call_and_cancels(replicate_settings, monkeypatch):
+    monkeypatch.setattr(settings, "REPLICATE_TIMEOUT_SECONDS", 0)
+    transport, seen = _replicate_transport(stuck=True)
+    model = ReplicateTryOnModel(httpx.Client(transport=transport), poll_interval=0)
+
+    with pytest.raises(ReplicateError, match="timed out"):
+        model.generate(_photo(), _photo((400, 400)))
+
+    assert seen["cancelled"] == 1
+    assert seen["deleted"] == ["file-1", "file-2"]
+
+
+def test_replicate_crops_only_when_the_photo_is_not_three_by_four(replicate_settings):
+    transport, seen = _replicate_transport()
+    model = ReplicateTryOnModel(httpx.Client(transport=transport), poll_interval=0)
+
+    model.generate(_photo((600, 800)), _photo((400, 400)))
+    assert seen["inputs"]["input"]["crop"] is False
+
+    model.generate(_photo((800, 800)), _photo((400, 400)))
+    assert seen["inputs"]["input"]["crop"] is True
+
+
+def test_replicate_wait_is_shorter_than_the_http_timeout():
+    assert PREFER_WAIT_SECONDS < HTTP_TIMEOUT.read
+
+
+def test_replicate_refuses_to_run_in_production(replicate_settings, monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    with pytest.raises(ValueError, match="non-commercial"):
         ReplicateTryOnModel()

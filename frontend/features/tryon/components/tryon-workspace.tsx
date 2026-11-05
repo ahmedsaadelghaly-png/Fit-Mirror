@@ -19,6 +19,7 @@ import { useTryOnJob } from "@/features/tryon/hooks/use-tryon-job";
 import { useTryOnJobs } from "@/features/tryon/hooks/use-tryon-jobs";
 import { retryPayload } from "@/features/tryon/lib/job-display";
 import type { TryOnJob } from "@/types/domain";
+import type { GarmentCategory } from "@/types/shopper";
 
 /**
  * The flagship Virtual Try-On workspace: split layout (user photo /
@@ -30,6 +31,7 @@ import type { TryOnJob } from "@/types/domain";
 function TryOnWorkspace() {
   const userUpload = useUpload();
   const garmentUpload = useUpload();
+  const [garmentCategory, setGarmentCategory] = useState<GarmentCategory>("upper_body");
   // `?job=<id>` — arriving from a catalog try-on or a history card.
   const searchParams = useSearchParams();
   const [activeJobId, setActiveJobId] = useState<string | null>(searchParams.get("job"));
@@ -52,6 +54,7 @@ function TryOnWorkspace() {
     const accepted = await createJobMutation.mutateAsync({
       user_image_key: userImageKey,
       garment_image_key: garmentImageKey,
+      garment_category: garmentCategory,
     });
     setActiveJobId(accepted.job_id);
   };
@@ -111,7 +114,12 @@ function TryOnWorkspace() {
       <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1.6fr)_320px]">
         <div className="flex flex-col gap-4">
           <UserPhotoPanel upload={userUpload} disabled={createJobMutation.isPending} />
-          <GarmentPanel upload={garmentUpload} disabled={createJobMutation.isPending} />
+          <GarmentPanel
+            upload={garmentUpload}
+            disabled={createJobMutation.isPending}
+            category={garmentCategory}
+            onCategoryChange={setGarmentCategory}
+          />
         </div>
 
         <ResultPanel

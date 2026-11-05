@@ -20,7 +20,11 @@ export function tryOnJobMeta(job: TryOnJob): string {
 export function retryPayload(job: TryOnJob): TryOnCreateRequest {
   return job.product_variant_id
     ? { user_image_key: job.user_image_key, product_variant_id: job.product_variant_id }
-    : { user_image_key: job.user_image_key, garment_image_key: job.garment_image_key };
+    : {
+        user_image_key: job.user_image_key,
+        garment_image_key: job.garment_image_key,
+        garment_category: job.garment_category,
+      };
 }
 
 export function newestFirst(jobs: TryOnJob[]): TryOnJob[] {
