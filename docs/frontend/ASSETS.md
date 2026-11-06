@@ -131,3 +131,15 @@ products reuse photos from `frontend/public/images/` (same Unsplash License),
 named after the garment. Tag a product with the audience its photo shows; use
 `unisex` only for items that clearly suit both, since `unisex` appears under
 both Men and Women.
+
+## Body shape figures
+
+`frontend/public/images/body-shapes/` holds one figure per body shape, named
+`{category}-{shape}.webp`. To regenerate them (needs numpy and Pillow):
+
+    python scripts/build_body_shape_figures.py frontend/public/images/body-shapes
+
+Adult figures can come from real meshes instead. Run
+`bash scripts/export_adult_body_meshes.sh` (Anny: Apache-2.0 code, CC0 data),
+then `python scripts/render_body_meshes.py MESH_DIR frontend/public/images/body-shapes`.
+Children's figures always stay abstract: the export refuses to go below adult age.

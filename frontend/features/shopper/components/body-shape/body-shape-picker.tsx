@@ -1,10 +1,10 @@
 "use client";
 
 import { Check } from "lucide-react";
+import Image from "next/image";
 
 import { cn } from "@/lib/utils";
-import { BODY_CATEGORIES, findBodyCategory } from "@/features/shopper/body-shapes";
-import { BodyShapeIllustration } from "@/features/shopper/components/body-shape/body-shape-illustration";
+import { BODY_CATEGORIES, bodyShapeImage, findBodyCategory } from "@/features/shopper/body-shapes";
 import { FashionImage } from "@/shared/components/fashion-image";
 import type { BodyCategory } from "@/types/domain";
 
@@ -110,12 +110,13 @@ function BodyShapePicker({ value, onChange, error, idPrefix = "body" }: BodyShap
                       <Check className="size-3" aria-hidden="true" />
                     </span>
                   )}
-                  <span className="flex h-40 items-end justify-center">
-                    <BodyShapeIllustration
-                      proportions={shape.proportions}
-                      isKids={category.isKids}
-                    />
-                  </span>
+                  <Image
+                    src={bodyShapeImage(category.value, shape.value)}
+                    alt=""
+                    width={440}
+                    height={640}
+                    className="h-56 w-auto"
+                  />
                   <span className="text-sm font-medium">{shape.label}</span>
                   <span className="text-xs text-muted-foreground">{shape.description}</span>
                 </label>
