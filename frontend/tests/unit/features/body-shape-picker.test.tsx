@@ -1,8 +1,11 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 
-import { BODY_CATEGORIES } from "@/features/shopper/body-shapes";
+import { BODY_CATEGORIES, bodyShapeImage } from "@/features/shopper/body-shapes";
 import {
   BodyShapePicker,
   type BodyShapeValue,
@@ -19,6 +22,15 @@ function Harness({ initial }: { initial: BodyShapeValue }) {
 }
 
 describe("BodyShapePicker", () => {
+  it("has a rendered figure for every shape", () => {
+    for (const category of BODY_CATEGORIES) {
+      for (const shape of category.shapes) {
+        const path = join("public", bodyShapeImage(category.value, shape.value));
+        expect(existsSync(path), path).toBe(true);
+      }
+    }
+  });
+
   it("offers all four profile categories", () => {
     render(<Harness initial={{ category: "", shape: "" }} />);
     for (const label of ["Women", "Men", "Girls", "Boys"]) {
